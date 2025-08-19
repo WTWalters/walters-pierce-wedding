@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emme & CeeJay | September 2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Montserrat", sans-serif;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #00330a 0%, #004d0f 25%, #00330a 50%, #002206 100%);
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Elegant overlay pattern */
+      body::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image:
+          radial-gradient(circle at 25% 25%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 75% 75%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+          radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+        z-index: 1;
+      }
+
+      /* Floating botanical elements */
+      .botanical-decoration {
+        position: fixed;
+        opacity: 0.05;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .botanical-1 {
+        top: 10%;
+        left: 5%;
+        width: 150px;
+        height: 150px;
+        background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, transparent 70%);
+        animation: float 20s ease-in-out infinite;
+      }
+
+      .botanical-2 {
+        bottom: 10%;
+        right: 5%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+        animation: float 25s ease-in-out infinite reverse;
+      }
+
+      .main-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .announcement-card {
+        background: linear-gradient(135deg, #fdfcfb 0%, #f9f7f4 100%);
+        padding: 80px 60px;
+        border-radius: 30px;
+        box-shadow:
+          0 40px 100px rgba(0, 51, 10, 0.4),
+          0 15px 40px rgba(0, 51, 10, 0.3),
+          inset 0 2px 20px rgba(255, 255, 255, 0.9);
+        max-width: 950px;
+        width: 100%;
+        text-align: center;
+        position: relative;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+      }
+
+      /* Gold corner accents */
+      .corner-accent {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        border: 2px solid #d4af37;
+        opacity: 0.6;
+      }
+
+      .corner-accent.top-left {
+        top: 20px;
+        left: 20px;
+        border-right: none;
+        border-bottom: none;
+      }
+
+      .corner-accent.top-right {
+        top: 20px;
+        right: 20px;
+        border-left: none;
+        border-bottom: none;
+      }
+
+      .corner-accent.bottom-left {
+        bottom: 20px;
+        left: 20px;
+        border-right: none;
+        border-top: none;
+      }
+
+      .corner-accent.bottom-right {
+        bottom: 20px;
+        right: 20px;
+        border-left: none;
+        border-top: none;
+      }
+
+      .names-header {
+        margin-bottom: 30px;
+      }
+
+      .couple-names {
+        font-family: "Playfair Display", serif;
+        font-size: 4.5rem;
+        font-weight: 400;
+        font-style: italic;
+        background: linear-gradient(135deg, #00330a 0%, #004d0f 50%, #00330a 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1.1;
+        margin-bottom: 15px;
+        letter-spacing: 2px;
+      }
+
+      .ampersand {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 3rem;
+        font-weight: 300;
+        color: #d4af37;
+        display: block;
+        margin: 10px 0;
+      }
+
+      .announcement-text {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.8rem;
+        font-weight: 300;
+        color: #00330a;
+        margin-bottom: 20px;
+        font-style: italic;
+        opacity: 0.9;
+      }
+
+      .wedding-date {
+        font-family: "Montserrat", sans-serif;
+        font-size: 1.1rem;
+        font-weight: 400;
+        color: #666;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        margin-bottom: 50px;
+        position: relative;
+        display: inline-block;
+        padding: 0 40px;
+      }
+
+      .wedding-date::before,
+      .wedding-date::after {
+        content: "❦";
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #d4af37;
+        font-size: 1.2rem;
+      }
+
+      .wedding-date::before {
+        left: 0;
+      }
+
+      .wedding-date::after {
+        right: 0;
+      }
+
+      .divider-ornament {
+        width: 200px;
+        height: 40px;
+        margin: 40px auto;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .divider-line {
+        width: 100%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #d4af37, transparent);
+      }
+
+      .divider-center {
+        position: absolute;
+        background: #fdfcfb;
+        padding: 0 15px;
+        font-size: 1.5rem;
+        color: #00330a;
+      }
+
+      .photo-section {
+        margin: 50px 0;
+        position: relative;
+      }
+
+      .photo-frame-wrapper {
+        position: relative;
+        max-width: 650px;
+        margin: 0 auto;
+      }
+
+      .photo-frame {
+        width: 100%;
+        padding-top: 66.67%; /* 3:2 aspect ratio */
+        position: relative;
+        border-radius: 15px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #f5f5f0 0%, #e8e6e1 100%);
+        border: 8px solid;
+        border-image: linear-gradient(135deg, #d4af37, #b8860b, #d4af37) 1;
+        box-shadow:
+          0 25px 60px rgba(0, 51, 10, 0.3),
+          inset 0 2px 10px rgba(255, 255, 255, 0.8);
+      }
+
+      .photo-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background:
+          repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(212, 175, 55, 0.03) 10px,
+            rgba(212, 175, 55, 0.03) 20px
+          ),
+          linear-gradient(135deg, rgba(0, 51, 10, 0.02) 0%, transparent 100%);
+      }
+
+      .camera-icon {
+        font-size: 3.5rem;
+        color: #00330a;
+        opacity: 0.3;
+        margin-bottom: 20px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      .photo-coming-text {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.8rem;
+        color: #00330a;
+        opacity: 0.5;
+        font-style: italic;
+      }
+
+      .coming-soon-ribbon {
+        position: absolute;
+        top: 30px;
+        right: -35px;
+        background: linear-gradient(135deg, #00330a, #004d0f);
+        color: #fff;
+        padding: 10px 40px;
+        transform: rotate(45deg);
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 500;
+        box-shadow: 0 5px 15px rgba(0, 51, 10, 0.3);
+      }
+
+      .tagline {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.4rem;
+        color: #666;
+        font-style: italic;
+        margin-top: 40px;
+        opacity: 0.8;
+      }
+
+      .website-info {
+        font-size: 0.9rem;
+        color: #999;
+        margin-top: 20px;
+        letter-spacing: 1px;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0) translateX(0) rotate(0deg);
+        }
+        33% {
+          transform: translateY(-20px) translateX(10px) rotate(2deg);
+        }
+        66% {
+          transform: translateY(10px) translateX(-5px) rotate(-1deg);
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.3;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.4;
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .announcement-card {
+          padding: 50px 30px;
+        }
+
+        .couple-names {
+          font-size: 3rem;
+        }
+
+        .ampersand {
+          font-size: 2rem;
+        }
+
+        .announcement-text {
+          font-size: 1.4rem;
+        }
+
+        .corner-accent {
+          width: 40px;
+          height: 40px;
+        }
+
+        .wedding-date {
+          font-size: 0.95rem;
+          padding: 0 30px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .couple-names {
+          font-size: 2.5rem;
+        }
+
+        .announcement-text {
+          font-size: 1.2rem;
+        }
+
+        .photo-coming-text {
+          font-size: 1.4rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="botanical-decoration botanical-1"></div>
+    <div class="botanical-decoration botanical-2"></div>
+
+    <div class="main-container">
+      <div class="announcement-card">
+        <!-- Corner accents -->
+        <div class="corner-accent top-left"></div>
+        <div class="corner-accent top-right"></div>
+        <div class="corner-accent bottom-left"></div>
+        <div class="corner-accent bottom-right"></div>
+
+        <div class="names-header">
+          <h1 class="couple-names">Emme</h1>
+          <span class="ampersand">&</span>
+          <h1 class="couple-names">CeeJay</h1>
+        </div>
+
+        <p class="announcement-text">are getting married!</p>
+
+        <p class="wedding-date">September 2026</p>
+
+        <div class="divider-ornament">
+          <div class="divider-line"></div>
+          <div class="divider-center">♡</div>
+        </div>
+
+        <div class="photo-section">
+          <div class="photo-frame-wrapper">
+            <div class="photo-frame">
+              <div class="photo-content">
+                <div class="camera-icon">📷</div>
+                <div class="photo-coming-text">Engagement photo coming soon</div>
+              </div>
+              <div class="coming-soon-ribbon">Coming Soon</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="tagline">Our wedding story begins here</p>
+        <p class="website-info">More details to come • Save the date</p>
+      </div>
+    </div>
+  </body>
+</html>
