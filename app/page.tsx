@@ -85,7 +85,15 @@ export default function Home() {
             </div>
             <div className="hidden md:block w-px h-6 bg-amber-200/50" />
             <div className="flex items-center gap-2">
-              <MapPin className="w-6 h-6" style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 8px rgba(0,0,0,0.6))' }} />
+              <a
+                href="https://www.google.com/maps/place/Idaho+Springs,+CO"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer hover:scale-110 transition-transform duration-200"
+                aria-label="Open Idaho Springs, Colorado in Google Maps"
+              >
+                <MapPin className="w-6 h-6" style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 8px rgba(0,0,0,0.6))' }} />
+              </a>
               <span className="font-light">Idaho Springs, Colorado</span>
             </div>
           </div>
