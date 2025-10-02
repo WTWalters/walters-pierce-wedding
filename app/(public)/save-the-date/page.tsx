@@ -159,7 +159,7 @@ export default function SaveTheDatePage() {
                 href="/"
                 className="text-green-600 hover:text-green-800 underline"
               >
-                ← Back to Wedding Website
+                Back to Wedding Website
               </Link>
             </div>
           </div>

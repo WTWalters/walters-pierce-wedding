@@ -120,11 +120,11 @@ export default function VenuePage() {
               Emme & Connor's Wedding
             </p>
             <div className="mt-4">
-              <Link 
+              <Link
                 href="/"
                 className="text-green-600 hover:text-green-800 underline"
               >
-                ← Back to Wedding Website
+                Back to Wedding Website
               </Link>
             </div>
           </div>

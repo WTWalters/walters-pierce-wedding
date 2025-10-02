@@ -208,7 +208,7 @@ export default function LoginPage() {
                 href="/"
                 className="text-green-600 hover:text-green-800 text-sm transition-colors"
               >
-                ← Back to Wedding Website
+                Back to Wedding Website
               </Link>
             </div>
           </div>
