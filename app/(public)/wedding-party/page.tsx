@@ -66,7 +66,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Grayson and I first met as coworkers at Sweet Cow, and I never could have guessed that scooping ice cream would bring me one of my closest friends. She was a light for me during one of the toughest times in my life, and I'm so grateful she'll be by my side on such an important day.",
       relationship: 'Sweet Cow Coworker & Friend',
-      photoUrl: '/images/wedding-party/Grayson_Heyart.jpeg',
+      photoUrl: '/images/wedding-party/Grayson_Heyart_new.jpeg',
       sortOrder: 5,
       isFeatured: false
     }
