@@ -80,7 +80,14 @@ export default function Home() {
           
           <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-lg md:text-xl text-amber-100 mb-12" style={{ textShadow: '3px 3px 8px rgba(0,0,0,0.9), 1px 1px 4px rgba(0,0,0,0.8)' }}>
             <div className="flex items-center gap-2">
-              <Calendar className="w-6 h-6" style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 8px rgba(0,0,0,0.6))' }} />
+              <a
+                href="data:text/calendar;charset=utf8,BEGIN:VCALENDAR%0AVERSION:2.0%0APRODID:-//Emme%20%26%20Connor//Wedding//EN%0ABEGIN:VEVENT%0ADTSTART:20260920T160000%0ADTEND:20260920T220000%0ASUMMARY:Emme%20%26%20Connor's%20Wedding%0ADESCRIPTION:Join%20us%20as%20we%20celebrate%20our%20special%20day%20in%20the%20beautiful%20Colorado%20mountains!%0ALOCATION:Idaho%20Springs%2C%20Colorado%0AUID:wedding-emme-connor-2026%0AEND:VEVENT%0AEND:VCALENDAR"
+                download="Emme-Connor-Wedding.ics"
+                className="cursor-pointer hover:scale-110 transition-transform duration-200"
+                aria-label="Add wedding date to calendar"
+              >
+                <Calendar className="w-6 h-6" style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 8px rgba(0,0,0,0.6))' }} />
+              </a>
               <span className="font-light">September 2026</span>
             </div>
             <div className="hidden md:block w-px h-6 bg-amber-200/50" />
