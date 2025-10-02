@@ -69,44 +69,58 @@ export default function WeddingPartyPage() {
       photoUrl: '/images/wedding-party/Grayson_Heyart.jpeg',
       sortOrder: 5,
       isFeatured: false
-    },
+    }
+  ]
+
+  const groomsSide: WeddingPartyMember[] = [
+    // Groom's side will be added when provided
+  ]
+
+  const flowerGirlsAndRingBearers: WeddingPartyMember[] = [
     {
       id: '6',
       name: 'Sophia Walters',
       role: 'Flower Girl',
-      side: 'bride',
+      side: 'kids',
       bio: "Sophia is Emme's sweet niece who will be spreading flower petals down the aisle on the big day. She's the daughter of Emme's brother Ethan and sister-in-law Amber.",
       relationship: 'Niece (Ethan & Amber\'s daughter)',
       photoUrl: '/images/wedding-party/Sophia_Walters.jpeg',
-      sortOrder: 6,
+      sortOrder: 1,
       isFeatured: false
     },
     {
       id: '7',
       name: 'Reagan Walters',
       role: 'Flower Girl',
-      side: 'bride',
+      side: 'kids',
       bio: "Reagan is another one of Emme's precious nieces who will be joining Sophia as a flower girl. She's the daughter of Emme's brother Tom and sister-in-law Jennifer.",
       relationship: 'Niece (Tom & Jennifer\'s daughter)',
       photoUrl: '/images/wedding-party/Reagan_Walters.jpeg',
-      sortOrder: 7,
+      sortOrder: 2,
       isFeatured: false
     },
     {
       id: '8',
       name: 'Daniel Walters',
       role: 'Ring Bearer',
-      side: 'bride',
+      side: 'kids',
       bio: "Daniel is Emme's nephew who has the very important job of carrying the rings down the aisle. He's the son of Emme's brother Ethan and sister-in-law Amber, and Sophia's younger brother.",
       relationship: 'Nephew (Ethan & Amber\'s son, Sophia\'s brother)',
       photoUrl: '/images/wedding-party/Daniel_Walters.jpeg',
-      sortOrder: 8,
+      sortOrder: 3,
+      isFeatured: false
+    },
+    {
+      id: '9',
+      name: 'Andrew Walters',
+      role: 'Ring Bearer',
+      side: 'kids',
+      bio: "Andrew is Emme's nephew and the first of nieces and nephews. Andrew has the important task of keeping track of Daniel and the ring. He's the oldest son of Emme's brother Tom and sister-in-law Jennifer and Reagan's big brother.",
+      relationship: 'Nephew (Tom & Jennifer\'s son, Reagan\'s brother)',
+      photoUrl: '/images/wedding-party/Andrew_Walters.jpeg',
+      sortOrder: 4,
       isFeatured: false
     }
-  ]
-
-  const groomsSide: WeddingPartyMember[] = [
-    // Groom's side will be added when provided
   ]
 
   const formatRole = (role: string) => {
@@ -134,6 +148,16 @@ export default function WeddingPartyPage() {
             src={member.photoUrl}
             alt={`${member.name} - ${member.role}`}
             className="h-full w-full object-cover"
+            style={{
+              objectPosition:
+                member.name === 'L Walters' ? 'center 35%' :
+                member.name === 'Grayson Heyart' ? 'center 15%' :
+                member.name === 'Daniel Walters' ? 'center 25%' :
+                member.name === 'Sophia Walters' ? 'center 20%' :
+                member.name === 'Reagan Walters' ? 'center 5%' :
+                member.name === 'Andrew Walters' ? 'center 15%' :
+                'center center'
+            }}
           />
         ) : (
           <div className="h-full flex items-center justify-center">
@@ -232,18 +256,32 @@ export default function WeddingPartyPage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">🤵 Groom's Side</h2>
             <p className="text-gray-600">Supporting CeeJay on his special day</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {groomsSide.map((member) => (
               <WeddingPartyCard key={member.id} member={member} />
             ))}
           </div>
-          
+
           {groomsSide.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">Wedding party information coming soon!</p>
             </div>
           )}
+        </div>
+
+        {/* Flower Girls and Ring Bearers */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">🌸💍 Flower Girls and Ring Bearers</h2>
+            <p className="text-gray-600">Our special little helpers making the day even more magical</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {flowerGirlsAndRingBearers.map((member) => (
+              <WeddingPartyCard key={member.id} member={member} />
+            ))}
+          </div>
         </div>
 
         {/* Thank You Section */}
