@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
               <strong>Test Details:</strong><br>
               Sent to: ${session.user.email}<br>
               Sent at: ${new Date().toLocaleString()}<br>
-              System: ${process.env.RESEND_API_KEY?.startsWith('re_') ? 'Resend (Production)' : 'Development Mode'}
+              System: ${process.env.MAILERLITE_API_KEY ? 'MailerLite (Production)' : 'Development Mode'}
             </div>
             
             <p>If you're seeing this email, your wedding website email system is configured correctly!</p>
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         Test Details:
         Sent to: ${session.user.email}
         Sent at: ${new Date().toLocaleString()}
-        System: ${process.env.RESEND_API_KEY?.startsWith('re_') ? 'Resend (Production)' : 'Development Mode'}
+        System: ${process.env.MAILERLITE_API_KEY ? 'MailerLite (Production)' : 'Development Mode'}
         
         If you're seeing this email, your wedding website email system is configured correctly!
         

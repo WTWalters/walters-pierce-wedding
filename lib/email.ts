@@ -1,13 +1,19 @@
-import { MailerLite } from '@mailerlite/mailerlite-nodejs'
-
 // Initialize MailerLite - only when API key is available
 const getMailerLite = () => {
   if (!process.env.MAILERLITE_API_KEY || process.env.MAILERLITE_API_KEY === 'fake-key-for-build') {
     return null
   }
-  return new MailerLite({
-    api_key: process.env.MAILERLITE_API_KEY
-  })
+
+  try {
+    // Dynamic import to avoid build issues
+    const { MailerLite } = require('@mailerlite/mailerlite-nodejs')
+    return new MailerLite({
+      api_key: process.env.MAILERLITE_API_KEY
+    })
+  } catch (error) {
+    console.log('MailerLite not available, using fallback mode')
+    return null
+  }
 }
 
 export interface EmailTemplate {
