@@ -171,8 +171,7 @@ export default function SaveTheDatePage() {
         {/* Announcement Card */}
         <section className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
           <div className="bg-gradient-to-r from-green-800 to-green-900 text-white p-8 text-center">
-            <h2 className="text-4xl font-bold mb-4">Save the Date</h2>
-            <p className="text-xl opacity-90">You're Invited!</p>
+            <h2 className="text-4xl font-bold mb-4">You're Invited!</h2>
           </div>
 
           <div className="p-8 text-center">
@@ -190,18 +189,11 @@ export default function SaveTheDatePage() {
                 <p className="text-2xl text-yellow-600 font-bold" style={{ writingMode: 'horizontal-tb' }}>September 2026</p>
                 <p className="text-lg text-gray-700" style={{ writingMode: 'horizontal-tb' }}>Colorado Mountains</p>
               </div>
-              <p className="text-sm text-gray-500 mt-4" style={{ writingMode: 'horizontal-tb' }}>
-                Exact date and venue details will be shared with confirmed guests after signup!
-              </p>
             </div>
 
             <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-4">
               Formal invitations with all the details will follow, but we wanted to give you
               plenty of notice to mark your calendars!
-            </p>
-
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              Please sign up below to receive updates and detailed wedding information!
             </p>
           </div>
         </section>
