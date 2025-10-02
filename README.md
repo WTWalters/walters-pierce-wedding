@@ -1,149 +1,36 @@
-# 💍 Walters-Pierce Wedding Website
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-> An elegant, full-featured wedding website for Emme & CeeJay's September 2026 celebration
+## Getting Started
 
-[![Deployed on Railway](https://railway.app/button.svg)](https://walters-pierce-wedding.com)
-
-## 🌟 Overview
-
-A sophisticated wedding platform featuring RSVP management, honeymoon fund registry, photo galleries, and automated guest communications. Built with modern web technologies and designed with love.
-
-**Live Site:** https://walters-pierce-wedding.com
-
-## 💚 Design Philosophy
-
-The website features CeeJay's beloved forest green (#00330a) as the primary color, complemented by elegant gold accents, creating a timeless and natural aesthetic perfect for their September wedding.
-
-## ✨ Features
-
-### Core Functionality
-- 📸 **Photo Carousel** - Engagement photos on homepage
-- 📍 **Venue Information** - Interactive maps and directions
-- 📅 **Save the Date** - Calendar integration (.ics files)
-- 💌 **RSVP System** - Guest management and tracking
-- 🎁 **Honeymoon Registry** - Fund experiences instead of things
-- 🖼️ **Photo Galleries** - Multiple galleries with moderation
-
-### Advanced Features
-- **Automated Reminders** - n8n powered email workflows
-- **Payment Processing** - Secure Stripe integration
-- **Guest Photo Uploads** - Moderated community photos
-- **Admin Dashboard** - Complete wedding management
-- **Data Export** - Download guest lists and contributions
-- **Mobile Optimized** - Beautiful on all devices
-
-## 🛠️ Technology Stack
-
-- **Frontend:** Next.js 14, React, Tailwind CSS
-- **Backend:** PostgreSQL, Prisma ORM
-- **Hosting:** Railway
-- **Payments:** Stripe
-- **Email:** SendGrid/Resend
-- **Images:** Cloudinary
-- **Automation:** n8n
-
-## 📁 Project Structure
-
-```
-Walters-Pierce-Wedding/
-├── index.html          # Current placeholder page
-├── docs/
-│   ├── FEATURE_PLAN.md    # Complete feature specifications
-│   ├── QUICK_START.md     # Development setup guide
-│   └── database_schema.sql # PostgreSQL schema
-└── wedding-app/        # (Future) Next.js application
-```
-
-## 🚀 Quick Start
-
-### Current Placeholder Site
-
-The site currently displays an elegant placeholder announcing the engagement. To view locally:
+First, run the development server:
 
 ```bash
-# Clone the repository
-git clone https://github.com/WTWalters/Walters-Pierce-Wedding.git
-cd Walters-Pierce-Wedding
-
-# Open in browser
-open index.html
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-### Full Application Development
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-See [docs/QUICK_START.md](docs/QUICK_START.md) for complete setup instructions.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## 📋 Implementation Roadmap
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### Phase 1: Foundation ✅
-- [x] Domain setup
-- [x] Placeholder page
-- [x] Design system
-- [ ] Database setup
+## Learn More
 
-### Phase 2: Core Features
-- [ ] Homepage with carousel
-- [ ] Venue information
-- [ ] Save the date
-- [ ] Basic RSVP
+To learn more about Next.js, take a look at the following resources:
 
-### Phase 3: RSVP System
-- [ ] Guest database
-- [ ] Email invitations
-- [ ] RSVP tracking
-- [ ] n8n integration
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-### Phase 4: Registry
-- [ ] Honeymoon fund items
-- [ ] Stripe payments
-- [ ] Contribution tracking
-- [ ] Thank you automation
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-### Phase 5: Photo Galleries
-- [ ] Upload system
-- [ ] Moderation tools
-- [ ] Gallery pages
-- [ ] Comments
+## Deploy on Vercel
 
-### Phase 6: Launch
-- [ ] Testing
-- [ ] Performance optimization
-- [ ] Security audit
-- [ ] Go live!
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## 🎨 Design System
-
-**Colors:**
-- Primary: `#00330a` (Forest Green)
-- Accent: `#D4AF37` (Gold)
-- Background: `#fdfcfb` (Cream)
-
-**Typography:**
-- Headers: Playfair Display
-- Body: Montserrat
-- Accent: Cormorant Garamond
-
-## 📊 Success Metrics
-
-- 90%+ RSVP response rate
-- <2 second page load times
-- 100% mobile compatibility
-- Zero payment processing issues
-
-## 🤝 Contributing
-
-This is a private family project. For questions or issues, please contact the repository owner.
-
-## 📝 Documentation
-
-- [Feature Plan](docs/FEATURE_PLAN.md) - Complete feature specifications
-- [Quick Start Guide](docs/QUICK_START.md) - Development setup
-- [Database Schema](docs/database_schema.sql) - PostgreSQL structure
-
-## 💕 About
-
-Built with love for Emme & CeeJay's special day in September 2026.
-
----
-
-*Made with 💚 by the Walters-Pierce families*
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
