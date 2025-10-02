@@ -187,7 +187,6 @@ export default function SaveTheDatePage() {
               <h4 className="text-2xl font-bold text-green-900 mb-4" style={{ writingMode: 'horizontal-tb' }}>Emme & CeeJay</h4>
               <div className="space-y-2">
                 <p className="text-2xl text-yellow-600 font-bold" style={{ writingMode: 'horizontal-tb' }}>September 2026</p>
-                <p className="text-lg text-gray-700" style={{ writingMode: 'horizontal-tb' }}>Colorado Mountains</p>
               </div>
             </div>
 

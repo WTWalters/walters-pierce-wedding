@@ -23,6 +23,7 @@ export default function WeddingPartyPage() {
       role: 'Maid of Honor',
       side: 'bride',
       bio: "Riley has quickly and seamlessly become one of the most important people in my life. Over the past year, she's been nothing but loving, supportive, and the biggest cheerleader in my corner. My favorite memories are our spontaneous adventures—she's the kind of friend I can spend hours with and never run out of things to talk about. I couldn't imagine saying \"I do\" without her by my side.",
+      photoUrl: '/images/wedding-party/Riley_Adams.jpeg',
       sortOrder: 1,
       isFeatured: true
     },
@@ -33,6 +34,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "L is my sister, but more importantly, my built-in best friend. We have endless stories of the shenanigans we pulled growing up. Both on each other and our parents! I couldn't imagine this day without my wonderful little sister by my side.",
       relationship: 'Sister',
+      photoUrl: '/images/wedding-party/L_Walters.jpeg',
       sortOrder: 2,
       isFeatured: false
     },
@@ -42,6 +44,7 @@ export default function WeddingPartyPage() {
       role: 'Bridesmaid',
       side: 'bride',
       bio: "Gabi and I have been friends for over 10 years, sharing every phase of life together. The ups, the downs, and everything in between. Her friendship has never wavered, and I'm so grateful she'll be by my side on my big day.",
+      photoUrl: '/images/wedding-party/Gabi_Cain.jpeg',
       sortOrder: 3,
       isFeatured: false
     },
@@ -52,6 +55,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Heather is not only my cousin but also someone I've looked up to for as long as I can remember. Over the last three years, we've grown even closer and she's become the voice of reason in my ear. I'm so grateful she's making the trip from New York to stand by my side as I say \"I do\"!",
       relationship: 'Cousin',
+      photoUrl: '/images/wedding-party/Heather_Gonzales.jpeg',
       sortOrder: 4,
       isFeatured: false
     },
@@ -62,6 +66,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Grayson and I first met as coworkers at Sweet Cow, and I never could have guessed that scooping ice cream would bring me one of my closest friends. She was a light for me during one of the toughest times in my life, and I'm so grateful she'll be by my side on such an important day.",
       relationship: 'Sweet Cow Coworker & Friend',
+      photoUrl: '/images/wedding-party/Grayson_Heyart.jpeg',
       sortOrder: 5,
       isFeatured: false
     },
@@ -72,6 +77,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Sophia is Emme's sweet niece who will be spreading flower petals down the aisle on the big day. She's the daughter of Emme's brother Ethan and sister-in-law Amber.",
       relationship: 'Niece (Ethan & Amber\'s daughter)',
+      photoUrl: '/images/wedding-party/Sophia_Walters.jpeg',
       sortOrder: 6,
       isFeatured: false
     },
@@ -82,6 +88,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Reagan is another one of Emme's precious nieces who will be joining Sophia as a flower girl. She's the daughter of Emme's brother Tom and sister-in-law Jennifer.",
       relationship: 'Niece (Tom & Jennifer\'s daughter)',
+      photoUrl: '/images/wedding-party/Reagan_Walters.jpeg',
       sortOrder: 7,
       isFeatured: false
     },
@@ -92,6 +99,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Daniel is Emme's nephew who has the very important job of carrying the rings down the aisle. He's the son of Emme's brother Ethan and sister-in-law Amber, and Sophia's younger brother.",
       relationship: 'Nephew (Ethan & Amber\'s son, Sophia\'s brother)',
+      photoUrl: '/images/wedding-party/Daniel_Walters.jpeg',
       sortOrder: 8,
       isFeatured: false
     }
@@ -122,12 +130,16 @@ export default function WeddingPartyPage() {
     <div className="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300" style={{ minWidth: '300px' }}>
       <div className="relative h-64 bg-gradient-to-br from-green-50 to-amber-50">
         {member.photoUrl ? (
-          <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${member.photoUrl})` }} />
+          <img
+            src={member.photoUrl}
+            alt={`${member.name} - ${member.role}`}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="w-24 h-24 bg-white rounded-full shadow-lg flex items-center justify-center">
               <span className="text-4xl">
-                {member.role === 'Flower Girl' ? '🌸' : 
+                {member.role === 'Flower Girl' ? '🌸' :
                  member.role === 'Ring Bearer' ? '💍' : '👤'}
               </span>
             </div>
