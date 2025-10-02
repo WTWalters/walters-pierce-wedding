@@ -33,7 +33,6 @@ export default function WeddingPartyPage() {
       role: 'Bridesmaid',
       side: 'bride',
       bio: "L is my sister, but more importantly, my built-in best friend. We have endless stories of the shenanigans we pulled growing up. Both on each other and our parents! I couldn't imagine this day without my wonderful little sister by my side.",
-      relationship: 'Sister',
       photoUrl: '/images/wedding-party/L_Walters.jpeg',
       sortOrder: 2,
       isFeatured: false
@@ -54,7 +53,6 @@ export default function WeddingPartyPage() {
       role: 'Bridesmaid',
       side: 'bride',
       bio: "Heather is not only my cousin but also someone I've looked up to for as long as I can remember. Over the last three years, we've grown even closer and she's become the voice of reason in my ear. I'm so grateful she's making the trip from New York to stand by my side as I say \"I do\"!",
-      relationship: 'Cousin',
       photoUrl: '/images/wedding-party/Heather_Gonzales.jpeg',
       sortOrder: 4,
       isFeatured: false
@@ -65,7 +63,6 @@ export default function WeddingPartyPage() {
       role: 'Bridesmaid',
       side: 'bride',
       bio: "Grayson and I first met as coworkers at Sweet Cow, and I never could have guessed that scooping ice cream would bring me one of my closest friends. She was a light for me during one of the toughest times in my life, and I'm so grateful she'll be by my side on such an important day.",
-      relationship: 'Sweet Cow Coworker & Friend',
       photoUrl: '/images/wedding-party/Grayson_Heyart_new.jpeg',
       sortOrder: 5,
       isFeatured: false
