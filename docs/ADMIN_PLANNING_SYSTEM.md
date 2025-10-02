@@ -40,7 +40,7 @@ const permissions = {
     all: true
   },
   admin: {
-    // Emme, CeeJay, Nicolle
+    // Emme, Connor, Nicolle
     guests: ['view', 'edit', 'delete'],
     registry: ['view', 'edit'],
     photos: ['view', 'edit', 'approve'],
@@ -123,7 +123,7 @@ const permissions = {
 - Guest list master control
 - Email campaign management
 
-#### **For Emme & CeeJay (Admins)**
+#### **For Emme & Connor (Admins)**
 - RSVP tracking
 - Registry management
 - Photo approvals
@@ -177,7 +177,7 @@ const permissions = {
 
 ### **Access Levels**
 - **Super Admin** (Whitney): Full system access
-- **Admin** (Emme, CeeJay, Nicolle): Core features
+- **Admin** (Emme, Connor, Nicolle): Core features
 - **Planner** (Callie): Planning tools
 - **Guest**: Public website only
 

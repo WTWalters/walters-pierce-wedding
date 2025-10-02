@@ -160,7 +160,7 @@ export default function SaveTheDatePage() {
               <p className="text-lg text-gray-700">We're getting married and we want you to be there!</p>
               
               <div className="bg-green-50 border-2 border-yellow-500 p-6 rounded-lg my-6">
-                <h2 className="text-2xl font-bold text-green-900 mb-2">Emme & CeeJay</h2>
+                <h2 className="text-2xl font-bold text-green-900 mb-2">Emme & Connor</h2>
                 <p className="text-xl text-yellow-600 font-bold">September 2026</p>
                 <p className="text-lg text-gray-700">Colorado</p>
                 <p className="text-sm text-gray-500 mt-2">Exact date and venue details coming soon!</p>

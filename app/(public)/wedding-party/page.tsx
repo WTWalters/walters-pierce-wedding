@@ -73,7 +73,42 @@ export default function WeddingPartyPage() {
   ]
 
   const groomsSide: WeddingPartyMember[] = [
-    // Groom's side will be added when provided
+    {
+      id: 'g1',
+      name: 'Aiden Puckett',
+      role: 'Best Man',
+      side: 'groom',
+      bio: "Aiden is the best kind of friend a man can have. The kind of friend that is giving without question and expectation, that will cheer for you louder than anyone in the crowd. The kind of friend you'd take a bullet for without hesitation because you know he'd do the same for you. He's a clear pick on the groomsman team and has earned the right to be team captain as my best man.",
+      sortOrder: 1,
+      isFeatured: true
+    },
+    {
+      id: 'g2',
+      name: 'Andre Pratt',
+      role: 'Groomsman',
+      side: 'groom',
+      bio: "Andre and I from day one got along perfectly. From then on it was nothing but up as our friendship formed fast and strong. Even disregarding the fact that people always say we look like brothers— and often getting mistaken for each other, he truly feels like family to me now. Andre is a strong hitter on the groomsman team.",
+      sortOrder: 2,
+      isFeatured: false
+    },
+    {
+      id: 'g3',
+      name: 'Braden Chaddic',
+      role: 'Groomsman',
+      side: 'groom',
+      bio: "Braden and I had seen each other around but our friendship really formed when he invited me to a \"wine night\" he was helping plan. I was more or less shocked because I didn't think we were super close but obviously I was stoked. That's the kind of man Braden is. He's social, inclusive, and caring. He's been an amazing friend since that day and is still someone I can rely on no matter the hour. Clear pick for the groomsman team.",
+      sortOrder: 3,
+      isFeatured: false
+    },
+    {
+      id: 'g4',
+      name: 'Trenton Burton',
+      role: 'Groomsman',
+      side: 'groom',
+      bio: "Trenton is my longest standing friend. He's seen me at my weirdest in 6th grade, when I had no social skills but desperately wanted to have a friend in this new school. He made the unfortunate mistake of mentioning he had seen some of this show I was interested in at the time. And so, in true socially awkward 6th grader fashion, all I did all day everyday was make references to the show and talk about the most recent episode I'd seen. I don't know what possessed him to decide I was friendship material after that but I'm so happy he did. Trenton is, to this day, the funniest man I know and always has me laughing until my stomach aches without even trying. He's seen me through all my phases of life and has been on the groomsman team longer than the groomsman team has been a thing.",
+      sortOrder: 4,
+      isFeatured: false
+    }
   ]
 
   const flowerGirlsAndRingBearers: WeddingPartyMember[] = [
@@ -172,7 +207,7 @@ export default function WeddingPartyPage() {
         {member.isFeatured && (
           <div className="absolute top-2 right-2">
             <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
-              ⭐ Maid of Honor
+              ⭐ {member.role === 'Best Man' ? 'Best Man' : 'Maid of Honor'}
             </span>
           </div>
         )}
@@ -207,7 +242,7 @@ export default function WeddingPartyPage() {
               Wedding Party
             </h1>
             <p className="text-green-700 text-lg">
-              The special people celebrating with Emme & CeeJay
+              The special people celebrating with Emme & Connor
             </p>
             <div className="mt-4">
               <Link 
@@ -254,7 +289,7 @@ export default function WeddingPartyPage() {
         <div className="mb-16">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">🤵 Groom's Side</h2>
-            <p className="text-gray-600">Supporting CeeJay on his special day</p>
+            <p className="text-gray-600">Supporting Connor on his special day</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -298,7 +333,7 @@ export default function WeddingPartyPage() {
             We love you all!
           </p>
           <p className="text-lg text-gray-600 mt-4">
-            Emme & CeeJay
+            Emme & Connor
           </p>
         </div>
       </div>

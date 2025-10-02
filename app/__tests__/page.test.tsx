@@ -4,6 +4,6 @@ import Home from '../page';
 describe('Home', () => {
   it('renders the main heading', () => {
     render(<Home />);
-    expect(screen.getByRole('heading', { name: /Emme & CeeJay/i, level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Emme & Connor/i, level: 1 })).toBeInTheDocument();
   });
 });

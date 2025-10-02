@@ -8,11 +8,11 @@ import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react
 const engagementPhotos = [
   {
     src: '/images/engagement/Proposal-173.jpg',
-    alt: 'Emme and CeeJay engagement photo 1',
+    alt: 'Emme and Connor engagement photo 1',
   },
   {
     src: '/images/engagement/Proposal-178.jpg', 
-    alt: 'Emme and CeeJay engagement photo 2',
+    alt: 'Emme and Connor engagement photo 2',
   },
 ]
 
@@ -72,7 +72,7 @@ export default function Home() {
                   The Wedding of
                 </span>
                 <span className="block bg-gradient-to-r from-white via-amber-100 to-white bg-clip-text text-transparent">
-                  Emme & CeeJay
+                  Emme & Connor
                 </span>
               </h1>
             </div>
@@ -334,7 +334,7 @@ export default function Home() {
       <footer className="w-full bg-green-900 text-white py-12">
         <div className="w-full max-w-4xl mx-auto px-6 text-center">
           <h3 className="text-2xl font-light font-serif mb-4">
-            Emme & CeeJay
+            Emme & Connor
           </h3>
           <p className="text-green-200 mb-6">
             September 2026 • Colorado Mountains

@@ -84,7 +84,7 @@ async function seedVenueData() {
     
     const ceremonyEvent = {
       title: 'Wedding Ceremony',
-      description: 'The ceremony where Emme and CeeJay will exchange vows',
+      description: 'The ceremony where Emme and Connor will exchange vows',
       startTime: weddingDate,
       endTime: new Date(weddingDate.getTime() + 60 * 60 * 1000), // 1 hour later
       venueId: venue.id,

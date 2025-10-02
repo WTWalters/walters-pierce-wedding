@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface PlusOne {
   firstName: string
@@ -115,7 +116,7 @@ export default function RSVPPage() {
             RSVP
           </h1>
           <p className="text-green-700 text-lg">
-            Emme & CeeJay's Wedding
+            Emme & Connor's Wedding
           </p>
           <p className="text-gray-600 mt-2">
             September 2026 • Colorado

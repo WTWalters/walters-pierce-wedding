@@ -152,7 +152,7 @@ export default function SaveTheDatePage() {
               Save the Date
             </h1>
             <p className="text-green-700 text-lg">
-              Emme & CeeJay's Wedding
+              Emme & Connor's Wedding
             </p>
             <div className="mt-4">
               <Link
@@ -184,7 +184,7 @@ export default function SaveTheDatePage() {
 
             {/* Wedding Details */}
             <div className="bg-green-50 border-2 border-yellow-500 p-6 rounded-lg max-w-lg mx-auto mb-8 relative overflow-hidden" style={{ contain: 'layout', isolation: 'isolate' }}>
-              <h4 className="text-2xl font-bold text-green-900 mb-4" style={{ writingMode: 'horizontal-tb' }}>Emme & CeeJay</h4>
+              <h4 className="text-2xl font-bold text-green-900 mb-4" style={{ writingMode: 'horizontal-tb' }}>Emme & Connor</h4>
               <div className="space-y-2">
                 <p className="text-2xl text-yellow-600 font-bold" style={{ writingMode: 'horizontal-tb' }}>September 2026</p>
               </div>

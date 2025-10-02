@@ -6,7 +6,7 @@
 ## 📋 PROJECT OVERVIEW
 
 **Client:** Whitney Thomas Walters (Father of the Bride)  
-**Wedding:** Emme (Murielle Aisling Walters) & CeeJay (Connor Joseph Pierce)  
+**Wedding:** Emme (Murielle Aisling Walters) & Connor (Connor Joseph Pierce)  
 **Date:** September 2026 (exact date TBD)  
 **Domain:** https://walters-pierce-wedding.com  
 **Hosting:** Railway  
@@ -157,7 +157,7 @@ lib/
 ### Colors
 ```css
 :root {
-  --primary: #00330a;        /* CeeJay's forest green */
+  --primary: #00330a;        /* Connor's forest green */
   --primary-light: #004d0f;
   --accent: #D4AF37;         /* Gold */
   --accent-dark: #B8860B;
@@ -232,7 +232,7 @@ const adminUsers = [
 - Exact wedding date in September 2026
 - Venue name and address
 - Guest count (estimate 200-250)
-- CeeJay's parents' names
+- Connor's parents' names
 - Wedding party members
 - Callie's last name
 

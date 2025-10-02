@@ -99,7 +99,7 @@ export function generateRSVPConfirmationEmail(data: RSVPConfirmationData): Email
     </head>
     <body>
       <div class="header">
-        <h1>Emme & CeeJay</h1>
+        <h1>Emme & Connor</h1>
         <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">September 2026 • Colorado</p>
       </div>
       
@@ -143,7 +143,7 @@ export function generateRSVPConfirmationEmail(data: RSVPConfirmationData): Email
           <p>We'll miss having you there, but we know you'll be with us in spirit. We hope to celebrate with you soon in another way!</p>
         `}
         
-        <p style="margin-top: 30px;">With love and excitement,<br><strong>Emme & CeeJay</strong></p>
+        <p style="margin-top: 30px;">With love and excitement,<br><strong>Emme & Connor</strong></p>
       </div>
       
       <div class="footer">
@@ -172,7 +172,7 @@ export function generateRSVPConfirmationEmail(data: RSVPConfirmationData): Email
     ${attending && specialRequests ? `Special Requests: ${specialRequests}` : ''}
     
     With love,
-    Emme & CeeJay
+    Emme & Connor
   `
 
   return { to: '', subject, html, text }
@@ -181,7 +181,7 @@ export function generateRSVPConfirmationEmail(data: RSVPConfirmationData): Email
 export function generateSaveTheDateConfirmationEmail(data: { guestName: string }): EmailTemplate {
   const { guestName } = data
 
-  const subject = `Thank you for signing up - Emme & CeeJay's Wedding`
+  const subject = `Thank you for signing up - Emme & Connor's Wedding`
 
   const html = `
     <!DOCTYPE html>
@@ -204,7 +204,7 @@ export function generateSaveTheDateConfirmationEmail(data: { guestName: string }
     </head>
     <body>
       <div class="header">
-        <h1>Emme & CeeJay</h1>
+        <h1>Emme & Connor</h1>
         <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">September 2026 • Colorado Mountains</p>
       </div>
       
@@ -230,7 +230,7 @@ export function generateSaveTheDateConfirmationEmail(data: { guestName: string }
         
         <p>We're so excited to celebrate this special day with you! If you need to update your contact information at any time, just let us know.</p>
         
-        <p style="margin-top: 30px;">With love and excitement,<br><strong>Emme & CeeJay</strong></p>
+        <p style="margin-top: 30px;">With love and excitement,<br><strong>Emme & Connor</strong></p>
       </div>
       
       <div class="footer">
@@ -256,14 +256,14 @@ export function generateSaveTheDateConfirmationEmail(data: { guestName: string }
     We're so excited to celebrate this special day with you!
     
     With love,
-    Emme & CeeJay
+    Emme & Connor
   `
 
   return { to: '', subject, html, text }
 }
 
 export function generateSaveTheDateEmail(guestName: string, invitationCode: string): EmailTemplate {
-  const subject = `Save the Date - Emme & CeeJay's Wedding • September 2026`
+  const subject = `Save the Date - Emme & Connor's Wedding • September 2026`
 
   const html = `
     <!DOCTYPE html>
@@ -296,7 +296,7 @@ export function generateSaveTheDateEmail(guestName: string, invitationCode: stri
         <p style="font-size: 18px; margin: 30px 0;">We're getting married and we want you to be there!</p>
         
         <div class="date-box">
-          <h2 style="margin-bottom: 10px;">Emme & CeeJay</h2>
+          <h2 style="margin-bottom: 10px;">Emme & Connor</h2>
           <p style="font-size: 24px; margin: 10px 0; color: #D4AF37; font-weight: bold;">September 2026</p>
           <p style="font-size: 18px; margin: 10px 0;">Colorado</p>
           <p style="font-size: 14px; margin-top: 20px; color: #666;">Exact date and venue details coming soon!</p>
@@ -313,7 +313,7 @@ export function generateSaveTheDateEmail(guestName: string, invitationCode: stri
         <a href="https://walters-pierce-wedding.com" class="cta-button">Visit Our Wedding Website</a>
         
         <p style="margin-top: 40px;">Can't wait to celebrate with you!</p>
-        <p><strong>Love,<br>Emme & CeeJay</strong></p>
+        <p><strong>Love,<br>Emme & Connor</strong></p>
       </div>
       
       <div class="footer">
@@ -331,7 +331,7 @@ export function generateSaveTheDateEmail(guestName: string, invitationCode: stri
     
     We're getting married and we want you to be there!
     
-    Emme & CeeJay
+    Emme & Connor
     September 2026
     Colorado
     
@@ -345,7 +345,7 @@ export function generateSaveTheDateEmail(guestName: string, invitationCode: stri
     Can't wait to celebrate with you!
     
     Love,
-    Emme & CeeJay
+    Emme & Connor
   `
 
   return { to: '', subject, html, text }

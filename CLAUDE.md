@@ -15,7 +15,7 @@ That document contains:
 
 ## Quick Project Summary
 
-**Project:** Wedding website for Emme & CeeJay (September 2026)  
+**Project:** Wedding website for Emme & Connor (September 2026)  
 **Current Status:** Static HTML placeholder ready for Next.js migration  
 **Next Step:** Initialize Next.js application with admin system  
 **Key Documents:**

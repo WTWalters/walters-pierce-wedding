@@ -89,12 +89,12 @@
 const event = {
   start: [2026, 9, 15, 14, 0], // September 15, 2026, 2:00 PM
   duration: { hours: 6 },
-  title: 'Emme & CeeJay Wedding',
+  title: 'Emme & Connor Wedding',
   description: 'Celebration of love',
   location: 'Venue Name, Address',
   url: 'https://walters-pierce-wedding.com',
   categories: ['Wedding'],
-  organizer: { name: 'Emme & CeeJay', email: 'contact@email.com' }
+  organizer: { name: 'Emme & Connor', email: 'contact@email.com' }
 }
 ```
 
@@ -155,13 +155,13 @@ PlusOnes {
 
 **Week 1 Reminder:**
 ```
-Subject: Save the Date - Emme & CeeJay's Wedding
+Subject: Save the Date - Emme & Connor's Wedding
 "We're so excited to celebrate with you! Please RSVP at your earliest convenience."
 ```
 
 **Week 2 Reminder:**
 ```
-Subject: Reminder: RSVP for Emme & CeeJay's Wedding
+Subject: Reminder: RSVP for Emme & Connor's Wedding
 "Just a friendly reminder to let us know if you can join us!"
 ```
 
@@ -218,7 +218,7 @@ Contributions {
 #### **5c. Thank You Automation**
 - Automatic email upon successful payment
 - Personalized with contributor name and gift amount
-- Option for Emme & CeeJay to add personal notes
+- Option for Emme & Connor to add personal notes
 
 ---
 
@@ -371,7 +371,7 @@ PhotoComments {
 ## 🎨 **Design System Consistency**
 
 **Colors:**
-- Primary: #00330a (CeeJay's green)
+- Primary: #00330a (Connor's green)
 - Accent: #D4AF37 (Gold)
 - Background: #fdfcfb (Cream)
 - Text: #333333 (Dark gray)
@@ -418,7 +418,7 @@ PhotoComments {
 5. ✅ **Digital Guestbook** for messages
 6. ✅ **Spotify Playlist** for reception song requests
 7. ✅ **Social Media Hashtag Aggregator** 
-   - Instagram integration with #EmmeLovesCeeJay2026
+   - Instagram integration with #EmmeLovesConnor2026
    - Snapchat custom geofilter
    - Moderated social wall
    - Live updates at reception

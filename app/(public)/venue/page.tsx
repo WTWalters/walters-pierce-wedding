@@ -117,7 +117,7 @@ export default function VenuePage() {
               Venue & Travel
             </h1>
             <p className="text-green-700 text-lg">
-              Emme & CeeJay's Wedding
+              Emme & Connor's Wedding
             </p>
             <div className="mt-4">
               <Link 

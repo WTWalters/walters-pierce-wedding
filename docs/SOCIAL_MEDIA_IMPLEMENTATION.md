@@ -28,7 +28,7 @@
    import { NextResponse } from 'next/server';
    
    export async function GET() {
-     const hashtag = 'EmmeLovesCeeJay2026';
+     const hashtag = 'EmmeLovesConnor2026';
      
      // Fetch recent media with hashtag
      const response = await fetch(
@@ -97,7 +97,7 @@
    ┌─────────────────────┐
    │                     │ ← 310px safe zone
    │  ╔═══════════════╗  │
-   │  ║ Emme & CeeJay ║  │
+   │  ║ Emme & Connor ║  │
    │  ║   09.15.26    ║  │
    │  ╚═══════════════╝  │
    │    [Decorative      │
@@ -177,7 +177,7 @@ export function SocialWall() {
       {/* Header */}
       <div className="social-header">
         <h2 className="text-4xl font-playfair text-green-900">
-          #EmmeLovesCeeJay2026
+          #EmmeLovesConnor2026
         </h2>
         <div className="filters">
           <button 
@@ -453,7 +453,7 @@ export function SocialWall() {
         "fromEmail": "wedding@walters-pierce.com",
         "toEmail": "admin@walters-pierce.com",
         "subject": "New Instagram Posts to Moderate",
-        "text": "{{$json[\"count\"]}} new posts with #EmmeLovesCeeJay2026 need moderation.\n\nView them at: https://walters-pierce-wedding.com/admin/social-media"
+        "text": "{{$json[\"count\"]}} new posts with #EmmeLovesConnor2026 need moderation.\n\nView them at: https://walters-pierce-wedding.com/admin/social-media"
       }
     }
   ]

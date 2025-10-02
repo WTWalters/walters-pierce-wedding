@@ -2,7 +2,7 @@
 
 ## 🚀 Getting Started
 
-This guide will help you set up the full-featured wedding website for Emme & CeeJay's September 2026 wedding.
+This guide will help you set up the full-featured wedding website for Emme & Connor's September 2026 wedding.
 
 ---
 

@@ -24,14 +24,14 @@ const cormorant = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: {
-    default: "Emme & CeeJay Wedding",
-    template: "%s | Emme & CeeJay Wedding"
+    default: "Emme & Connor Wedding",
+    template: "%s | Emme & Connor Wedding"
   },
   description: "Join us for our wedding celebration in the beautiful Colorado Mountains - September 2026",
-  keywords: ["wedding", "Emme", "CeeJay", "Colorado", "September 2026", "Blackstone Rivers Ranch"],
-  authors: [{ name: "Emme & CeeJay" }],
+  keywords: ["wedding", "Emme", "Connor", "Colorado", "September 2026", "Blackstone Rivers Ranch"],
+  authors: [{ name: "Emme & Connor" }],
   openGraph: {
-    title: "Emme & CeeJay Wedding",
+    title: "Emme & Connor Wedding",
     description: "Join us for our wedding celebration in the beautiful Colorado Mountains - September 2026",
     type: "website",
     images: [
@@ -39,13 +39,13 @@ export const metadata: Metadata = {
         url: "/images/engagement/photo1.jpg",
         width: 1200,
         height: 630,
-        alt: "Emme & CeeJay Engagement Photo"
+        alt: "Emme & Connor Engagement Photo"
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "Emme & CeeJay Wedding",
+    title: "Emme & Connor Wedding",
     description: "Join us for our wedding celebration in the beautiful Colorado Mountains - September 2026"
   }
 };

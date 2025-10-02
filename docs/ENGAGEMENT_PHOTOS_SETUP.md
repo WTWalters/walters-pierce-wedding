@@ -48,7 +48,7 @@ If you want more than 5 photos or different names:
 const engagementPhotos = [
   {
     src: '/images/engagement/photo1.jpg',
-    alt: 'Emme and CeeJay engagement photo 1',
+    alt: 'Emme and Connor engagement photo 1',
     placeholder: 'https://images.unsplash.com/...' // Remove this line once you have real photos
   },
   // Add more photos here...

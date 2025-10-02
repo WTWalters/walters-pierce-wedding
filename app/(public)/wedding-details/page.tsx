@@ -303,7 +303,7 @@ export default function WeddingDetailsPage() {
           </p>
           <div className="space-y-2 text-sm text-gray-600">
             <p>Bride: Emme - <a href="mailto:emme@example.com" className="text-green-700 hover:text-green-900">emme@example.com</a></p>
-            <p>Groom: CeeJay - <a href="mailto:ceejay@example.com" className="text-green-700 hover:text-green-900">ceejay@example.com</a></p>
+            <p>Groom: Connor - <a href="mailto:connor@example.com" className="text-green-700 hover:text-green-900">connor@example.com</a></p>
           </div>
         </section>
 

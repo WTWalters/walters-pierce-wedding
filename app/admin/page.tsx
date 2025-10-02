@@ -131,7 +131,7 @@ export default function AdminDashboard() {
       <div className="bg-gradient-to-r from-green-600 to-green-800 rounded-lg p-6 text-white">
         <h2 className="text-3xl font-bold mb-2">Welcome to your Wedding Dashboard</h2>
         <p className="text-green-100">
-          Manage all aspects of Emme & CeeJay's wedding planning in one place.
+          Manage all aspects of Emme & Connor's wedding planning in one place.
         </p>
       </div>
 
