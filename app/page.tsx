@@ -58,7 +58,7 @@ export default function Home() {
                 alt={photo.alt}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-green-900/40 via-transparent to-amber-900/40" />
+              <div className="absolute inset-0 bg-gradient-to-br from-green-900/60 via-black/30 to-amber-900/60" />
             </div>
           ))}
         </div>
@@ -68,24 +68,24 @@ export default function Home() {
           <div className="mb-8">
             <div className="inline-block">
               <h1 className="text-7xl md:text-8xl lg:text-9xl font-light font-serif mb-4 tracking-wide">
-                <span className="block text-4xl md:text-5xl lg:text-6xl mb-2 text-amber-200 font-normal">
+                <span className="block text-4xl md:text-5xl lg:text-6xl mb-2 text-amber-200 font-normal drop-shadow-2xl" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.6)' }}>
                   The Wedding of
                 </span>
-                <span className="block bg-gradient-to-r from-white via-amber-100 to-white bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-white via-amber-100 to-white bg-clip-text text-transparent drop-shadow-2xl" style={{ textShadow: '3px 3px 12px rgba(0,0,0,0.9), 0 0 25px rgba(0,0,0,0.7)' }}>
                   Emme & Connor
                 </span>
               </h1>
             </div>
           </div>
           
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-lg md:text-xl text-amber-100 mb-12">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-lg md:text-xl text-amber-100 mb-12" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.8)' }}>
             <div className="flex items-center gap-2">
-              <Calendar className="w-6 h-6" />
+              <Calendar className="w-6 h-6 drop-shadow-lg" />
               <span className="font-light">September 2026</span>
             </div>
             <div className="hidden md:block w-px h-6 bg-amber-200/50" />
             <div className="flex items-center gap-2">
-              <MapPin className="w-6 h-6" />
+              <MapPin className="w-6 h-6 drop-shadow-lg" />
               <span className="font-light">Colorado Mountains</span>
             </div>
           </div>
