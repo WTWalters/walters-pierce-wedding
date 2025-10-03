@@ -50,7 +50,7 @@ export default function Home() {
             <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-1000 ${
-                index === currentPhoto ? 'opacity-30' : 'opacity-0'
+                index === currentPhoto ? 'opacity-100' : 'opacity-0'
               }`}
             >
               <img
@@ -58,7 +58,7 @@ export default function Home() {
                 alt={photo.alt}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-green-900/60 via-black/30 to-amber-900/60" />
+              <div className="absolute inset-0 bg-gradient-to-br from-green-900/5 via-transparent to-amber-900/5" />
             </div>
           ))}
         </div>
