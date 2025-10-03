@@ -153,7 +153,7 @@ export default function WeddingPartyPage() {
       side: 'kids',
       bio: "Andrew is Emme's nephew and the first of nieces and nephews. Andrew has the important task of keeping track of Daniel and the ring. He's the oldest son of Emme's brother Tom and sister-in-law Jennifer and Reagan's big brother.",
       relationship: 'Nephew (Tom & Jennifer\'s son, Reagan\'s brother)',
-      photoUrl: '/images/wedding-party/Andrew_Walters.jpeg',
+      photoUrl: '/images/wedding-party/Andrew_Walters_new.jpg',
       sortOrder: 4,
       isFeatured: false
     }
@@ -192,6 +192,7 @@ export default function WeddingPartyPage() {
                 member.name === 'Sophia Walters' ? 'center 20%' :
                 member.name === 'Reagan Walters' ? 'center 5%' :
                 member.name === 'Andrew Walters' ? 'center 15%' :
+                member.name === 'Trenton Burton' ? 'center 22%' :
                 'center center'
             }}
           />
