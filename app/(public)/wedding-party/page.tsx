@@ -33,7 +33,7 @@ export default function WeddingPartyPage() {
       role: 'Bridesmaid',
       side: 'bride',
       bio: "L is my sister, but more importantly, my built-in best friend. We have endless stories of the shenanigans we pulled growing up. Both on each other and our parents! I couldn't imagine this day without my wonderful little sister by my side.",
-      photoUrl: '/images/wedding-party/L_Walters.jpeg',
+      photoUrl: '/images/wedding-party/L_Walters_new.jpg',
       sortOrder: 2,
       isFeatured: false
     },
@@ -76,6 +76,7 @@ export default function WeddingPartyPage() {
       role: 'Best Man',
       side: 'groom',
       bio: "Aiden is the best kind of friend a man can have. The kind of friend that is giving without question and expectation, that will cheer for you louder than anyone in the crowd. The kind of friend you'd take a bullet for without hesitation because you know he'd do the same for you. He's a clear pick on the groomsman team and has earned the right to be team captain as my best man.",
+      photoUrl: '/images/wedding-party/Aiden_Pucket.jpg',
       sortOrder: 1,
       isFeatured: true
     },
@@ -85,6 +86,7 @@ export default function WeddingPartyPage() {
       role: 'Groomsman',
       side: 'groom',
       bio: "Andre and I from day one got along perfectly. From then on it was nothing but up as our friendship formed fast and strong. Even disregarding the fact that people always say we look like brothers— and often getting mistaken for each other, he truly feels like family to me now. Andre is a strong hitter on the groomsman team.",
+      photoUrl: '/images/wedding-party/Andre_Pratt.jpg',
       sortOrder: 2,
       isFeatured: false
     },
@@ -94,6 +96,7 @@ export default function WeddingPartyPage() {
       role: 'Groomsman',
       side: 'groom',
       bio: "Braden and I had seen each other around but our friendship really formed when he invited me to a \"wine night\" he was helping plan. I was more or less shocked because I didn't think we were super close but obviously I was stoked. That's the kind of man Braden is. He's social, inclusive, and caring. He's been an amazing friend since that day and is still someone I can rely on no matter the hour. Clear pick for the groomsman team.",
+      photoUrl: '/images/wedding-party/Braden_Chaddic.jpg',
       sortOrder: 3,
       isFeatured: false
     },
@@ -103,6 +106,7 @@ export default function WeddingPartyPage() {
       role: 'Groomsman',
       side: 'groom',
       bio: "Trenton is my longest standing friend. He's seen me at my weirdest in 6th grade, when I had no social skills but desperately wanted to have a friend in this new school. He made the unfortunate mistake of mentioning he had seen some of this show I was interested in at the time. And so, in true socially awkward 6th grader fashion, all I did all day everyday was make references to the show and talk about the most recent episode I'd seen. I don't know what possessed him to decide I was friendship material after that but I'm so happy he did. Trenton is, to this day, the funniest man I know and always has me laughing until my stomach aches without even trying. He's seen me through all my phases of life and has been on the groomsman team longer than the groomsman team has been a thing.",
+      photoUrl: '/images/wedding-party/Trenton_Burton.jpeg',
       sortOrder: 4,
       isFeatured: false
     }
@@ -127,7 +131,7 @@ export default function WeddingPartyPage() {
       side: 'kids',
       bio: "Reagan is another one of Emme's precious nieces who will be joining Sophia as a flower girl. She's the daughter of Emme's brother Tom and sister-in-law Jennifer.",
       relationship: 'Niece (Tom & Jennifer\'s daughter)',
-      photoUrl: '/images/wedding-party/Reagan_Walters.jpeg',
+      photoUrl: '/images/wedding-party/Reagan_Walters_new.jpg',
       sortOrder: 2,
       isFeatured: false
     },
@@ -138,7 +142,7 @@ export default function WeddingPartyPage() {
       side: 'kids',
       bio: "Daniel is Emme's nephew who has the very important job of carrying the rings down the aisle. He's the son of Emme's brother Ethan and sister-in-law Amber, and Sophia's younger brother.",
       relationship: 'Nephew (Ethan & Amber\'s son, Sophia\'s brother)',
-      photoUrl: '/images/wedding-party/Daniel_Walters.jpeg',
+      photoUrl: '/images/wedding-party/Daniel_Walters_new.jpg',
       sortOrder: 3,
       isFeatured: false
     },
@@ -289,7 +293,7 @@ export default function WeddingPartyPage() {
             <p className="text-gray-600">Supporting Connor on his special day</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {groomsSide.map((member) => (
               <WeddingPartyCard key={member.id} member={member} />
             ))}

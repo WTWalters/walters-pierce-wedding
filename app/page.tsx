@@ -4,15 +4,43 @@ import { useState, useEffect } from 'react'
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react'
 
-// Engagement photos - replace with actual photos
+// Engagement photos
 const engagementPhotos = [
   {
-    src: '/images/engagement/Proposal-173.jpg',
+    src: '/images/engagement/Choice 01.jpg',
     alt: 'Emme and Connor engagement photo 1',
   },
   {
-    src: '/images/engagement/Proposal-178.jpg', 
+    src: '/images/engagement/Choice 02.jpg',
     alt: 'Emme and Connor engagement photo 2',
+  },
+  {
+    src: '/images/engagement/Choice 03.jpg',
+    alt: 'Emme and Connor engagement photo 3',
+  },
+  {
+    src: '/images/engagement/Choice 04.jpg',
+    alt: 'Emme and Connor engagement photo 4',
+  },
+  {
+    src: '/images/engagement/Choice 05.jpg',
+    alt: 'Emme and Connor engagement photo 5',
+  },
+  {
+    src: '/images/engagement/Choice 06.jpg',
+    alt: 'Emme and Connor engagement photo 6',
+  },
+  {
+    src: '/images/engagement/Choice 07.jpg',
+    alt: 'Emme and Connor engagement photo 7',
+  },
+  {
+    src: '/images/engagement/Choice 08.jpg',
+    alt: 'Emme and Connor engagement photo 8',
+  },
+  {
+    src: '/images/engagement/Choice 09.jpg',
+    alt: 'Emme and Connor engagement photo 9',
   },
 ]
 
