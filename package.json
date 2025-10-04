@@ -5,12 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start:next": "next start",
+    "start": "./scripts/start.sh",
     "lint": "next lint",
     "test": "jest",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
-    "postbuild": "prisma generate && prisma migrate deploy"
+    "postbuild": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
