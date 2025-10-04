@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validation
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || !address || !city || !state || !zipCode) {
       return NextResponse.json(
-        { error: 'First name, last name, and email are required' },
+        { error: 'First name, last name, email, and complete address are required' },
         { status: 400 }
       )
     }
@@ -79,10 +79,10 @@ export async function POST(request: NextRequest) {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           phone: normalizedPhone,
-          addressLine1: address?.trim() || null,
-          city: city?.trim() || null,
-          state: state?.trim() || null,
-          zipCode: zipCode?.trim() || null,
+          addressLine1: address.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          zipCode: zipCode.trim(),
           dietaryRestrictions: dietaryRestrictions?.trim() || null,
           updatedAt: new Date()
         }
@@ -125,10 +125,10 @@ export async function POST(request: NextRequest) {
           lastName: lastName.trim(),
           email: email.toLowerCase().trim(),
           phone: normalizedPhone,
-          addressLine1: address?.trim() || null,
-          city: city?.trim() || null,
-          state: state?.trim() || null,
-          zipCode: zipCode?.trim() || null,
+          addressLine1: address.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          zipCode: zipCode.trim(),
           dietaryRestrictions: dietaryRestrictions?.trim() || null
         }
       })

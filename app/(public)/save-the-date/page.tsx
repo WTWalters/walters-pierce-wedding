@@ -57,15 +57,26 @@ export default function SaveTheDatePage() {
     } else if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address'
     }
-    
+
+    // Address fields are now required
+    if (!formData.address.trim()) {
+      newErrors.address = 'Street address is required'
+    }
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required'
+    }
+    if (!formData.state.trim()) {
+      newErrors.state = 'State is required'
+    }
+    if (!formData.zipCode.trim()) {
+      newErrors.zipCode = 'ZIP code is required'
+    } else if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) {
+      newErrors.zipCode = 'Please enter a valid ZIP code (e.g., 12345 or 12345-6789)'
+    }
+
     // Phone is optional but if provided, must be valid
     if (formData.phone && !validatePhoneNumber(formData.phone)) {
       newErrors.phone = 'Please enter a valid 10-digit US phone number'
-    }
-
-    // Zip code validation (if provided)
-    if (formData.zipCode && !/^\d{5}(-\d{4})?$/.test(formData.zipCode)) {
-      newErrors.zipCode = 'Please enter a valid ZIP code (e.g., 12345 or 12345-6789)'
     }
 
     setErrors(newErrors)
@@ -209,7 +220,7 @@ export default function SaveTheDatePage() {
           {isSubmitted ? (
             <div className="text-center py-8">
               <div className="text-6xl mb-4">✅</div>
-              <h4 className="text-2xl font-bold text-green-800 mb-2">Thank You!</h4>
+              <h4 className="text-2xl font-bold text-green-800 mb-2">Thank You, {formData.firstName}!</h4>
               <p className="text-gray-700 mb-4">
                 We've received your information and will keep you updated with wedding details.
               </p>
@@ -324,60 +335,79 @@ export default function SaveTheDatePage() {
               {/* Address */}
               <div>
                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                  Street Address
+                  Street Address *
                 </label>
                 <input
                   type="text"
                   id="address"
                   name="address"
+                  required
                   value={formData.address}
                   onChange={handleInputChange}
                   placeholder="123 Main Street"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-green-500 focus:border-green-500 ${
+                    errors.address ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
+                {errors.address && (
+                  <p className="mt-1 text-xs text-red-600">{errors.address}</p>
+                )}
               </div>
 
               {/* City, State, Zip */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                    City
+                    City *
                   </label>
                   <input
                     type="text"
                     id="city"
                     name="city"
+                    required
                     value={formData.city}
                     onChange={handleInputChange}
                     placeholder="Denver"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-green-500 focus:border-green-500 ${
+                      errors.city ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   />
+                  {errors.city && (
+                    <p className="mt-1 text-xs text-red-600">{errors.city}</p>
+                  )}
                 </div>
 
                 <div>
                   <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                    State
+                    State *
                   </label>
                   <input
                     type="text"
                     id="state"
                     name="state"
+                    required
                     value={formData.state}
                     onChange={handleInputChange}
                     placeholder="CO"
                     maxLength={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-green-500 focus:border-green-500 ${
+                      errors.state ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   />
+                  {errors.state && (
+                    <p className="mt-1 text-xs text-red-600">{errors.state}</p>
+                  )}
                 </div>
 
                 <div>
                   <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
-                    Zip Code
+                    Zip Code *
                   </label>
                   <input
                     type="text"
                     id="zipCode"
                     name="zipCode"
+                    required
                     value={formData.zipCode}
                     onChange={handleInputChange}
                     placeholder="80202"
