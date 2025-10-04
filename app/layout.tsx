@@ -59,6 +59,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} font-montserrat antialiased`}
+        suppressHydrationWarning={true}
       >
         <SessionProvider>
           {children}
