@@ -43,7 +43,7 @@ export default function WeddingPartyPage() {
       role: 'Bridesmaid',
       side: 'bride',
       bio: "Gabi and I have been friends for over 10 years, sharing every phase of life together. The ups, the downs, and everything in between. Her friendship has never wavered, and I'm so grateful she'll be by my side on my big day.",
-      photoUrl: '/images/wedding-party/Gabi_Cain.jpeg',
+      photoUrl: '/images/wedding-party/Gabi_Cain_new.jpg',
       sortOrder: 3,
       isFeatured: false
     },
@@ -120,7 +120,7 @@ export default function WeddingPartyPage() {
       side: 'kids',
       bio: "Sophia is Emme's sweet niece who will be spreading flower petals down the aisle on the big day. She's the daughter of Emme's brother Ethan and sister-in-law Amber.",
       relationship: 'Niece (Ethan & Amber\'s daughter)',
-      photoUrl: '/images/wedding-party/Sophia_Walters.jpeg',
+      photoUrl: '/images/wedding-party/Sophia_Walters_new.jpg',
       sortOrder: 1,
       isFeatured: false
     },
@@ -221,7 +221,7 @@ export default function WeddingPartyPage() {
           {member.role}
         </p>
         
-        {member.relationship && (
+        {member.relationship && member.role !== 'Flower Girl' && member.role !== 'Ring Bearer' && (
           <p className="text-sm text-gray-600 mb-3 italic" style={{ hyphens: 'none', wordBreak: 'normal' }}>
             {member.relationship}
           </p>
