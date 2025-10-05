@@ -117,6 +117,13 @@ export default function AdminDashboard() {
       color: 'bg-orange-600 hover:bg-orange-700'
     },
     {
+      title: 'Admin Users',
+      description: 'Manage admin access and user permissions',
+      href: '/admin/users',
+      icon: '👤',
+      color: 'bg-slate-600 hover:bg-slate-700'
+    },
+    {
       title: 'Settings',
       description: 'Configure website settings and preferences',
       href: '/admin/settings',
