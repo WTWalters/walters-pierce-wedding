@@ -7,12 +7,8 @@ import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react
 // Engagement photos
 const engagementPhotos = [
   {
-    src: '/images/engagement/Choice 01.jpg',
-    alt: 'Emme and Connor engagement photo 1',
-  },
-  {
     src: '/images/engagement/Choice 02.jpg',
-    alt: 'Emme and Connor engagement photo 2',
+    alt: 'Emme and Connor engagement photo 1',
   },
   {
     src: '/images/engagement/Choice 03.jpg',
@@ -185,25 +181,24 @@ export default function Home() {
             </h2>
             <div className="w-24 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mb-8" />
             <p className="text-lg md:text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed font-light" style={{ hyphens: 'none', wordBreak: 'normal' }}>
-              Connor and Emme's story begins at the most romantic of places… a Kava bar in Longmont. 
-              What started as a spy mission on Connor's date with Emme's friend turned into laughter, 
-              friendship, and ultimately love at first sight (well, maybe second sight). 
+              Connor and Emme's story begins at the most romantic of places… a Kava bar in Longmont.
+              What started as a spy mission on Connor's date with Emme's friend turned into laughter,
+              friendship, and ultimately love at first sight (well, maybe second sight).
               Join us as we celebrate the beginning of our forever in the breathtaking Colorado mountains.
             </p>
           </div>
-          
+
           <div className="max-w-4xl mx-auto">
             <div className="text-center space-y-8">
               <div className="prose prose-lg mx-auto text-gray-700 leading-relaxed">
                 <p style={{ hyphens: 'none', wordBreak: 'normal' }}>
-                  Their "official" first meeting was anything but romantic—Connor showed up at Emme's house 
-                  to pick up her friend for a date. Emme and her partner-in-crime decided to tag along and spy. 
-                  The undercover mission was a total flop, but over kava and laughter that night, sparks flew.
+                  Connor and Emme's story begins like many modern love stories... at a kava bar in Longmont. But before you roll your eyes at another "we met at a bar" tale, let us explain. Their "official" first meeting was anything but romantic—Connor showed up at Emme's house to pick up her friend for a date. Emme and her friend, being the curious souls they are, decided to tag along and spy on this date. The undercover mission was a total flop (turns out they weren't very subtle), but over kava and laughter that night, sparks flew between Connor and Emme.
                 </p>
                 <p style={{ hyphens: 'none', wordBreak: 'normal' }}>
-                  There was one small complication: Emme had a boyfriend. But just like Ross and Rachel, 
-                  the friendship came first... and it took exactly one week for her to realize Connor 
-                  wasn't just another friend—he was <em>The One</em>.
+                  There was just one small complication: Emme had a boyfriend. But just like Ross and Rachel, the friendship came first... and it took exactly one week for her to realize Connor wasn't just another friend—he was The One. After a few deep conversations and way too much overthinking (classic Emme), she made the leap. And thankfully, Connor was patient enough to wait for her to figure it out.
+                </p>
+                <p style={{ hyphens: 'none', wordBreak: 'normal' }}>
+                  Fast forward through countless adventures, inside jokes, and Connor putting up with Emme's obsession with reality TV, and here we are—planning our wedding! Their love story might have started unconventionally, but it's proof that sometimes the best things come when you're not looking for them... you're just trying to spy on your friend's date.
                 </p>
               </div>
 
