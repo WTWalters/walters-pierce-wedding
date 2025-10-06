@@ -184,7 +184,7 @@ export default function Home() {
 
           <div className="max-w-4xl mx-auto">
             <div className="text-center space-y-8">
-              <div className="prose prose-lg mx-auto text-gray-700 leading-relaxed">
+              <div className="prose prose-lg mx-auto text-gray-700 leading-relaxed space-y-6">
                 <p style={{ hyphens: 'none', wordBreak: 'normal' }}>
                   Connor and Emme's story begins at the most romantic of places… a Kava bar in Longmont. Their "official" first meeting, however, was anything but romantic. Connor showed up at Emme's house—not for her—but to pick up her friend for a date. Naturally, Emme and another partner-in-crime decided the only logical thing to do was tag along and spy on said date.
                 </p>
