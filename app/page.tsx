@@ -180,12 +180,6 @@ export default function Home() {
               Our Love Story
             </h2>
             <div className="w-24 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mb-8" />
-            <p className="text-lg md:text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed font-light" style={{ hyphens: 'none', wordBreak: 'normal' }}>
-              Connor and Emme's story begins at the most romantic of places… a Kava bar in Longmont.
-              What started as a spy mission on Connor's date with Emme's friend turned into laughter,
-              friendship, and ultimately love at first sight (well, maybe second sight).
-              Join us as we celebrate the beginning of our forever in the breathtaking Colorado mountains.
-            </p>
           </div>
 
           <div className="max-w-4xl mx-auto">
