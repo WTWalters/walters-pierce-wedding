@@ -330,13 +330,13 @@ export default function Home() {
                 Your presence is the greatest gift we could ask for.
               </p>
               
-              <div className="max-w-4xl mx-auto px-8">
-                <div className="bg-white rounded-2xl p-8 shadow-sm border border-green-100" style={{ minWidth: '300px' }}>
-                  <div className="text-4xl mb-4">💌</div>
-                  <h3 className="text-xl font-semibold text-green-900 mb-3" style={{ hyphens: 'none', wordBreak: 'keep-all', whiteSpace: 'nowrap', textAlign: 'center' }}>
+              <div className="max-w-4xl mx-auto px-4 sm:px-8">
+                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-green-100">
+                  <div className="text-4xl mb-4 text-center">💌</div>
+                  <h3 className="text-xl font-semibold text-green-900 mb-3 text-center">
                     Save the Date
                   </h3>
-                  <p className="text-gray-700 leading-relaxed text-center" style={{ hyphens: 'none', wordBreak: 'normal', whiteSpace: 'normal', minWidth: '250px' }}>
+                  <p className="text-gray-700 leading-relaxed text-center">
                     Please share your information with us so we can send you a formal invitation with
                     all the details for our special day.
                   </p>
