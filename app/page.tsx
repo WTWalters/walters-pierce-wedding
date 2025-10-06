@@ -205,7 +205,13 @@ export default function Home() {
                   <div className="text-2xl font-light text-green-800 mb-2 whitespace-nowrap" style={{ whiteSpace: 'nowrap' }}>June 8, 2025</div>
                   <div className="px-4">
                     <p className="text-sm text-gray-600 leading-relaxed" style={{ hyphens: 'none', wordBreak: 'normal', minWidth: '250px' }}>
-                      After 6 months of planning, Connor popped the question. Emme wore jeans to her own proposal!
+                      Fast forward 2 and a half years later, and on June 8th, 2025, Connor popped the question! After six months of planning, scheming, and trying not to give away the surprise, the date was picked, the photoshoot was scheduled, and Connor's nerves were sky-high.
+                    </p>
+                    <p className="text-sm text-gray-600 leading-relaxed mt-2" style={{ hyphens: 'none', wordBreak: 'normal', minWidth: '250px' }}>
+                      Emme woke up that morning telling herself, "He's not going to ask, don't get your hopes up!" Meanwhile, Connor was just trying to stay calm—and not comment on Emme showing up to her own proposal in jeans. The photos from that day say it all: Emme completely oblivious, Connor doing his best to play it cool while his heart was doing cartwheels.
+                    </p>
+                    <p className="text-sm text-gray-600 leading-relaxed mt-2" style={{ hyphens: 'none', wordBreak: 'normal', minWidth: '250px' }}>
+                      Then it happened—Connor asked, Emme said yes (of course!), and the rest is history in the making. Now, they couldn't be more excited to celebrate their wedding with friends and family!
                     </p>
                   </div>
                 </div>
