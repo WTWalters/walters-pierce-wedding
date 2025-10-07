@@ -59,7 +59,10 @@ export default function AdminLayout({
                 Welcome, {session.user.email}
               </span>
               <button
-                onClick={() => signOut({ callbackUrl: '/auth/login' })}
+                onClick={async () => {
+                  await signOut({ redirect: false })
+                  router.push('/auth/login')
+                }}
                 className="bg-green-800 text-white px-4 py-2 rounded-md text-sm hover:bg-green-900 transition-colors"
               >
                 Sign Out
