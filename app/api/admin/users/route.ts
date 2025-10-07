@@ -86,19 +86,22 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Log the action
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'create_admin_user',
-        entityType: 'user',
-        entityId: newUser.id,
-        newValues: {
-          email: newUser.email,
-          role: newUser.role
+    // Log the action (skip if super admin with non-UUID id)
+    const isValidUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(session.user.id)
+    if (isValidUuid) {
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: 'create_admin_user',
+          entityType: 'user',
+          entityId: newUser.id,
+          newValues: {
+            email: newUser.email,
+            role: newUser.role
+          }
         }
-      }
-    })
+      })
+    }
 
     return NextResponse.json({
       user: newUser,

@@ -149,6 +149,28 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
+        // Check database users
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email }
+          })
+
+          if (user && user.passwordHash) {
+            const isValidPassword = await bcrypt.compare(credentials.password, user.passwordHash)
+            recordLoginAttempt(email, isValidPassword)
+
+            if (isValidPassword) {
+              return {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Database authentication error:', error)
+        }
+
         // Record failed attempt
         recordLoginAttempt(email, false)
         return null

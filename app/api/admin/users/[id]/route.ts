@@ -36,19 +36,22 @@ export async function DELETE(
       where: { id: userId }
     })
 
-    // Log the action
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'delete_admin_user',
-        entityType: 'user',
-        entityId: userId,
-        oldValues: {
-          email: userToDelete.email,
-          role: userToDelete.role
+    // Log the action (skip if super admin with non-UUID id)
+    const isValidUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(session.user.id)
+    if (isValidUuid) {
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: 'delete_admin_user',
+          entityType: 'user',
+          entityId: userId,
+          oldValues: {
+            email: userToDelete.email,
+            role: userToDelete.role
+          }
         }
-      }
-    })
+      })
+    }
 
     return NextResponse.json({ message: 'User deleted successfully' })
   } catch (error) {
@@ -104,17 +107,20 @@ export async function PUT(
       }
     })
 
-    // Log the action
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'update_user_role',
-        entityType: 'user',
-        entityId: userId,
-        oldValues: { role: userToUpdate.role },
-        newValues: { role: updatedUser.role }
-      }
-    })
+    // Log the action (skip if super admin with non-UUID id)
+    const isValidUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(session.user.id)
+    if (isValidUuid) {
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: 'update_user_role',
+          entityType: 'user',
+          entityId: userId,
+          oldValues: { role: userToUpdate.role },
+          newValues: { role: updatedUser.role }
+        }
+      })
+    }
 
     return NextResponse.json({ user: updatedUser })
   } catch (error) {

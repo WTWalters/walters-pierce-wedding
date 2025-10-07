@@ -73,20 +73,23 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Log the action
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'update_user_password',
-        entityType: 'user',
-        entityId: userId,
-        newValues: {
-          passwordUpdated: true,
-          updatedBy: session.user.email,
-          targetUser: userToUpdate.email
+    // Log the action (skip if super admin with non-UUID id)
+    const isValidUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(session.user.id)
+    if (isValidUuid) {
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: 'update_user_password',
+          entityType: 'user',
+          entityId: userId,
+          newValues: {
+            passwordUpdated: true,
+            updatedBy: session.user.email,
+            targetUser: userToUpdate.email
+          }
         }
-      }
-    })
+      })
+    }
 
     return NextResponse.json({
       message: 'Password updated successfully'
