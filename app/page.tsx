@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react
 // Engagement photos
 const engagementPhotos = [
   {
-    src: '/images/engagement/Choice 02.jpg',
+    src: '/images/engagement/Choice 02_new.jpg',
     alt: 'Emme and Connor engagement photo 1',
   },
   {
@@ -19,7 +19,7 @@ const engagementPhotos = [
     alt: 'Emme and Connor engagement photo 4',
   },
   {
-    src: '/images/engagement/Choice 05.jpg',
+    src: '/images/engagement/Choice 05_new.jpg',
     alt: 'Emme and Connor engagement photo 5',
   },
   {
@@ -192,7 +192,7 @@ export default function Home() {
                   The undercover mission? A total flop. Subtlety was not their strong suit. After the date, everyone regrouped at the Kava bar, where Connor and Emme laughed over how terrible they were at being sneaky. And don't worry—her friend wasn't upset about the whole "stolen date" thing; she knew it wasn't exactly a Harry-and-Meghan type of fairytale in the making. Somewhere between the laughter, the kava, and a little harmless chaos… sparks flew.
                 </p>
                 <p style={{ hyphens: 'none', wordBreak: 'normal' }}>
-                  There was only one small complication: Emme already had a boyfriend. But just like a true Ross-and-Rachel storyline, the friendship with Connor came first… and it didn't take long (about a week, to be exact) for her to realize he wasn't just another friend—he was The one. Boyfriend: dumped. Connor: upgraded to leading man.
+                  There was only one small complication: Emme already had a boyfriend. But just like a true Ross-and-Rachel storyline, the friendship with Connor came first… and it didn't take long (about a week, to be exact) for her to realize he wasn't just another friend—he was The One. Boyfriend: dumped. Connor: upgraded to leading man.
                 </p>
               </div>
 
