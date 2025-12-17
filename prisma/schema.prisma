@@ -1,20 +1,274 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
-// 1. Defines the database connection.
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// 2. Specifies the Prisma Client generator.
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id               String         @id @default(uuid()) @db.Uuid
+  email            String         @unique
+  passwordHash     String?        @map("password_hash")
+  role             Role           @default(guest)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  auditLogs        AuditLog[]
+  approvedComments PhotoComment[] @relation("ApprovedByComment")
+  approvedPhotos   Photo[]        @relation("ApprovedByPhoto")
+
+  @@map("users")
 }
 
-// =====================================================
-// ENUMS
-// =====================================================
+model Guest {
+  id                  String     @id @default(uuid()) @db.Uuid
+  email               String     @unique
+  firstName           String     @map("first_name")
+  lastName            String     @map("last_name")
+  phone               String?
+  addressLine1        String?    @map("address_line1")
+  addressLine2        String?    @map("address_line2")
+  city                String?
+  state               String?
+  zipCode             String?    @map("zip_code")
+  country             String?    @default("USA")
+  dietaryRestrictions String?    @map("dietary_restrictions")
+  specialRequests     String?    @map("special_requests")
+  invitationCode      String?    @unique @map("invitation_code")
+  invitationSentAt    DateTime?  @map("invitation_sent_at")
+  invitationOpenedAt  DateTime?  @map("invitation_opened_at")
+  rsvpReceivedAt      DateTime?  @map("rsvp_received_at")
+  attending           Boolean?
+  tableNumber         Int?       @map("table_number")
+  notes               String?
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  emailLogs           EmailLog[]
+  plusOnes            PlusOne[]
+
+  @@map("guests")
+}
+
+model PlusOne {
+  id                  String   @id @default(uuid()) @db.Uuid
+  guestId             String   @map("guest_id") @db.Uuid
+  firstName           String   @map("first_name")
+  lastName            String   @map("last_name")
+  dietaryRestrictions String?  @map("dietary_restrictions")
+  isChild             Boolean  @default(false) @map("is_child")
+  age                 Int?
+  createdAt           DateTime @default(now()) @map("created_at")
+  guest               Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@map("plus_ones")
+}
+
+model RegistryItem {
+  id            String           @id @default(uuid()) @db.Uuid
+  title         String
+  description   String?
+  targetAmount  Decimal          @map("target_amount")
+  amountRaised  Decimal          @default(0) @map("amount_raised")
+  imageUrl      String?          @map("image_url")
+  category      RegistryCategory
+  sortOrder     Int              @default(0) @map("sort_order")
+  isActive      Boolean          @default(true) @map("is_active")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  contributions Contribution[]
+
+  @@map("registry_items")
+}
+
+model Contribution {
+  id                    String        @id @default(uuid()) @db.Uuid
+  registryItemId        String?       @map("registry_item_id") @db.Uuid
+  contributorName       String        @map("contributor_name")
+  contributorEmail      String        @map("contributor_email")
+  amount                Decimal
+  message               String?
+  stripePaymentIntentId String?       @unique @map("stripe_payment_intent_id")
+  stripeChargeId        String?       @map("stripe_charge_id")
+  paymentStatus         String?       @map("payment_status")
+  thankYouSent          Boolean       @default(false) @map("thank_you_sent")
+  thankYouSentAt        DateTime?     @map("thank_you_sent_at")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  registryItem          RegistryItem? @relation(fields: [registryItemId], references: [id])
+
+  @@map("contributions")
+}
+
+model Photo {
+  id                 String         @id @default(uuid()) @db.Uuid
+  category           PhotoCategory
+  uploadedByName     String?        @map("uploaded_by_name")
+  uploadedByEmail    String?        @map("uploaded_by_email")
+  caption            String?
+  fileUrl            String         @map("file_url")
+  thumbnailUrl       String?        @map("thumbnail_url")
+  cloudinaryPublicId String?        @map("cloudinary_public_id")
+  isApproved         Boolean        @default(false) @map("is_approved")
+  approvedById       String?        @map("approved_by") @db.Uuid
+  approvedAt         DateTime?      @map("approved_at")
+  isFeatured         Boolean        @default(false) @map("is_featured")
+  sortOrder          Int            @default(0) @map("sort_order")
+  viewCount          Int            @default(0) @map("view_count")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  comments           PhotoComment[]
+  approvedBy         User?          @relation("ApprovedByPhoto", fields: [approvedById], references: [id])
+
+  @@map("photos")
+}
+
+model PhotoComment {
+  id           String    @id @default(uuid()) @db.Uuid
+  photoId      String    @map("photo_id") @db.Uuid
+  authorName   String    @map("author_name")
+  authorEmail  String    @map("author_email")
+  comment      String
+  isApproved   Boolean   @default(false) @map("is_approved")
+  approvedById String?   @map("approved_by") @db.Uuid
+  approvedAt   DateTime? @map("approved_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  approvedBy   User?     @relation("ApprovedByComment", fields: [approvedById], references: [id])
+  photo        Photo     @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@map("photo_comments")
+}
+
+model Venue {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  venueType     String?  @map("venue_type")
+  addressLine1  String?  @map("address_line1")
+  addressLine2  String?  @map("address_line2")
+  city          String?
+  state         String?
+  zipCode       String?  @map("zip_code")
+  phone         String?
+  website       String?
+  googleMapsUrl String?  @map("google_maps_url")
+  latitude      Decimal?
+  longitude     Decimal?
+  parkingInfo   String?  @map("parking_info")
+  directions    String?
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  events        Event[]
+
+  @@map("venues")
+}
+
+model Hotel {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String
+  address           String?
+  phone             String?
+  website           String?
+  bookingUrl        String?  @map("booking_url")
+  discountCode      String?  @map("discount_code")
+  distanceFromVenue String?  @map("distance_from_venue")
+  priceRange        String?  @map("price_range")
+  notes             String?
+  isRecommended     Boolean  @default(true) @map("is_recommended")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@map("hotels")
+}
+
+model Event {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  startTime   DateTime  @map("start_time")
+  endTime     DateTime? @map("end_time")
+  venueId     String?   @map("venue_id") @db.Uuid
+  dressCode   String?   @map("dress_code")
+  isPublic    Boolean   @default(true) @map("is_public")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  venue       Venue?    @relation(fields: [venueId], references: [id])
+
+  @@map("events")
+}
+
+model EmailLog {
+  id                String    @id @default(uuid()) @db.Uuid
+  guestId           String?   @map("guest_id") @db.Uuid
+  emailType         String?   @map("email_type")
+  recipientEmail    String    @map("recipient_email")
+  subject           String?
+  status            String?
+  sentAt            DateTime  @default(now()) @map("sent_at")
+  openedAt          DateTime? @map("opened_at")
+  clickedAt         DateTime? @map("clicked_at")
+  sendgridMessageId String?   @map("sendgrid_message_id")
+  guest             Guest?    @relation(fields: [guestId], references: [id])
+
+  @@map("email_logs")
+}
+
+model NotificationQueue {
+  id               String    @id @default(uuid()) @db.Uuid
+  notificationType String?   @map("notification_type")
+  recipientId      String?   @map("recipient_id") @db.Uuid
+  recipientEmail   String?   @map("recipient_email")
+  payload          Json?
+  scheduledFor     DateTime? @map("scheduled_for")
+  processed        Boolean   @default(false)
+  processedAt      DateTime? @map("processed_at")
+  attempts         Int       @default(0)
+  lastError        String?   @map("last_error")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("notification_queue")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String?
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id") @db.Uuid
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_log")
+}
+
+model Setting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  value       String?
+  valueType   String?  @map("value_type")
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+model WeddingParty {
+  id           String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String           @db.VarChar(255)
+  role         WeddingPartyRole
+  side         WeddingPartySide
+  bio          String?
+  relationship String?          @db.VarChar(255)
+  photoUrl     String?          @map("photo_url") @db.VarChar(500)
+  sortOrder    Int?             @default(0) @map("sort_order")
+  isFeatured   Boolean?         @default(false) @map("is_featured")
+  createdAt    DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@index([role], map: "idx_wedding_party_role")
+  @@index([side], map: "idx_wedding_party_side")
+  @@index([sortOrder], map: "idx_wedding_party_sort")
+  @@map("wedding_party")
+}
 
 enum Role {
   guest
@@ -51,303 +305,4 @@ enum WeddingPartyRole {
   groomsman
   flower_girl
   ring_bearer
-}
-
-// =====================================================
-// USERS & AUTHENTICATION
-// =====================================================
-
-model User {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique
-  passwordHash String?   @map("password_hash")
-  role         Role      @default(guest)
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  approvedPhotos  Photo[]         @relation("ApprovedByPhoto")
-  approvedComments PhotoComment[] @relation("ApprovedByComment")
-  auditLogs       AuditLog[]
-
-  @@map("users")
-}
-
-// =====================================================
-// GUEST MANAGEMENT
-// =====================================================
-
-model Guest {
-  id                   String     @id @default(uuid()) @db.Uuid
-  email                String     @unique
-  firstName            String     @map("first_name")
-  lastName             String     @map("last_name")
-  phone                String?
-  addressLine1         String?    @map("address_line1")
-  addressLine2         String?    @map("address_line2")
-  city                 String?
-  state                String?
-  zipCode              String?    @map("zip_code")
-  country              String?    @default("USA")
-  dietaryRestrictions  String?    @map("dietary_restrictions")
-  specialRequests      String?    @map("special_requests")
-  invitationCode       String?    @unique @map("invitation_code")
-  invitationSentAt     DateTime?  @map("invitation_sent_at")
-  invitationOpenedAt   DateTime?  @map("invitation_opened_at")
-  rsvpReceivedAt       DateTime?  @map("rsvp_received_at")
-  attending            Boolean?
-  tableNumber          Int?       @map("table_number")
-  notes                String?
-  createdAt            DateTime   @default(now()) @map("created_at")
-  updatedAt            DateTime   @updatedAt @map("updated_at")
-
-  plusOnes             PlusOne[]
-  emailLogs            EmailLog[]
-
-  @@map("guests")
-}
-
-model PlusOne {
-  id                  String   @id @default(uuid()) @db.Uuid
-  guestId             String   @map("guest_id") @db.Uuid
-  firstName           String   @map("first_name")
-  lastName            String   @map("last_name")
-  dietaryRestrictions String?  @map("dietary_restrictions")
-  isChild             Boolean  @default(false) @map("is_child")
-  age                 Int?
-  createdAt           DateTime @default(now()) @map("created_at")
-
-  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
-
-  @@map("plus_ones")
-}
-
-// =====================================================
-// REGISTRY / HONEYMOON FUND
-// =====================================================
-
-model RegistryItem {
-  id            String            @id @default(uuid()) @db.Uuid
-  title         String
-  description   String?
-  targetAmount  Decimal           @map("target_amount")
-  amountRaised  Decimal           @default(0) @map("amount_raised")
-  imageUrl      String?           @map("image_url")
-  category      RegistryCategory
-  sortOrder     Int               @default(0) @map("sort_order")
-  isActive      Boolean           @default(true) @map("is_active")
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
-
-  contributions Contribution[]
-
-  @@map("registry_items")
-}
-
-model Contribution {
-  id                     String    @id @default(uuid()) @db.Uuid
-  registryItemId         String?   @map("registry_item_id") @db.Uuid
-  contributorName        String    @map("contributor_name")
-  contributorEmail       String    @map("contributor_email")
-  amount                 Decimal
-  message                String?
-  stripePaymentIntentId  String?   @unique @map("stripe_payment_intent_id")
-  stripeChargeId         String?   @map("stripe_charge_id")
-  paymentStatus          String?   @map("payment_status")
-  thankYouSent           Boolean   @default(false) @map("thank_you_sent")
-  thankYouSentAt         DateTime? @map("thank_you_sent_at")
-  createdAt              DateTime  @default(now()) @map("created_at")
-
-  registryItem RegistryItem? @relation(fields: [registryItemId], references: [id])
-
-  @@map("contributions")
-}
-
-// =====================================================
-// PHOTO GALLERIES
-// =====================================================
-
-model Photo {
-  id                 String        @id @default(uuid()) @db.Uuid
-  category           PhotoCategory
-  uploadedByName     String?       @map("uploaded_by_name")
-  uploadedByEmail    String?       @map("uploaded_by_email")
-  caption            String?
-  fileUrl            String        @map("file_url")
-  thumbnailUrl       String?       @map("thumbnail_url")
-  cloudinaryPublicId String?       @map("cloudinary_public_id")
-  isApproved         Boolean       @default(false) @map("is_approved")
-  approvedById       String?       @map("approved_by") @db.Uuid
-  approvedAt         DateTime?     @map("approved_at")
-  isFeatured         Boolean       @default(false) @map("is_featured")
-  sortOrder          Int           @default(0) @map("sort_order")
-  viewCount          Int           @default(0) @map("view_count")
-  createdAt          DateTime      @default(now()) @map("created_at")
-
-  approvedBy User?          @relation("ApprovedByPhoto", fields: [approvedById], references: [id])
-  comments   PhotoComment[]
-
-  @@map("photos")
-}
-
-model PhotoComment {
-  id           String    @id @default(uuid()) @db.Uuid
-  photoId      String    @map("photo_id") @db.Uuid
-  authorName   String    @map("author_name")
-  authorEmail  String    @map("author_email")
-  comment      String
-  isApproved   Boolean   @default(false) @map("is_approved")
-  approvedById String?   @map("approved_by") @db.Uuid
-  approvedAt   DateTime? @map("approved_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-
-  photo      Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
-  approvedBy User? @relation("ApprovedByComment", fields: [approvedById], references: [id])
-
-  @@map("photo_comments")
-}
-
-// =====================================================
-// VENUE & EVENT INFORMATION
-// =====================================================
-
-model Venue {
-  id            String    @id @default(uuid()) @db.Uuid
-  name          String
-  venueType     String?   @map("venue_type")
-  addressLine1  String?   @map("address_line1")
-  addressLine2  String?   @map("address_line2")
-  city          String?
-  state         String?
-  zipCode       String?   @map("zip_code")
-  phone         String?
-  website       String?
-  googleMapsUrl String?   @map("google_maps_url")
-  latitude      Decimal?
-  longitude     Decimal?
-  parkingInfo   String?   @map("parking_info")
-  directions    String?
-  notes         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-
-  events Event[]
-
-  @@map("venues")
-}
-
-model Hotel {
-  id                String   @id @default(uuid()) @db.Uuid
-  name              String
-  address           String?
-  phone             String?
-  website           String?
-  bookingUrl        String?  @map("booking_url")
-  discountCode      String?  @map("discount_code")
-  distanceFromVenue String?  @map("distance_from_venue")
-  priceRange        String?  @map("price_range")
-  notes             String?
-  isRecommended     Boolean  @default(true) @map("is_recommended")
-  createdAt         DateTime @default(now()) @map("created_at")
-
-  @@map("hotels")
-}
-
-model Event {
-  id          String    @id @default(uuid()) @db.Uuid
-  title       String
-  description String?
-  startTime   DateTime  @map("start_time")
-  endTime     DateTime? @map("end_time")
-  venueId     String?   @map("venue_id") @db.Uuid
-  dressCode   String?   @map("dress_code")
-  isPublic    Boolean   @default(true) @map("is_public")
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  venue Venue? @relation(fields: [venueId], references: [id])
-
-  @@map("events")
-}
-
-// =====================================================
-// APP SYSTEMS (LOGS, QUEUES, SETTINGS)
-// =====================================================
-
-model EmailLog {
-  id                String    @id @default(uuid()) @db.Uuid
-  guestId           String?   @map("guest_id") @db.Uuid
-  emailType         String?   @map("email_type")
-  recipientEmail    String    @map("recipient_email")
-  subject           String?
-  status            String?
-  sentAt            DateTime  @default(now()) @map("sent_at")
-  openedAt          DateTime? @map("opened_at")
-  clickedAt         DateTime? @map("clicked_at")
-  sendgridMessageId String?   @map("sendgrid_message_id")
-
-  guest Guest? @relation(fields: [guestId], references: [id])
-
-  @@map("email_logs")
-}
-
-model NotificationQueue {
-  id               String    @id @default(uuid()) @db.Uuid
-  notificationType String?   @map("notification_type")
-  recipientId      String?   @map("recipient_id") @db.Uuid
-  recipientEmail   String?   @map("recipient_email")
-  payload          Json?
-  scheduledFor     DateTime? @map("scheduled_for")
-  processed        Boolean   @default(false)
-  processedAt      DateTime? @map("processed_at")
-  attempts         Int       @default(0)
-  lastError        String?   @map("last_error")
-  createdAt        DateTime  @default(now()) @map("created_at")
-
-  @@map("notification_queue")
-}
-
-model AuditLog {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String?   @map("user_id") @db.Uuid
-  action     String?
-  entityType String?   @map("entity_type")
-  entityId   String?   @map("entity_id") @db.Uuid
-  oldValues  Json?     @map("old_values")
-  newValues  Json?     @map("new_values")
-  ipAddress  String?   @map("ip_address")
-  userAgent  String?   @map("user_agent")
-  createdAt  DateTime  @default(now()) @map("created_at")
-
-  user User? @relation(fields: [userId], references: [id])
-
-  @@map("audit_log")
-}
-
-model Setting {
-  id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique
-  value       String?
-  valueType   String?  @map("value_type")
-  description String?
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("settings")
-}
-
-// =====================================================
-// WEDDING PARTY
-// =====================================================
-
-model WeddingParty {
-  id           String            @id @default(uuid()) @db.Uuid
-  name         String
-  role         WeddingPartyRole
-  side         WeddingPartySide
-  bio          String?
-  relationship String?
-  photoUrl     String?           @map("photo_url")
-  sortOrder    Int               @default(0) @map("sort_order")
-  isFeatured   Boolean           @default(false) @map("is_featured")
-  createdAt    DateTime          @default(now()) @map("created_at")
-  updatedAt    DateTime          @updatedAt @map("updated_at")
-
-  @@map("wedding_party")
 }
