@@ -112,6 +112,19 @@ export default function WeddingPartyPage() {
     }
   ]
 
+  const officiant: WeddingPartyMember[] = [
+    {
+      id: 'officiant',
+      name: 'J. Murdock',
+      role: 'Officiant',
+      side: 'officiant',
+      bio: "J. Murdock will be officiating Emme and Connor's wedding. J. and Emme go way back to their Colorado days, where he had the privilege of serving as her youth pastor for churches in Denver and Boulder. These days, J. works as a chaplain in Northern California, helping people find hope and meaning in life's biggest moments. Outside of work, J. is equally at home leading a wedding ceremony, telling a good story, or trying out new recipes in the kitchen.\n\nIt is an honor for him to preside over Emme and Connor's special day, and J. is thrilled to stand with couple as they are surrounded by the love of family and friends.",
+      photoUrl: '/images/wedding-party/J_Murdock.jpg',
+      sortOrder: 1,
+      isFeatured: true
+    }
+  ]
+
   const flowerGirlsAndRingBearers: WeddingPartyMember[] = [
     {
       id: '6',
@@ -167,6 +180,9 @@ export default function WeddingPartyPage() {
     if (role === 'Maid of Honor' || role === 'Best Man') {
       return 'text-yellow-600 font-semibold'
     }
+    if (role === 'Officiant') {
+      return 'text-purple-600 font-semibold'
+    }
     if (role === 'Flower Girl') {
       return 'text-pink-600 font-semibold'
     }
@@ -193,6 +209,7 @@ export default function WeddingPartyPage() {
                 member.name === 'Reagan Walters' ? 'center 5%' :
                 member.name === 'Andrew Walters' ? 'center 15%' :
                 member.name === 'Trenton Burton' ? 'center 22%' :
+                member.name === 'J. Murdock' ? 'center 45%' :
                 'center center'
             }}
           />
@@ -209,7 +226,9 @@ export default function WeddingPartyPage() {
         {member.isFeatured && (
           <div className="absolute top-2 right-2">
             <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
-              ⭐ {member.role === 'Best Man' ? 'Best Man' : 'Maid of Honor'}
+              ⭐ {member.role === 'Best Man' ? 'Best Man' :
+                  member.role === 'Maid of Honor' ? 'Maid of Honor' :
+                  member.role}
             </span>
           </div>
         )}
@@ -305,6 +324,22 @@ export default function WeddingPartyPage() {
               <p className="text-gray-500">Wedding party information coming soon!</p>
             </div>
           )}
+        </div>
+
+        {/* Officiant */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">⛪ Officiant</h2>
+            <p className="text-gray-600">The special person uniting Emme & Connor in marriage</p>
+          </div>
+
+          <div className="flex justify-center max-w-5xl mx-auto">
+            <div className="max-w-sm w-full">
+              {officiant.map((member) => (
+                <WeddingPartyCard key={member.id} member={member} />
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Flower Girls and Ring Bearers */}
