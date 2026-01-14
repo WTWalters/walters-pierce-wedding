@@ -109,6 +109,16 @@ export default function WeddingPartyPage() {
       photoUrl: '/images/wedding-party/Trenton_Burton.jpeg',
       sortOrder: 4,
       isFeatured: false
+    },
+    {
+      id: 'g5',
+      name: 'Nathan Grabowski',
+      role: 'Groomsman',
+      side: 'groom',
+      bio: "Nate is another one of my oldest friends. Nate has been there for me through thick and thin, from picking me up from a house party because I was too— tired to drive, to being there to support and congratulate me during all my major life accomplishments. Though we don't live too close to each other and life has a way of keeping both of us busy, I know I can call him up any time and we'd be right back to best friends. I couldn't be happier having him on the Groomsmen team.",
+      photoUrl: '/images/wedding-party/Nate G (Cropped).JPG',
+      sortOrder: 5,
+      isFeatured: false
     }
   ]
 
@@ -298,8 +308,8 @@ export default function WeddingPartyPage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">👰 Bride's Side</h2>
             <p className="text-gray-600">Supporting Emme on her special day</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {bridesSide.map((member) => (
               <WeddingPartyCard key={member.id} member={member} />
             ))}
@@ -313,7 +323,7 @@ export default function WeddingPartyPage() {
             <p className="text-gray-600">Supporting Connor on his special day</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {groomsSide.map((member) => (
               <WeddingPartyCard key={member.id} member={member} />
             ))}
