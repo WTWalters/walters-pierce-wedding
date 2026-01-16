@@ -128,7 +128,7 @@ export default function WeddingPartyPage() {
       name: 'J. Murdock',
       role: 'Officiant',
       side: 'officiant',
-      bio: "J. Murdock will be officiating Emme and Connor's wedding. J. and Emme go way back to their Colorado days, where he had the privilege of serving as her youth pastor for churches in Denver and Boulder. These days, J. works as a chaplain in Northern California, helping people find hope and meaning in life's biggest moments. Outside of work, J. is equally at home leading a wedding ceremony, telling a good story, or trying out new recipes in the kitchen.\n\nIt is an honor for him to preside over Emme and Connor's special day, and J. is thrilled to stand with the couple as they are surrounded by the love of family and friends.",
+      bio: "J. Murdock will be officiating Emme and Connor's wedding. J. and Emme go way back to their Colorado days, where he had the privilege of serving as a youth pastor for churches in Denver and Boulder. These days, J. works as a chaplain in Northern California, helping people find hope and meaning in life's biggest moments. Outside of work, J. is equally at home leading a wedding ceremony, telling a good story, or trying out new recipes in the kitchen.\n\nJ considers it an honor to preside over Emme and Connor's special day, and J. is thrilled to stand with the couple as they are surrounded by the love of family and friends.",
       photoUrl: '/images/wedding-party/J_Murdock.jpg',
       sortOrder: 1,
       isFeatured: true
