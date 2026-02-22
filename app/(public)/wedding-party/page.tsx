@@ -18,24 +18,14 @@ export default function WeddingPartyPage() {
   // Static wedding party data with bride's personal descriptions
   const bridesSide: WeddingPartyMember[] = [
     {
-      id: '1',
-      name: 'Riley Adams',
-      role: 'Maid of Honor',
-      side: 'bride',
-      bio: "Riley has quickly and seamlessly become one of the most important people in my life. Over the past year, she's been nothing but loving, supportive, and the biggest cheerleader in my corner. My favorite memories are our spontaneous adventures—she's the kind of friend I can spend hours with and never run out of things to talk about. I couldn't imagine saying \"I do\" without her by my side.",
-      photoUrl: '/images/wedding-party/Riley_Adams.jpeg',
-      sortOrder: 1,
-      isFeatured: true
-    },
-    {
       id: '2',
       name: 'L Walters',
-      role: 'Bridesmaid',
+      role: 'Maid of Honor',
       side: 'bride',
       bio: "L is my sister, but more importantly, my built-in best friend. We have endless stories of the shenanigans we pulled growing up. Both on each other and our parents! I couldn't imagine this day without my wonderful little sister by my side.",
       photoUrl: '/images/wedding-party/L_Walters_new.jpg',
-      sortOrder: 2,
-      isFeatured: false
+      sortOrder: 1,
+      isFeatured: true
     },
     {
       id: '3',
@@ -44,7 +34,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Gabi and I have been friends for over 10 years, sharing every phase of life together. The ups, the downs, and everything in between. Her friendship has never wavered, and I'm so grateful she'll be by my side on my big day.",
       photoUrl: '/images/wedding-party/Gabi_Cain_new.jpg',
-      sortOrder: 3,
+      sortOrder: 2,
       isFeatured: false
     },
     {
@@ -54,7 +44,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Heather is not only my cousin but also someone I've looked up to for as long as I can remember. Over the last three years, we've grown even closer and she's become the voice of reason in my ear. I'm so grateful she's making the trip from New York to stand by my side as I say \"I do\"!",
       photoUrl: '/images/wedding-party/Heather_Gonzales.jpeg',
-      sortOrder: 4,
+      sortOrder: 3,
       isFeatured: false
     },
     {
@@ -64,7 +54,7 @@ export default function WeddingPartyPage() {
       side: 'bride',
       bio: "Grayson and I first met as coworkers at Sweet Cow, and I never could have guessed that scooping ice cream would bring me one of my closest friends. She was a light for me during one of the toughest times in my life, and I'm so grateful she'll be by my side on such an important day.",
       photoUrl: '/images/wedding-party/Grayson_Heyart_new.jpeg',
-      sortOrder: 5,
+      sortOrder: 4,
       isFeatured: false
     }
   ]
