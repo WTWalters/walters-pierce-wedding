@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
+import { OAUTH_STATE_COOKIE } from '@/lib/google-sheets'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +17,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
     const error = searchParams.get('error')
+    const state = searchParams.get('state')
 
     if (error) {
       return NextResponse.redirect(new URL(`/admin/guests?error=${encodeURIComponent('Google authorization failed')}`, request.url))
+    }
+
+    // CSRF protection: the state in the callback must match the cookie set when
+    // the flow started. Reject if missing or mismatched, and clear the cookie.
+    const expectedState = request.cookies.get(OAUTH_STATE_COOKIE)?.value
+    if (!state || !expectedState || state !== expectedState) {
+      const res = NextResponse.redirect(new URL(`/admin/guests?error=${encodeURIComponent('Invalid or expired authorization state')}`, request.url))
+      res.cookies.delete(OAUTH_STATE_COOKIE)
+      return res
     }
 
     if (!code) {
@@ -153,8 +164,10 @@ export async function GET(request: NextRequest) {
     // Store the spreadsheet info (you could save this to database for future updates)
     // For now, just redirect with success message and spreadsheet URL
     const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
-    
-    return NextResponse.redirect(new URL(`/admin/guests?success=${encodeURIComponent('Google Sheets created successfully!')}&sheet=${encodeURIComponent(spreadsheetUrl)}`, request.url))
+
+    const successRes = NextResponse.redirect(new URL(`/admin/guests?success=${encodeURIComponent('Google Sheets created successfully!')}&sheet=${encodeURIComponent(spreadsheetUrl)}`, request.url))
+    successRes.cookies.delete(OAUTH_STATE_COOKIE) // single-use
+    return successRes
 
   } catch (error) {
     console.error('Error in Google Sheets callback:', error)

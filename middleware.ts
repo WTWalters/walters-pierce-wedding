@@ -1,14 +1,18 @@
 import { withAuth } from "next-auth/middleware"
+// requiresAdmin lives in lib/ so it can be unit-tested without importing
+// next-auth (which pulls ESM-only deps Jest can't transform). NOTE: each
+// /api/admin/* handler also enforces this — middleware is a backstop so a newly
+// added admin route can't be left unprotected by accident.
+import { requiresAdmin } from "./lib/admin-paths"
 
 export default withAuth(
-  function middleware(req) {
+  function middleware() {
     // Add custom logic here if needed
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Check if user has admin role for admin routes
-        if (req.nextUrl.pathname.startsWith("/admin")) {
+        if (requiresAdmin(req.nextUrl.pathname)) {
           return token?.role === "admin"
         }
         return !!token
@@ -18,5 +22,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ["/admin/:path*"]
+  matcher: ["/admin/:path*", "/api/admin/:path*"]
 }
