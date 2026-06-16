@@ -1,12 +1,8 @@
 import { generateRSVPConfirmationEmail, generateSaveTheDateConfirmationEmail, generateSaveTheDateEmail } from '../email';
 
-jest.mock('resend', () => ({
-  Resend: jest.fn(() => ({
-    emails: {
-      send: jest.fn(),
-    },
-  })),
-}));
+// NOTE: these tests cover only the pure HTML-generator functions, which have no
+// mail-provider dependency. (A stale `jest.mock('resend')` was removed here — the
+// email layer uses MailerLite, loaded lazily inside sendEmail, not Resend.)
 
 describe('generateRSVPConfirmationEmail', () => {
   it('should generate a confirmation email for attending guests', () => {
