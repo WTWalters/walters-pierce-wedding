@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 // Email validation regex
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -24,8 +25,17 @@ function normalizePhoneNumber(phone: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Throttle signups to curb spam / mass row creation and email-send abuse.
+    const { allowed } = rateLimit(`std-signup:${clientIp(request)}`, 5, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a minute and try again.' },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
-    
+
     const {
       firstName,
       lastName,
@@ -205,9 +215,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint to check if an email is already registered
+// GET endpoint to check if an email is already registered.
+// Returns ONLY { exists } — never the guest id or PII — and is rate limited so
+// it can't be used to enumerate guests or harvest data.
 export async function GET(request: NextRequest) {
   try {
+    const { allowed } = rateLimit(`std-check:${clientIp(request)}`, 20, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a minute and try again.' },
+        { status: 429 }
+      )
+    }
+
     const searchParams = request.nextUrl.searchParams
     const email = searchParams.get('email')
 
@@ -220,18 +240,10 @@ export async function GET(request: NextRequest) {
 
     const guest = await prisma.guest.findUnique({
       where: { email: email.toLowerCase() },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true
-      }
+      select: { id: true } // existence check only; nothing returned to client
     })
 
-    return NextResponse.json({
-      exists: !!guest,
-      guest: guest || null
-    })
+    return NextResponse.json({ exists: !!guest })
   } catch (error) {
     console.error('Error checking email:', error)
     return NextResponse.json(

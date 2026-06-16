@@ -1,14 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
+
+const MAX_PLUS_ONES = 10
+
+// Only persist a sane child age (0–17); otherwise store null.
+function clampChildAge(isChild: unknown, age: unknown): number | null {
+  if (!isChild) return null
+  const n = parseInt(String(age), 10)
+  return Number.isInteger(n) && n >= 0 && n <= 17 ? n : null
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const { allowed } = rateLimit(`rsvp-submit:${clientIp(request)}`, 20, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a minute and try again.' },
+        { status: 429 }
+      )
+    }
+
     const { guestId, attending, dietaryRestrictions, specialRequests, plusOnes } = await request.json()
 
     if (!guestId || attending === null || attending === undefined) {
       return NextResponse.json(
         { error: 'Guest ID and attendance status are required' },
+        { status: 400 }
+      )
+    }
+
+    if (typeof attending !== 'boolean') {
+      return NextResponse.json(
+        { error: 'Attendance status must be true or false' },
+        { status: 400 }
+      )
+    }
+
+    // Bound the plus-ones payload to prevent data-bloat / abuse.
+    if (plusOnes !== undefined && !Array.isArray(plusOnes)) {
+      return NextResponse.json({ error: 'Invalid plus-ones' }, { status: 400 })
+    }
+    if (Array.isArray(plusOnes) && plusOnes.length > MAX_PLUS_ONES) {
+      return NextResponse.json(
+        { error: `A maximum of ${MAX_PLUS_ONES} additional guests is allowed` },
         { status: 400 }
       )
     }
@@ -45,7 +81,7 @@ export async function POST(request: NextRequest) {
               lastName: plusOne.lastName.trim(),
               dietaryRestrictions: plusOne.dietaryRestrictions || null,
               isChild: plusOne.isChild || false,
-              age: plusOne.isChild && plusOne.age ? parseInt(plusOne.age) : null
+              age: clampChildAge(plusOne.isChild, plusOne.age)
             }))
           })
         }
