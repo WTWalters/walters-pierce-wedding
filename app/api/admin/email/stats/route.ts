@@ -25,11 +25,18 @@ export async function GET(request: NextRequest) {
       prisma.emailLog.count({ where: { status: 'failed' } })
     ])
 
+    // Email provider config is reported here (server-side) so the client doesn't
+    // try to read a server-only env var (which is always undefined in the browser).
+    const apiKey = process.env.MAILERLITE_API_KEY
+    const configured = !!apiKey && apiKey !== 'fake-key-for-build'
+
     const stats = {
       totalSent,
       delivered,
       opened,
-      failed
+      failed,
+      provider: 'MailerLite',
+      configured
     }
 
     return NextResponse.json(stats)
