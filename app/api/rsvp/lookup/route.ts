@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    // Throttle to make invitation-code brute force / enumeration impractical.
+    const { allowed } = rateLimit(`rsvp-lookup:${clientIp(request)}`, 10, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please wait a minute and try again.' },
+        { status: 429 }
+      )
+    }
+
     const { invitationCode } = await request.json()
 
-    if (!invitationCode) {
+    if (!invitationCode || !invitationCode.trim()) {
       return NextResponse.json(
         { error: 'Invitation code is required' },
         { status: 400 }
