@@ -3,15 +3,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { randomBytes } from 'crypto'
 
 // GET - List all admin users
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    console.log('Session in admin/users:', session)
 
     if (!session || session.user.role !== 'admin') {
-      console.log('Unauthorized access attempt:', { session: !!session, role: session?.user?.role })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -66,8 +65,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 })
     }
 
-    // Generate a temporary password (user will need to reset it)
-    const tempPassword = Math.random().toString(36).slice(-8)
+    // Create the account with a random, unguessable password that is never
+    // returned anywhere. The new user's password is set out-of-band via the
+    // "Change Password" admin flow before first login.
+    const tempPassword = randomBytes(32).toString('hex')
     const hashedPassword = await bcrypt.hash(tempPassword, 12)
 
     // Create new user
@@ -105,8 +106,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       user: newUser,
-      tempPassword,
-      message: 'User created successfully. Temporary password: ' + tempPassword
+      message: 'User created. Set their password with "Change Password" before first login.'
     })
   } catch (error) {
     console.error('Error creating user:', error)
