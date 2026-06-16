@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface EmailStats {
   totalSent: number
@@ -16,6 +16,10 @@ export default function EmailManagementPage() {
     opened: 0,
     failed: 0
   })
+  // Email provider config comes from the server (a client component cannot read
+  // the server-only MAILERLITE_API_KEY).
+  const [provider, setProvider] = useState('MailerLite')
+  const [configured, setConfigured] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -74,12 +78,27 @@ export default function EmailManagementPage() {
   const fetchStats = async () => {
     try {
       const response = await fetch('/api/admin/email/stats')
+      if (!response.ok) {
+        console.error('Failed to fetch email stats:', response.status)
+        return
+      }
       const data = await response.json()
-      setStats(data)
+      setStats({
+        totalSent: data.totalSent,
+        delivered: data.delivered,
+        opened: data.opened,
+        failed: data.failed
+      })
+      if (typeof data.configured === 'boolean') setConfigured(data.configured)
+      if (data.provider) setProvider(data.provider)
     } catch (error) {
       console.error('Failed to fetch email stats:', error)
     }
   }
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -162,7 +181,7 @@ export default function EmailManagementPage() {
         <div className="space-y-3">
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="font-medium">Service Provider</span>
-            <span className="text-gray-600">Resend</span>
+            <span className="text-gray-600">{provider}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="font-medium">From Email</span>
@@ -171,20 +190,22 @@ export default function EmailManagementPage() {
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="font-medium">API Status</span>
             <span className={`px-2 py-1 rounded-full text-xs ${
-              process.env.RESEND_API_KEY?.startsWith('re_') 
-                ? 'bg-green-100 text-green-800' 
+              configured === null
+                ? 'bg-gray-100 text-gray-600'
+                : configured
+                ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
             }`}>
-              {process.env.RESEND_API_KEY?.startsWith('re_') ? 'Configured' : 'Development Mode'}
+              {configured === null ? 'Checking…' : configured ? 'Configured' : 'Development Mode'}
             </span>
           </div>
         </div>
 
-        {!process.env.RESEND_API_KEY?.startsWith('re_') && (
+        {configured === false && (
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <h4 className="font-medium text-yellow-800">Development Mode</h4>
             <p className="text-sm text-yellow-700 mt-1">
-              Emails will be logged to console instead of being sent. Configure RESEND_API_KEY in your environment variables to enable real email sending.
+              Emails will be logged to console instead of being sent. Set MAILERLITE_API_KEY in your environment variables to enable real email sending.
             </p>
           </div>
         )}

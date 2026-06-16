@@ -36,7 +36,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/images/engagement/photo1.jpg",
+        // Must point at a file that exists in public/images/engagement (the old
+        // photo1.jpg did not, so every social share showed a broken preview).
+        url: "/images/engagement/Proposal-173.jpg",
         width: 1200,
         height: 630,
         alt: "Emme & Connor Engagement Photo"
