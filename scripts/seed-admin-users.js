@@ -1,82 +1,56 @@
+/**
+ * Bootstrap (create or reset) a single admin user from environment variables.
+ *
+ * No passwords are committed to the repo. Provide them at run time:
+ *
+ *   Local:
+ *     ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-long-strong-password' \
+ *       node scripts/seed-admin-users.js
+ *
+ *   Production (Railway):
+ *     ADMIN_EMAIL=whitney.walters@gmail.com ADMIN_PASSWORD='a-long-strong-password' \
+ *       railway run node scripts/seed-admin-users.js
+ *
+ * Re-running with the same email resets that admin's password (upsert), so this
+ * doubles as a password-reset tool. Run this BEFORE deploying the auth change
+ * that removes the old hardcoded login, or you will be locked out of the admin.
+ */
 require('dotenv').config({ path: '.env.local' })
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 
 const prisma = new PrismaClient()
 
-const adminUsers = [
-  { 
-    email: 'whitney@walters-pierce-wedding.com', 
-    name: 'Whitney Thomas Walters', 
-    role: 'admin',
-    password: 'admin123' // Change this in production
-  },
-  { 
-    email: 'nicolle@walters-pierce-wedding.com', 
-    name: 'Laurie Nicolle Walters', 
-    role: 'admin',
-    password: 'admin123'
-  },
-  { 
-    email: 'emme@walters-pierce-wedding.com', 
-    name: 'Murielle Aisling Walters', 
-    role: 'admin',
-    password: 'admin123'
-  },
-  { 
-    email: 'ceejay@walters-pierce-wedding.com', 
-    name: 'Connor Joseph Pierce', 
-    role: 'admin',
-    password: 'admin123'
-  },
-  { 
-    email: 'callie@walters-pierce-wedding.com', 
-    name: 'Callie [LastName]', 
-    role: 'admin',
-    password: 'admin123'
-  }
-]
+const MIN_PASSWORD_LENGTH = 12
 
-async function seedAdminUsers() {
-  console.log('🌱 Seeding admin users...')
-  
-  for (const user of adminUsers) {
-    try {
-      // Check if user already exists
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email }
-      })
-      
-      if (existingUser) {
-        console.log(`⚠️  User ${user.email} already exists, skipping...`)
-        continue
-      }
-      
-      // Hash password
-      const passwordHash = await bcrypt.hash(user.password, 12)
-      
-      // Create user
-      await prisma.user.create({
-        data: {
-          email: user.email,
-          passwordHash: passwordHash,
-          role: user.role
-        }
-      })
-      
-      console.log(`✅ Created admin user: ${user.email}`)
-      
-    } catch (error) {
-      console.error(`❌ Error creating user ${user.email}:`, error.message)
-    }
+async function bootstrapAdmin() {
+  const email = (process.env.ADMIN_EMAIL || '').toLowerCase().trim()
+  const password = process.env.ADMIN_PASSWORD || ''
+
+  if (!email || !email.includes('@')) {
+    throw new Error('ADMIN_EMAIL is required and must be a valid email address.')
   }
-  
-  console.log('🎉 Admin user seeding completed!')
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    throw new Error(
+      `ADMIN_PASSWORD is required and must be at least ${MIN_PASSWORD_LENGTH} characters.`
+    )
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12)
+
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: { passwordHash, role: 'admin' },
+    create: { email, passwordHash, role: 'admin' },
+  })
+
+  console.log(`✅ Admin ready: ${user.email} (role: ${user.role})`)
+  console.log('   Password set from $ADMIN_PASSWORD (not logged).')
 }
 
-seedAdminUsers()
+bootstrapAdmin()
   .catch((e) => {
-    console.error(e)
+    console.error(`❌ ${e.message}`)
     process.exit(1)
   })
   .finally(async () => {

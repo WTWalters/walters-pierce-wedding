@@ -5,15 +5,25 @@ import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { sendEmail } from "./email"
 
-// Hardcoded admin credentials
-const ADMIN_CREDENTIALS = {
-  email: 'admin@walters-pierce-wedding.com',
-  password: 'Kund@lini12'
-}
-
+// The wedding's primary admin. Used only to suppress self-notification on
+// lockout — this account authenticates against the database like any other.
 const SUPER_ADMIN_EMAIL = 'whitney.walters@gmail.com'
 const MAX_LOGIN_ATTEMPTS = 3
 const LOCKOUT_DURATION = 30 * 60 * 1000 // 30 minutes
+
+// NextAuth signs every session JWT with this secret. An empty or placeholder
+// value lets an attacker forge an admin token, so we hard-fail on it.
+const PLACEHOLDER_SECRET = 'your-secret-key-here-change-in-production'
+
+function assertStrongAuthSecret() {
+  const secret = process.env.NEXTAUTH_SECRET
+  if (!secret || secret === PLACEHOLDER_SECRET) {
+    throw new Error(
+      'NEXTAUTH_SECRET is not set to a strong value. Generate one with ' +
+        '`openssl rand -base64 32` and set it in the environment.'
+    )
+  }
+}
 
 // In-memory storage for login attempts (in production, use Redis or database)
 const loginAttempts = new Map<string, { count: number; lastAttempt: number; lockedUntil?: number }>()
@@ -102,6 +112,7 @@ async function sendSecurityNotification(attemptedEmail: string) {
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -110,6 +121,9 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        // Fail closed if the JWT signing secret is missing or still the placeholder.
+        assertStrongAuthSecret()
+
         if (!credentials?.email || !credentials?.password) {
           return null
         }
@@ -123,33 +137,7 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Super admin bypass - always allow whitney.walters@gmail.com
-        if (email === SUPER_ADMIN_EMAIL) {
-          const isValidSuperAdmin = credentials.password === ADMIN_CREDENTIALS.password
-
-          recordLoginAttempt(email, isValidSuperAdmin)
-
-          if (isValidSuperAdmin) {
-            return {
-              id: 'super-admin',
-              email: SUPER_ADMIN_EMAIL,
-              role: 'admin',
-            }
-          }
-          return null
-        }
-
-        // Check hardcoded admin credentials
-        if (email === ADMIN_CREDENTIALS.email && credentials.password === ADMIN_CREDENTIALS.password) {
-          recordLoginAttempt(email, true)
-          return {
-            id: 'admin',
-            email: ADMIN_CREDENTIALS.email,
-            role: 'admin',
-          }
-        }
-
-        // Check database users
+        // All admins (including the primary one) authenticate against the database.
         try {
           const user = await prisma.user.findUnique({
             where: { email }
