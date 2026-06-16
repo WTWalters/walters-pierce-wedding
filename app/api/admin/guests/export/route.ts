@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+// Shared sanitizer that also neutralizes spreadsheet formula injection.
+import { escapeCsvField as escapeCSV } from '@/lib/csv'
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,15 +102,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function escapeCSV(str: string): string {
-  if (!str) return ''
-  
-  // If the string contains commas, quotes, or newlines, wrap it in quotes and escape internal quotes
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`
-  }
-  
-  return str
 }

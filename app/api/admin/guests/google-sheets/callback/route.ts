@@ -102,7 +102,10 @@ export async function GET(request: NextRequest) {
       guest.notes || ''
     ])
 
-    // Write data to spreadsheet
+    // Write data to spreadsheet.
+    // valueInputOption 'RAW' stores values verbatim and does NOT parse them as
+    // formulas, so guest-controlled fields beginning with '=' etc. cannot execute
+    // here. (Do not switch this to 'USER_ENTERED' without sanitizing first.)
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: 'A1',
