@@ -57,6 +57,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
+    // Allow-list the role (prevents persisting an arbitrary role string)
+    if (!['admin', 'guest'].includes(role)) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+    }
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase() }
