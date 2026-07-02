@@ -109,6 +109,6 @@ New page `admin/rsvps` (NextAuth-protected like existing admin):
 
 ## Operational prerequisites (Whitney/Nicolle)
 
-1. Import the full ~50-guest list via existing admin CSV import before invitations mail.
+1. Guest list source of truth: the MailerLite save-the-date export (59 unique emails, no names — names fill in at RSVP time). Implementation phase 1 purges the 10 test-fixture rows currently in production and imports these 59 with `source='imported'`. Note: mdharris5546@gmail.com is on the list — Whitney/Nicolle to confirm whose address that is given the blocklist names.
 2. Enable open tracking in Resend dashboard; create webhook endpoint pointing at production `/api/webhooks/resend`; put its signing secret in Railway as `RESEND_WEBHOOK_SECRET`.
 3. Nicolle: add `noreply@walters-pierce-wedding.com` to Proton contacts.
