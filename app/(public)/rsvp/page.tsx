@@ -80,12 +80,12 @@ export default function RSVPPage() {
           <fieldset>
             <legend className="text-sm text-[#00330a] font-medium mb-2">Will you be joining us? *</legend>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setAttending(true)}
+              <button type="button" onClick={() => setAttending(true)} aria-pressed={attending === true}
                 className={`flex-1 rounded border px-4 py-3 text-sm font-medium transition
                   ${attending === true ? 'bg-[#00330a] text-white border-[#00330a]' : 'border-gray-300 text-gray-700 hover:border-[#00330a]'}`}>
                 Joyfully accepts
               </button>
-              <button type="button" onClick={() => setAttending(false)}
+              <button type="button" onClick={() => setAttending(false)} aria-pressed={attending === false}
                 className={`flex-1 rounded border px-4 py-3 text-sm font-medium transition
                   ${attending === false ? 'bg-[#00330a] text-white border-[#00330a]' : 'border-gray-300 text-gray-700 hover:border-[#00330a]'}`}>
                 Regretfully declines
@@ -119,7 +119,7 @@ export default function RSVPPage() {
             </>
           )}
 
-          {error && <p className="text-red-700 text-sm">{error}</p>}
+          {error && <p className="text-red-700 text-sm" role="alert">{error}</p>}
 
           <button type="submit" disabled={isLoading}
             className="w-full rounded bg-[#00330a] px-4 py-3 text-white font-medium hover:bg-[#004d10] disabled:opacity-60 transition">
@@ -144,7 +144,7 @@ export default function RSVPPage() {
                 You&apos;ll be missed!
               </p>
             )}
-            <a href="/" className="inline-block mt-6 rounded bg-[#00330a] px-6 py-2 text-white text-sm hover:bg-[#004d10] transition">
+            <a href="/" className="inline-block mt-6 rounded bg-[#00330a] px-6 py-2 text-white text-sm hover:bg-[#004d10] transition" autoFocus>
               Back to the website
             </a>
           </div>
