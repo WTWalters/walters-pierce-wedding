@@ -40,6 +40,9 @@ model Guest {
   invitationOpenedAt  DateTime?  @map("invitation_opened_at")
   rsvpReceivedAt      DateTime?  @map("rsvp_received_at")
   attending           Boolean?
+  partySize           Int?       @map("party_size")
+  songRequest         String?    @map("song_request")
+  source              String     @default("imported")
   tableNumber         Int?       @map("table_number")
   notes               String?
   createdAt           DateTime   @default(now()) @map("created_at")
@@ -202,6 +205,8 @@ model EmailLog {
   sentAt            DateTime  @default(now()) @map("sent_at")
   openedAt          DateTime? @map("opened_at")
   clickedAt         DateTime? @map("clicked_at")
+  bouncedAt         DateTime? @map("bounced_at")
+  resendMessageId   String?   @map("resend_message_id")
   sendgridMessageId String?   @map("sendgrid_message_id")
   guest             Guest?    @relation(fields: [guestId], references: [id])
 
@@ -252,7 +257,7 @@ model Setting {
 }
 
 model WeddingParty {
-  id           String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id           String           @id @default(uuid()) @db.Uuid
   name         String           @db.VarChar(255)
   role         WeddingPartyRole
   side         WeddingPartySide
