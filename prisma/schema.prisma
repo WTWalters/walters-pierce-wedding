@@ -257,7 +257,7 @@ model Setting {
 }
 
 model WeddingParty {
-  id           String           @id @default(uuid()) @db.Uuid
+  id           String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name         String           @db.VarChar(255)
   role         WeddingPartyRole
   side         WeddingPartySide

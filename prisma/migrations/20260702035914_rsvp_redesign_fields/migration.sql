@@ -1,21 +1,29 @@
--- CreateEnum
-CREATE TYPE "public"."WeddingPartySide" AS ENUM ('bride', 'groom');
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- CreateEnum
-CREATE TYPE "public"."WeddingPartyRole" AS ENUM ('maid_of_honor', 'bridesmaid', 'best_man', 'groomsman', 'flower_girl', 'ring_bearer');
+-- CreateEnum (idempotent)
+DO $$ BEGIN
+  CREATE TYPE "public"."WeddingPartySide" AS ENUM ('bride', 'groom');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- CreateEnum (idempotent)
+DO $$ BEGIN
+  CREATE TYPE "public"."WeddingPartyRole" AS ENUM ('maid_of_honor', 'bridesmaid', 'best_man', 'groomsman', 'flower_girl', 'ring_bearer');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AlterTable
-ALTER TABLE "public"."email_logs" ADD COLUMN     "bounced_at" TIMESTAMP(3),
-ADD COLUMN     "resend_message_id" TEXT;
+ALTER TABLE "public"."email_logs" ADD COLUMN IF NOT EXISTS "bounced_at" TIMESTAMP(3);
+ALTER TABLE "public"."email_logs" ADD COLUMN IF NOT EXISTS "resend_message_id" TEXT;
 
 -- AlterTable
-ALTER TABLE "public"."guests" ADD COLUMN     "party_size" INTEGER,
-ADD COLUMN     "song_request" TEXT,
-ADD COLUMN     "source" TEXT NOT NULL DEFAULT 'imported';
+ALTER TABLE "public"."guests" ADD COLUMN IF NOT EXISTS "party_size" INTEGER;
+ALTER TABLE "public"."guests" ADD COLUMN IF NOT EXISTS "song_request" TEXT;
+ALTER TABLE "public"."guests" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'imported';
 
--- CreateTable
-CREATE TABLE "public"."wedding_party" (
-    "id" UUID NOT NULL,
+-- CreateTable (idempotent)
+CREATE TABLE IF NOT EXISTS "public"."wedding_party" (
+    "id" UUID NOT NULL DEFAULT uuid_generate_v4(),
     "name" VARCHAR(255) NOT NULL,
     "role" "public"."WeddingPartyRole" NOT NULL,
     "side" "public"."WeddingPartySide" NOT NULL,
@@ -30,11 +38,11 @@ CREATE TABLE "public"."wedding_party" (
     CONSTRAINT "wedding_party_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "idx_wedding_party_role" ON "public"."wedding_party"("role");
+-- CreateIndex (idempotent)
+CREATE INDEX IF NOT EXISTS "idx_wedding_party_role" ON "public"."wedding_party"("role");
 
--- CreateIndex
-CREATE INDEX "idx_wedding_party_side" ON "public"."wedding_party"("side");
+-- CreateIndex (idempotent)
+CREATE INDEX IF NOT EXISTS "idx_wedding_party_side" ON "public"."wedding_party"("side");
 
--- CreateIndex
-CREATE INDEX "idx_wedding_party_sort" ON "public"."wedding_party"("sort_order");
+-- CreateIndex (idempotent)
+CREATE INDEX IF NOT EXISTS "idx_wedding_party_sort" ON "public"."wedding_party"("sort_order");
