@@ -1,19 +1,16 @@
-// Initialize MailerLite - only when API key is available
-const getMailerLite = () => {
-  if (!process.env.MAILERLITE_API_KEY || process.env.MAILERLITE_API_KEY === 'fake-key-for-build') {
-    return null
-  }
+import { Resend } from 'resend'
+import { prisma } from './prisma'
 
-  try {
-    // Dynamic import to avoid build issues
-    const { MailerLite } = require('@mailerlite/mailerlite-nodejs')
-    return new MailerLite({
-      api_key: process.env.MAILERLITE_API_KEY
-    })
-  } catch (error) {
-    console.log('MailerLite not available, using fallback mode')
-    return null
-  }
+export const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'lnawalters@protonmail.com'
+export const COORDINATOR_FROM = 'Wedding Coordinator <coordinator@walters-pierce-wedding.com>'
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export interface EmailTemplate {
@@ -31,42 +28,64 @@ export interface RSVPConfirmationData {
   specialRequests?: string
 }
 
-export async function sendEmail({ to, subject, html, text }: EmailTemplate) {
-  const mailerLite = getMailerLite()
+export interface SendOptions {
+  from?: string
+  replyTo?: string
+}
 
-  if (!mailerLite) {
-    console.log('📧 Email would be sent (MailerLite API key not configured):')
-    console.log(`To: ${to}`)
-    console.log(`Subject: ${subject}`)
-    console.log(`HTML: ${html.substring(0, 200)}...`)
-    return { success: true, messageId: 'mock-email-id' }
+export async function sendEmail(
+  { to, subject, html, text }: EmailTemplate,
+  opts: SendOptions = {}
+) {
+  const apiKey = process.env.RESEND_API_KEY
+  const from = opts.from || process.env.FROM_EMAIL
+  if (!apiKey || !from) {
+    console.error('Email NOT sent (service not configured):', subject, '->', to)
+    return { success: false as const, error: 'Email service not configured' }
   }
-
   try {
-    // For MailerLite, we'll use their campaign API to send transactional emails
-    // First, let's try to find or create a subscriber
-    let subscriber
-    try {
-      subscriber = await mailerLite.subscribers.find(to)
-    } catch {
-      // Subscriber doesn't exist, create them
-      subscriber = await mailerLite.subscribers.createOrUpdate({
-        email: to,
-        status: 'active'
-      })
+    const resend = new Resend(apiKey)
+    const { data, error } = await resend.emails.send({
+      from,
+      to,
+      subject,
+      html,
+      text: text || htmlToText(html),
+      replyTo: opts.replyTo,
+    })
+    if (error) {
+      console.error('Resend send failed:', error.message)
+      return { success: false as const, error: error.message }
     }
+    return { success: true as const, messageId: data?.id }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Resend send threw:', message)
+    return { success: false as const, error: message }
+  }
+}
 
-    // For now, we'll log the email since MailerLite is primarily for campaigns
-    // You may want to use their campaign API or integrate with a transactional service
-    console.log('📧 Email sent via MailerLite:')
-    console.log(`To: ${to}`)
-    console.log(`Subject: ${subject}`)
-    console.log(`Subscriber ID: ${subscriber.data?.id}`)
-
-    return { success: true, messageId: `ml-${subscriber.data?.id || 'unknown'}` }
-  } catch (error) {
-    console.error('Failed to send email via MailerLite:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+export async function logEmail(entry: {
+  guestId?: string | null
+  emailType: string
+  recipientEmail: string
+  subject: string
+  status: 'sent' | 'failed'
+  resendMessageId?: string | null
+}) {
+  try {
+    await prisma.emailLog.create({
+      data: {
+        guestId: entry.guestId ?? null,
+        emailType: entry.emailType,
+        recipientEmail: entry.recipientEmail,
+        subject: entry.subject,
+        status: entry.status,
+        resendMessageId: entry.resendMessageId ?? null,
+      },
+    })
+  } catch (err) {
+    console.error('Failed to write email log:', err)
   }
 }
 
