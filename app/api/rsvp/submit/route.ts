@@ -1,121 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { cookies } from 'next/headers'
+import { Prisma } from '@prisma/client'
+import { rsvpSchema, processRsvpSubmission } from '@/lib/rsvp'
 
 export async function POST(request: NextRequest) {
+  let body: unknown
   try {
-    const { guestId, attending, dietaryRestrictions, specialRequests, plusOnes } = await request.json()
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+  }
 
-    if (!guestId || attending === null || attending === undefined) {
-      return NextResponse.json(
-        { error: 'Guest ID and attendance status are required' },
-        { status: 400 }
-      )
-    }
-
-    // Start a transaction to update guest and handle plus ones
-    const result = await prisma.$transaction(async (tx) => {
-      // Update the main guest
-      const updatedGuest = await tx.guest.update({
-        where: { id: guestId },
-        data: {
-          attending,
-          dietaryRestrictions: dietaryRestrictions || null,
-          specialRequests: specialRequests || null,
-          rsvpReceivedAt: new Date()
-        }
-      })
-
-      // Delete existing plus ones for this guest
-      await tx.plusOne.deleteMany({
-        where: { guestId }
-      })
-
-      // Add new plus ones if attending
-      if (attending && plusOnes && plusOnes.length > 0) {
-        const validPlusOnes = plusOnes.filter((po: any) => 
-          po.firstName && po.firstName.trim() && po.lastName && po.lastName.trim()
-        )
-
-        if (validPlusOnes.length > 0) {
-          await tx.plusOne.createMany({
-            data: validPlusOnes.map((plusOne: any) => ({
-              guestId,
-              firstName: plusOne.firstName.trim(),
-              lastName: plusOne.lastName.trim(),
-              dietaryRestrictions: plusOne.dietaryRestrictions || null,
-              isChild: plusOne.isChild || false,
-              age: plusOne.isChild && plusOne.age ? parseInt(plusOne.age) : null
-            }))
-          })
-        }
-      }
-
-      return updatedGuest
-    })
-
-    // Send RSVP confirmation email
-    try {
-      const { sendEmail, generateRSVPConfirmationEmail } = await import('@/lib/email')
-      
-      const emailTemplate = generateRSVPConfirmationEmail({
-        guestName: `${result.firstName} ${result.lastName}`,
-        attending,
-        plusOnes: attending && plusOnes ? plusOnes.filter((po: any) => po.firstName && po.lastName) : undefined,
-        dietaryRestrictions: dietaryRestrictions || undefined,
-        specialRequests: specialRequests || undefined
-      })
-
-      const emailResult = await sendEmail({
-        ...emailTemplate,
-        to: result.email
-      })
-
-      // Log the RSVP submission and email status
-      await prisma.emailLog.create({
-        data: {
-          guestId,
-          emailType: 'rsvp_confirmation',
-          recipientEmail: result.email,
-          subject: emailTemplate.subject,
-          status: emailResult.success ? 'sent' : 'failed'
-        }
-      })
-    } catch (emailError) {
-      console.error('Failed to send RSVP confirmation email:', emailError)
-      // Don't fail the RSVP submission if email fails
-    }
-
-    // Set session cookie if guest is attending
-    const response = NextResponse.json({ 
-      success: true, 
-      message: 'RSVP submitted successfully',
-      guest: result,
-      canAccessDetails: attending === true
-    })
-
-    if (attending === true) {
-      // Set a secure session cookie for accessing wedding details
-      const sessionData = {
-        guestId: result.id,
-        timestamp: new Date().toISOString()
-      }
-
-      const cookieStore = cookies()
-      cookieStore.set('rsvp-session', JSON.stringify(sessionData), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 30 // 30 days
-      })
-    }
-
-    return response
-  } catch (error) {
-    console.error('Error submitting RSVP:', error)
+  const parsed = rsvpSchema.safeParse(body)
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Failed to submit RSVP' },
-      { status: 500 }
+      { error: parsed.error.issues[0]?.message ?? 'Invalid submission' },
+      { status: 400 }
     )
+  }
+
+  try {
+    // A blocked submission returns the identical response shape on purpose:
+    // the submitter must not be able to distinguish it from a saved one.
+    await submitWithRaceRetry(parsed.data)
+    return NextResponse.json({ ok: true, attending: parsed.data.attending })
+  } catch (error) {
+    console.error('RSVP submission failed:', error)
+    return NextResponse.json({ error: 'Something went wrong — please try again' }, { status: 500 })
+  }
+}
+
+// A double-POST race can hit the create path twice; the loser throws P2002.
+// One retry lands on the update path and succeeds.
+async function submitWithRaceRetry(data: Parameters<typeof processRsvpSubmission>[0]) {
+  try {
+    return await processRsvpSubmission(data)
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return await processRsvpSubmission(data)
+    }
+    throw error
   }
 }
