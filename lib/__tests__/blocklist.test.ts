@@ -5,6 +5,10 @@ describe('normalizeName', () => {
     expect(normalizeName('  Thomas   WALTERS ')).toBe('thomas walters')
     expect(normalizeName("Marci-Ann O'Harris3")).toBe('marci ann o harris')
   })
+  it('folds diacritics and unicode marks', () => {
+    expect(normalizeName('Marcí Harris')).toBe('marci harris')
+    expect(normalizeName('Tôm Wálters')).toBe('tom walters')
+  })
 })
 
 describe('isBlockedName', () => {
@@ -31,5 +35,12 @@ describe('isBlockedName', () => {
   })
   it('returns false for empty blocklist', () => {
     expect(isBlockedName('Tom', 'Walters', [])).toBe(false)
+  })
+  it('blocks accented variants of blocked names', () => {
+    expect(isBlockedName('Marcí', 'Harris', blocklist)).toBe(true)
+    expect(isBlockedName('Tôm', 'Wálters', blocklist)).toBe(true)
+  })
+  it('returns false for empty names', () => {
+    expect(isBlockedName('', '', blocklist)).toBe(false)
   })
 })
