@@ -65,7 +65,7 @@ Existing `PlusOne` table: untouched (legacy data preserved) but no longer writte
 
 ### Gated emails (to guests — only via admin panel)
 
-- From: `Nicolle Walters <nicolle@walters-pierce-wedding.com>`, Reply-To: `lnawalters@protonmail.com`. (Sending literally from protonmail.com is impossible without spoofing — DMARC would spam-folder it. This pattern shows her name, and replies reach her Proton inbox.)
+- From: `Wedding Coordinator <coordinator@walters-pierce-wedding.com>`, Reply-To: `lnawalters@protonmail.com` — presents as a wedding coordinator; replies still reach Nicolle's Proton inbox. (Sending literally from protonmail.com is impossible without spoofing — DMARC would spam-folder it.)
 - Templates (v1, defined in code, forest-green/gold theme):
   1. **Venue details** — date, time, venue, directions. Intended audience: approved (typically matched) yeses.
   2. **Gracious regrets** — warm "the guest list is limited" message. Intended audience: unmatched yeses Nicolle does not approve.
