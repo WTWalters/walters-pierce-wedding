@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function RSVPPage() {
+  const router = useRouter()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -13,6 +15,14 @@ export default function RSVPPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState<null | { attending: boolean }>(null)
+
+  // Decliners get a warm goodbye, then drift back to the homepage.
+  useEffect(() => {
+    if (submitted && !submitted.attending) {
+      const timer = setTimeout(() => router.push('/'), 7000)
+      return () => clearTimeout(timer)
+    }
+  }, [submitted, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -139,10 +149,16 @@ export default function RSVPPage() {
                 information — the date, time, and venue are on their way.
               </p>
             ) : (
-              <p className="text-gray-700">
-                We would love to have you with us, but we understand you can&apos;t make it.
-                You&apos;ll be missed!
-              </p>
+              <>
+                <p className="text-gray-700">
+                  Thank you for letting us know — we&apos;ll miss having you there.
+                  We&apos;re sending love your way, and we hope to celebrate with you
+                  another time soon. 💛
+                </p>
+                <p className="mt-4 text-sm text-gray-500">
+                  Taking you back to the website in a moment…
+                </p>
+              </>
             )}
             <a href="/" className="inline-block mt-6 rounded bg-[#00330a] px-6 py-2 text-white text-sm hover:bg-[#004d10] transition" autoFocus>
               Back to the website
