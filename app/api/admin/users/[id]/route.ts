@@ -6,16 +6,15 @@ import { prisma } from '@/lib/prisma'
 // DELETE - Delete a user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: userId } = await params
   try {
     const session = await getServerSession(authOptions)
 
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const userId = params.id
 
     // Check if user exists
     const userToDelete = await prisma.user.findUnique({
@@ -63,8 +62,9 @@ export async function DELETE(
 // PUT - Update user role
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: userId } = await params
   try {
     const session = await getServerSession(authOptions)
 
@@ -72,7 +72,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = params.id
     const body = await request.json()
     const { role } = body
 

@@ -5,17 +5,17 @@ import { prisma } from '@/lib/prisma'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
     const data = await request.json()
     const { name, role, side, bio, relationship, photoUrl, sortOrder, isFeatured } = data
 
@@ -56,17 +56,16 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const { id } = params
 
     // Delete wedding party member
     await prisma.weddingParty.delete({
