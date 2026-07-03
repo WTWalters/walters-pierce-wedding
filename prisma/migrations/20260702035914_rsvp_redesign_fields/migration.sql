@@ -1,3 +1,8 @@
+-- Idempotent by design: wedding_party (types/table/indexes) predates migration
+-- history (created by ad-hoc scripts), so guards below let this replay safely
+-- against prod. Rollback story: all changes are additive & nullable/defaulted —
+-- to roll back, deploy previous code and leave the columns in place.
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- CreateEnum (idempotent)
