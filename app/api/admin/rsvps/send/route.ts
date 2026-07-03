@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
   }
 
   const results = []
-  for (const guest of guests) {
+  for (const [i, guest] of guests.entries()) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 600))
     const tpl = render(guest.firstName)
     const res = await sendEmail(
       { ...tpl, to: guest.email },
