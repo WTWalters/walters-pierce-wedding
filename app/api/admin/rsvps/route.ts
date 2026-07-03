@@ -45,9 +45,9 @@ export async function PUT(request: NextRequest) {
   }
   const body = await request.json()
   const details = {
-    date: String(body.date ?? 'TBA'),
-    time: String(body.time ?? 'TBA'),
-    venueName: String(body.venueName ?? 'TBA'),
+    date: String(body.date || 'TBA'),
+    time: String(body.time || 'TBA'),
+    venueName: String(body.venueName || 'TBA'),
     venueAddress: String(body.venueAddress ?? ''),
   }
   await prisma.setting.upsert({

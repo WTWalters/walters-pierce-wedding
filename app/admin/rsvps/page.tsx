@@ -233,7 +233,7 @@ export default function AdminRsvpsPage() {
               <strong>Preview (first selected guest)</strong>
               <button onClick={() => setPreview(null)} className="text-gray-500">✕ close</button>
             </div>
-            <iframe srcDoc={preview} className="h-[60vh] w-full border" title="Email preview" />
+            <iframe srcDoc={preview} sandbox="" className="h-[60vh] w-full border" title="Email preview" />
           </div>
         </div>
       )}
