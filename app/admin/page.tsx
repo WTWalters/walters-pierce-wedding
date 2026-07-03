@@ -61,6 +61,13 @@ export default function AdminDashboard() {
 
   const adminActions = [
     {
+      title: 'RSVPs & Communications',
+      description: 'Review responses and send guest emails',
+      href: '/admin/rsvps',
+      icon: '💌',
+      color: 'bg-teal-600 hover:bg-teal-700'
+    },
+    {
       title: 'Guest Management',
       description: 'Import guest list, manage RSVPs, and track attendance',
       href: '/admin/guests',

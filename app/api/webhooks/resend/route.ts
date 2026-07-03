@@ -39,6 +39,11 @@ export async function POST(request: NextRequest) {
         where: { resendMessageId: messageId, status: 'sent' },
         data: { status: 'delivered' },
       })
+    } else if (event.type === 'email.complained') {
+      await prisma.emailLog.updateMany({
+        where: { resendMessageId: messageId },
+        data: { status: 'complained' },
+      })
     }
   }
   return NextResponse.json({ received: true })

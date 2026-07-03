@@ -22,4 +22,6 @@ module.exports = {
   },
   transformIgnorePatterns: [
     '/node_modules/(?!@auth/prisma-adapter).+\\.js$'
-  ],};
+  ],
+  testPathIgnorePatterns: ['/node_modules/', '/.claude/'],
+};
