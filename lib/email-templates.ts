@@ -35,11 +35,19 @@ export interface RsvpSubmissionSummary {
 }
 
 export function generateRsvpNotificationEmail(
-  data: RsvpSubmissionSummary & { matched: boolean }
+  data: RsvpSubmissionSummary & {
+    matched: boolean
+    matchedBy?: 'email' | 'name'
+    emailOnFile?: string
+  }
 ): Rendered {
   const name = `${data.firstName} ${data.lastName}`
   const verdict = data.attending ? 'YES' : 'declined'
-  const matchTag = data.matched ? 'matched' : 'UNMATCHED'
+  const matchTag = data.matched
+    ? data.matchedBy === 'name'
+      ? 'matched by NAME'
+      : 'matched'
+    : 'UNMATCHED'
   const subject = `RSVP ${verdict} (${matchTag}): ${name}${data.attending && data.partySize ? ` — party of ${data.partySize}` : ''}`
   const rows: Array<[string, string]> = [
     ['Name', name],
@@ -50,6 +58,12 @@ export function generateRsvpNotificationEmail(
     ['On original list', data.matched ? 'Yes' : 'No — not on the original list, review before sending details'],
     ['Received', new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })],
   ]
+  if (data.matchedBy === 'name' && data.emailOnFile) {
+    rows.splice(2, 0, [
+      '⚠ Email check',
+      `Matched by name only — submitted email differs from the email on file (${data.emailOnFile}). Gated emails still go to the address on file; verify which is correct before sending details.`,
+    ])
+  }
   const html = wrap('New RSVP received', `
     <table style="width:100%; border-collapse: collapse;">${rows
       .map(([k, v]) => `<tr><td style="padding:6px 8px; color:#00330a; font-weight:bold; vertical-align:top;">${k}</td><td style="padding:6px 8px;">${escapeHtml(v)}</td></tr>`)

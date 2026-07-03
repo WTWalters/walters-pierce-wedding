@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { prisma } from './prisma'
-import { getBlocklist, isBlockedName } from './blocklist'
+import { getBlocklist, isBlockedName, normalizeName } from './blocklist'
 import { sendEmail, logEmail, NOTIFY_EMAIL } from './email'
 import {
   generateRsvpNotificationEmail,
@@ -74,8 +74,11 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
   const existing = await prisma.guest.findUnique({ where: { email } })
   let guestId: string
   let matched: boolean
+  let matchedBy: 'email' | 'name' | undefined
+  let emailOnFile: string | undefined
   if (existing) {
     matched = existing.source === 'imported'
+    matchedBy = 'email'
     const updated = await prisma.guest.update({
       where: { id: existing.id },
       data: {
@@ -86,21 +89,45 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
     })
     guestId = updated.id
   } else {
-    matched = false
-    const created = await prisma.guest.create({
-      data: {
-        ...responseData,
-        email,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        source: 'self_rsvp',
-      },
+    // No email match — correlate by name. Only an unambiguous (single) match
+    // counts. The email ON FILE is never overwritten here: doing so would let
+    // anyone who knows a guest's name capture that guest's gated emails.
+    // Nicolle's notification flags the differing address for human review.
+    const submittedName = normalizeName(`${input.firstName} ${input.lastName}`)
+    const named = await prisma.guest.findMany({
+      where: { NOT: [{ firstName: '' }, { lastName: '' }] },
+      select: { id: true, email: true, firstName: true, lastName: true, source: true },
     })
-    guestId = created.id
+    const nameMatches = named.filter(
+      (g) => normalizeName(`${g.firstName} ${g.lastName}`) === submittedName
+    )
+    if (nameMatches.length === 1) {
+      const byName = nameMatches[0]
+      matched = byName.source === 'imported'
+      matchedBy = 'name'
+      emailOnFile = byName.email
+      const updated = await prisma.guest.update({
+        where: { id: byName.id },
+        data: responseData,
+      })
+      guestId = updated.id
+    } else {
+      matched = false
+      const created = await prisma.guest.create({
+        data: {
+          ...responseData,
+          email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          source: 'self_rsvp',
+        },
+      })
+      guestId = created.id
+    }
   }
 
   await notify(
-    generateRsvpNotificationEmail({ ...input, matched }),
+    generateRsvpNotificationEmail({ ...input, matched, matchedBy, emailOnFile }),
     'rsvp_notification',
     guestId
   )

@@ -5,10 +5,12 @@ import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { sendEmail } from "./email"
 
-// Hardcoded admin credentials
+// Admin credentials come from the environment (ADMIN_EMAIL / ADMIN_PASSWORD in
+// .env.local and Railway). With them unset, credential login is disabled
+// rather than falling back to anything guessable.
 const ADMIN_CREDENTIALS = {
-  email: 'admin@walters-pierce-wedding.com',
-  password: 'Kund@lini12'
+  email: process.env.ADMIN_EMAIL || '',
+  password: process.env.ADMIN_PASSWORD || '',
 }
 
 const SUPER_ADMIN_EMAIL = 'whitney.walters@gmail.com'

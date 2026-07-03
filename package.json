@@ -11,7 +11,8 @@
     "test": "jest",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
-    "postbuild": "prisma generate"
+    "postbuild": "prisma generate",
+    "predev": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

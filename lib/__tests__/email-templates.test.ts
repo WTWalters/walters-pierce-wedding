@@ -30,6 +30,14 @@ describe('generateRsvpNotificationEmail', () => {
     const t = generateRsvpNotificationEmail({ ...submission, attending: false, matched: true })
     expect(t.subject).toContain('declined')
   })
+  it('flags name-only matches with the email on file', () => {
+    const t = generateRsvpNotificationEmail({
+      ...submission, matched: true, matchedBy: 'name', emailOnFile: 'old-address@x.com',
+    })
+    expect(t.subject).toContain('matched by NAME')
+    expect(t.html).toContain('old-address@x.com')
+    expect(t.text).toContain('email on file')
+  })
   it('escapes guest-supplied HTML', () => {
     const t = generateRsvpNotificationEmail({
       ...submission,

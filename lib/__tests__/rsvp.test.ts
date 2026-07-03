@@ -4,7 +4,7 @@ import { sendEmail } from '@/lib/email'
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    guest: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
+    guest: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), create: jest.fn() },
     auditLog: { create: jest.fn() },
     emailLog: { create: jest.fn() },
     setting: { findUnique: jest.fn() },
@@ -29,6 +29,7 @@ beforeEach(() => {
   mockPrisma.setting.findUnique.mockResolvedValue({
     value: JSON.stringify(['tom walters']),
   })
+  mockPrisma.guest.findMany.mockResolvedValue([])
 })
 
 describe('rsvpSchema', () => {
@@ -83,6 +84,45 @@ describe('processRsvpSubmission', () => {
     ;(sendEmail as jest.Mock).mockRejectedValueOnce(new Error('resend down'))
     const result = await processRsvpSubmission(input)
     expect(result.outcome).toBe('saved')
+  })
+
+  it('falls back to unambiguous name matching when email is unknown, without touching the email on file', async () => {
+    mockPrisma.guest.findUnique.mockResolvedValue(null)
+    mockPrisma.guest.findMany.mockResolvedValue([
+      { id: 'g5', email: 'old-address@x.com', firstName: 'Jane', lastName: 'Smith', source: 'imported' },
+      { id: 'g6', email: 'other@x.com', firstName: 'Bob', lastName: 'Jones', source: 'imported' },
+    ])
+    mockPrisma.guest.update.mockResolvedValue({ id: 'g5' })
+    const result = await processRsvpSubmission(input)
+    expect(result).toEqual({ outcome: 'saved', matched: true })
+    expect(mockPrisma.guest.create).not.toHaveBeenCalled()
+    const updateArg = mockPrisma.guest.update.mock.calls[0][0]
+    expect(updateArg.where).toEqual({ id: 'g5' })
+    expect(updateArg.data.email).toBeUndefined() // email on file is never overwritten
+    expect(updateArg.data.firstName).toBeUndefined() // name on file kept as-is
+  })
+
+  it('matches names case- and accent-insensitively', async () => {
+    mockPrisma.guest.findUnique.mockResolvedValue(null)
+    mockPrisma.guest.findMany.mockResolvedValue([
+      { id: 'g7', email: 'jane@old.com', firstName: 'JANE', lastName: 'Smíth', source: 'imported' },
+    ])
+    mockPrisma.guest.update.mockResolvedValue({ id: 'g7' })
+    const result = await processRsvpSubmission(input)
+    expect(result).toEqual({ outcome: 'saved', matched: true })
+  })
+
+  it('creates a new guest when the name matches more than one record (ambiguous)', async () => {
+    mockPrisma.guest.findUnique.mockResolvedValue(null)
+    mockPrisma.guest.findMany.mockResolvedValue([
+      { id: 'g8', email: 'a@x.com', firstName: 'Jane', lastName: 'Smith', source: 'imported' },
+      { id: 'g9', email: 'b@x.com', firstName: 'Jane', lastName: 'Smith', source: 'self_rsvp' },
+    ])
+    mockPrisma.guest.create.mockResolvedValue({ id: 'g10' })
+    const result = await processRsvpSubmission(input)
+    expect(result).toEqual({ outcome: 'saved', matched: false })
+    expect(mockPrisma.guest.update).not.toHaveBeenCalled()
+    expect(mockPrisma.guest.create).toHaveBeenCalled()
   })
 
   it('nulls partySize when declining', async () => {
