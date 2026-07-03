@@ -5,12 +5,11 @@ import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { sendEmail } from "./email"
 
-// Admin credentials come from the environment (ADMIN_EMAIL / ADMIN_PASSWORD in
-// .env.local and Railway). With them unset, credential login is disabled
-// rather than falling back to anything guessable.
+// Hardcoded admin credentials (Whitney's choice — private repo).
+// ADMIN_EMAIL / ADMIN_PASSWORD env vars override these if ever set.
 const ADMIN_CREDENTIALS = {
-  email: process.env.ADMIN_EMAIL || '',
-  password: process.env.ADMIN_PASSWORD || '',
+  email: process.env.ADMIN_EMAIL || 'admin@walters-pierce-wedding.com',
+  password: process.env.ADMIN_PASSWORD || 'Kund@lini12',
 }
 
 const SUPER_ADMIN_EMAIL = 'whitney.walters@gmail.com'
