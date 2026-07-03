@@ -3,6 +3,7 @@ import {
   generateBlockedAttemptEmail,
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
+  generateWeddingIcs,
 } from '@/lib/email-templates'
 
 const submission = {
@@ -78,5 +79,23 @@ describe('generateGraciousRegretsEmail', () => {
     const t = generateGraciousRegretsEmail('Jane')
     expect(t.html).toContain('Jane')
     expect(t.html.toLowerCase()).not.toContain('venue')
+  })
+})
+
+describe('generateWeddingIcs', () => {
+  it('builds a valid VEVENT from parseable details', () => {
+    const ics = generateWeddingIcs({
+      date: 'September 20, 2026', time: '4:00 PM',
+      venueName: 'The Grove', venueAddress: '1 Grove Ln, Denver CO',
+    })
+    expect(ics).toContain('DTSTART:20260920T160000')
+    expect(ics).toContain('DTEND:20260920T220000')
+    expect(ics).toContain('LOCATION:The Grove\\, 1 Grove Ln\\, Denver CO')
+    expect(ics).toContain('BEGIN:VEVENT')
+  })
+  it('returns null while details are still TBA', () => {
+    expect(
+      generateWeddingIcs({ date: 'TBA', time: 'TBA', venueName: 'TBA', venueAddress: '' })
+    ).toBeNull()
   })
 })

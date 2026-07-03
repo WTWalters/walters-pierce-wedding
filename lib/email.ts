@@ -31,6 +31,7 @@ export interface RSVPConfirmationData {
 export interface SendOptions {
   from?: string
   replyTo?: string
+  attachments?: Array<{ filename: string; content: string }>
 }
 
 export async function sendEmail(
@@ -52,6 +53,7 @@ export async function sendEmail(
       html,
       text: text || htmlToText(html),
       replyTo: opts.replyTo,
+      attachments: opts.attachments,
     })
     if (error) {
       console.error('Resend send failed:', error.message)

@@ -121,3 +121,31 @@ export function generateGraciousRegretsEmail(guestFirstName: string): Rendered {
   const text = `${textGreeting}\n\nThank you so much for responding, and for the kindness of wanting to celebrate with Emme and Connor.\n\nBecause of space, the celebration is limited to a small guest list, and we're so sorry we aren't able to extend the invitation further. It means a great deal that you thought of them.\n\nThe couple would love to share photos and stories after the big day.\n\nWith warm thanks,\nThe Walters & Pierce Families`
   return { subject, html, text }
 }
+
+// Builds a calendar attachment from the admin-entered wedding details.
+// Returns null when date/time don't parse (e.g. still "TBA") — the email
+// simply goes out without an attachment; the text details are authoritative.
+export function generateWeddingIcs(d: WeddingDetails): string | null {
+  const start = new Date(`${d.date} ${d.time}`)
+  if (isNaN(start.getTime())) return null
+  const end = new Date(start.getTime() + 6 * 60 * 60 * 1000)
+  const stamp = (dt: Date) =>
+    `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}T${String(dt.getHours()).padStart(2, '0')}${String(dt.getMinutes()).padStart(2, '0')}00`
+  // RFC 5545 TEXT escaping for commas/semicolons/backslashes
+  const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,')
+  const location = esc([d.venueName, d.venueAddress].filter(Boolean).join(', '))
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Emme & Connor//Wedding//EN',
+    'BEGIN:VEVENT',
+    `DTSTART:${stamp(start)}`,
+    `DTEND:${stamp(end)}`,
+    "SUMMARY:Emme & Connor's Wedding",
+    'DESCRIPTION:Join us as we celebrate our special day!',
+    `LOCATION:${location}`,
+    'UID:wedding-emme-connor-2026',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n')
+}

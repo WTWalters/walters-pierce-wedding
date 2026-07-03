@@ -7,8 +7,11 @@ import { sendEmail, logEmail, COORDINATOR_FROM, NOTIFY_EMAIL } from '@/lib/email
 import {
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
+  generateWeddingIcs,
   WeddingDetails,
 } from '@/lib/email-templates'
+
+type SendAttachments = Array<{ filename: string; content: string }> | undefined
 
 const sendSchema = z.object({
   guestIds: z.array(z.string().uuid()).min(1).max(100),
@@ -47,13 +50,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ preview: render(sample?.firstName ?? ''), recipients: guests.length })
   }
 
+  // Venue-details emails carry the calendar invite; it exists nowhere on the
+  // public site. Skipped automatically while details are still TBA/unparseable.
+  let attachments: SendAttachments
+  if (template === 'venue_details') {
+    const ics = generateWeddingIcs(details)
+    if (ics) {
+      attachments = [
+        { filename: 'Emme-Connor-Wedding.ics', content: Buffer.from(ics).toString('base64') },
+      ]
+    }
+  }
+
   const results = []
   for (const [i, guest] of guests.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, 600))
     const tpl = render(guest.firstName)
     const res = await sendEmail(
       { ...tpl, to: guest.email },
-      { from: COORDINATOR_FROM, replyTo: NOTIFY_EMAIL }
+      { from: COORDINATOR_FROM, replyTo: NOTIFY_EMAIL, attachments }
     )
     await logEmail({
       guestId: guest.id,
