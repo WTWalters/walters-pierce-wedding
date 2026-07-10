@@ -56,17 +56,27 @@ export default function WeddingPartyPage() {
       photoUrl: '/images/wedding-party/Grayson_Heyart_new.jpeg',
       sortOrder: 4,
       isFeatured: false
+    },
+    {
+      id: 'b5',
+      name: 'Amber Walters',
+      role: 'Bridesmaid',
+      side: 'bride',
+      bio: "Amber has been such a blessing ever since she joined our family by marrying my brother. I couldn’t feel more blessed to have her as my sister-in-law. I had the honor of standing beside her as one of her bridesmaids, and now I get the privilege of having her stand beside me on my wedding day. She is an incredible mom, unbelievably talented, and her artistic touch has been woven throughout so many parts of my wedding. I’m so grateful for all of her help, encouragement, and love.",
+      photoUrl: '/images/wedding-party/Amber.jpeg',
+      sortOrder: 5,
+      isFeatured: false
     }
   ]
 
   const groomsSide: WeddingPartyMember[] = [
     {
       id: 'g1',
-      name: 'Aiden Puckett',
+      name: 'Zach',
       role: 'Best Man',
       side: 'groom',
-      bio: "Aiden is the best kind of friend a man can have. The kind of friend that is giving without question and expectation, that will cheer for you louder than anyone in the crowd. The kind of friend you'd take a bullet for without hesitation because you know he'd do the same for you. He's a clear pick on the groomsman team and has earned the right to be team captain as my best man.",
-      photoUrl: '/images/wedding-party/Aiden_Pucket.jpg',
+      bio: "I'm Zach!",
+      photoUrl: '/images/wedding-party/Zach.jpeg',
       sortOrder: 1,
       isFeatured: true
     },
