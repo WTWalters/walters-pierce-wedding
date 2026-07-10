@@ -72,7 +72,7 @@ export default function WeddingPartyPage() {
   const groomsSide: WeddingPartyMember[] = [
     {
       id: 'g1',
-      name: 'Zach',
+      name: 'Zach Johnson',
       role: 'Best Man',
       side: 'groom',
       bio: "I'm Zach!",
@@ -212,6 +212,7 @@ export default function WeddingPartyPage() {
             className="h-full w-full object-cover"
             style={{
               objectPosition:
+                member.name === 'Zach Johnson' ? 'center 30%' :
                 member.name === 'L Walters' ? 'center 35%' :
                 member.name === 'Grayson Heyart' ? 'center 15%' :
                 member.name === 'Daniel Walters' ? 'center 25%' :
