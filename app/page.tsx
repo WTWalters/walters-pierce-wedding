@@ -4,40 +4,19 @@ import { useState, useEffect } from 'react'
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react'
 
-// Engagement photos
+// Engagement photos — displayed in filename order
 const engagementPhotos = [
-  {
-    src: '/images/engagement/Choice 02_new.jpg',
-    alt: 'Emme and Connor engagement photo 1',
-  },
-  {
-    src: '/images/engagement/Choice 03.jpg',
-    alt: 'Emme and Connor engagement photo 3',
-  },
-  {
-    src: '/images/engagement/Choice 04.jpg',
-    alt: 'Emme and Connor engagement photo 4',
-  },
-  {
-    src: '/images/engagement/Choice 05_new.jpg',
-    alt: 'Emme and Connor engagement photo 5',
-  },
-  {
-    src: '/images/engagement/Choice 06.jpg',
-    alt: 'Emme and Connor engagement photo 6',
-  },
-  {
-    src: '/images/engagement/Choice 07.jpg',
-    alt: 'Emme and Connor engagement photo 7',
-  },
-  {
-    src: '/images/engagement/Choice 08.jpg',
-    alt: 'Emme and Connor engagement photo 8',
-  },
-  {
-    src: '/images/engagement/Choice 09.jpg',
-    alt: 'Emme and Connor engagement photo 9',
-  },
+  { src: '/images/engagement/DSC01845-100.jpg', alt: 'Emme and Connor engagement photo 1' },
+  { src: '/images/engagement/DSC01845-101.jpg', alt: 'Emme and Connor engagement photo 2' },
+  { src: '/images/engagement/DSC01845-102.jpg', alt: 'Emme and Connor engagement photo 3' },
+  { src: '/images/engagement/DSC01845-103.jpg', alt: 'Emme and Connor engagement photo 4' },
+  { src: '/images/engagement/DSC01845-104.jpg', alt: 'Emme and Connor engagement photo 5' },
+  { src: '/images/engagement/DSC01845-105.jpg', alt: 'Emme and Connor engagement photo 6' },
+  { src: '/images/engagement/DSC01845-106.jpg', alt: 'Emme and Connor engagement photo 7' },
+  { src: '/images/engagement/DSC01845-107.jpg', alt: 'Emme and Connor engagement photo 8' },
+  { src: '/images/engagement/DSC01845-108A.jpg', alt: 'Emme and Connor engagement photo 9' },
+  { src: '/images/engagement/DSC01845-109.jpg', alt: 'Emme and Connor engagement photo 10' },
+  { src: '/images/engagement/Proposal-173.jpg', alt: 'Emme and Connor proposal photo' },
 ]
 
 export default function Home() {
@@ -80,7 +59,8 @@ export default function Home() {
               <img
                 src={photo.src}
                 alt={photo.alt}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
+                loading={index === 0 ? 'eager' : 'lazy'}
               />
               <div className="absolute inset-0 bg-gradient-to-br from-green-900/5 via-transparent to-amber-900/5" />
             </div>

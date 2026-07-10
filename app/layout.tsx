@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: "%s | Emme & Connor Wedding"
   },
   description: "Join us for our wedding celebration in the beautiful Colorado Mountains - September 2026",
-  keywords: ["wedding", "Emme", "Connor", "Colorado", "September 2026", "Blackstone Rivers Ranch"],
+  keywords: ["wedding", "Emme", "Connor", "Colorado", "September 2026"],
   authors: [{ name: "Emme & Connor" }],
   openGraph: {
     title: "Emme & Connor Wedding",
@@ -36,9 +36,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/images/engagement/photo1.jpg",
-        width: 1200,
-        height: 630,
+        url: "/images/engagement/DSC01845-100.jpg",
+        width: 2000,
+        height: 1333,
         alt: "Emme & Connor Engagement Photo"
       }
     ]
