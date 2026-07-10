@@ -71,12 +71,12 @@ export default function WeddingPartyPage() {
 
   const groomsSide: WeddingPartyMember[] = [
     {
-      id: 'g1',
-      name: 'Zach Johnson',
+      id: 'g4',
+      name: 'Trenton Burton',
       role: 'Best Man',
       side: 'groom',
-      bio: "I'm Zach!",
-      photoUrl: '/images/wedding-party/Zach.jpeg',
+      bio: "Trenton is my longest standing friend. He's seen me at my weirdest in 6th grade, when I had no social skills but desperately wanted to have a friend in this new school. He made the unfortunate mistake of mentioning he had seen some of this show I was interested in at the time. And so, in true socially awkward 6th grader fashion, all I did all day everyday was make references to the show and talk about the most recent episode I'd seen. I don't know what possessed him to decide I was friendship material after that but I'm so happy he did. Trenton is, to this day, the funniest man I know and always has me laughing until my stomach aches without even trying. He's seen me through all my phases of life and has been on the groomsman team longer than the groomsman team has been a thing.",
+      photoUrl: '/images/wedding-party/Trenton_Burton.jpeg',
       sortOrder: 1,
       isFeatured: true
     },
@@ -101,18 +101,18 @@ export default function WeddingPartyPage() {
       isFeatured: false
     },
     {
-      id: 'g4',
-      name: 'Trenton Burton',
+      id: 'g1',
+      name: 'Zach Johnson',
       role: 'Groomsman',
       side: 'groom',
-      bio: "Trenton is my longest standing friend. He's seen me at my weirdest in 6th grade, when I had no social skills but desperately wanted to have a friend in this new school. He made the unfortunate mistake of mentioning he had seen some of this show I was interested in at the time. And so, in true socially awkward 6th grader fashion, all I did all day everyday was make references to the show and talk about the most recent episode I'd seen. I don't know what possessed him to decide I was friendship material after that but I'm so happy he did. Trenton is, to this day, the funniest man I know and always has me laughing until my stomach aches without even trying. He's seen me through all my phases of life and has been on the groomsman team longer than the groomsman team has been a thing.",
-      photoUrl: '/images/wedding-party/Trenton_Burton.jpeg',
+      bio: "I'm Zach!",
+      photoUrl: '/images/wedding-party/Zach.jpeg',
       sortOrder: 4,
       isFeatured: false
     },
     {
       id: 'g5',
-      name: 'Nathan Grabowski',
+      name: 'Nathan Grobaski',
       role: 'Groomsman',
       side: 'groom',
       bio: "Nate is another one of my oldest friends. Nate has been there for me through thick and thin, from picking me up from a house party because I was too— tired to drive, to being there to support and congratulate me during all my major life accomplishments. Though we don't live too close to each other and life has a way of keeping both of us busy, I know I can call him up any time and we'd be right back to best friends. I couldn't be happier having him on the Groomsmen team.",

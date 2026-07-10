@@ -8,7 +8,6 @@ import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react
 const engagementPhotos = [
   { src: '/images/engagement/DSC01845-100.jpg', alt: 'Emme and Connor engagement photo 1' },
   { src: '/images/engagement/DSC01845-101.jpg', alt: 'Emme and Connor engagement photo 2' },
-  { src: '/images/engagement/DSC01845-102.jpg', alt: 'Emme and Connor engagement photo 3' },
   { src: '/images/engagement/DSC01845-103.jpg', alt: 'Emme and Connor engagement photo 4' },
   { src: '/images/engagement/DSC01845-104.jpg', alt: 'Emme and Connor engagement photo 5' },
   { src: '/images/engagement/DSC01845-105.jpg', alt: 'Emme and Connor engagement photo 6' },
