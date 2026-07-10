@@ -23,6 +23,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://walters-pierce-wedding.com"),
   title: {
     default: "Emme & Connor Wedding",
     template: "%s | Emme & Connor Wedding"
