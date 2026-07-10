@@ -123,15 +123,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Save the Date button in hero */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/save-the-date"
-              className="bg-white text-green-900 px-8 py-4 rounded-full font-semibold text-lg hover:bg-amber-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-            >
-              Save the Date
-            </Link>
-          </div>
         </div>
 
         {/* Carousel Controls */}
@@ -221,22 +212,6 @@ export default function Home() {
                       Colorado Mountains
                     </p>
                   </div>
-                  {/* RSVP button hidden for now - will use Save the Date instead
-                  <Link
-                    href="/rsvp"
-                    className="inline-block bg-green-800 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-green-900 transition-colors shadow-md whitespace-nowrap"
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    RSVP for Details
-                  </Link>
-                  */}
-                  <Link
-                    href="/save-the-date"
-                    className="inline-block bg-green-800 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-green-900 transition-colors shadow-md whitespace-nowrap"
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    Save the Date
-                  </Link>
                 </div>
               </div>
             </div>
@@ -262,35 +237,7 @@ export default function Home() {
             <div className="w-24 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto" />
           </div>
           
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* RSVP card hidden for now - replaced with Save the Date
-            <Link
-              href="/rsvp"
-              className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center"
-            >
-              <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <Calendar className="w-8 h-8 text-green-700" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3" style={{ hyphens: 'none', wordBreak: 'keep-all' }}>RSVP</h3>
-              <p className="text-gray-600 leading-relaxed" style={{ hyphens: 'none', wordBreak: 'normal' }}>
-                Please let us know if you can celebrate with us. We can&apos;t wait to see you there!
-              </p>
-            </Link>
-            */}
-            
-            <Link
-              href="/save-the-date"
-              className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center"
-            >
-              <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <Calendar className="w-8 h-8 text-green-700" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3" style={{ hyphens: 'none', wordBreak: 'keep-all' }}>Save the Date</h3>
-              <p className="text-gray-600 leading-relaxed" style={{ hyphens: 'none', wordBreak: 'normal' }}>
-                Share your information with us so we can send you a formal invitation.
-              </p>
-            </Link>
-
+          <div className="max-w-md mx-auto">
             <Link
               href="/wedding-party"
               className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center"
@@ -324,26 +271,6 @@ export default function Home() {
                 Your presence is the greatest gift we could ask for.
               </p>
               
-              <div className="max-w-4xl mx-auto px-4 sm:px-8">
-                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-green-100">
-                  <div className="text-4xl mb-4 text-center">💌</div>
-                  <h3 className="text-xl font-semibold text-green-900 mb-3 text-center">
-                    Save the Date
-                  </h3>
-                  <p className="text-gray-700 leading-relaxed text-center">
-                    Please share your information with us so we can send you a formal invitation with
-                    all the details for our special day.
-                  </p>
-                  <div className="mt-6">
-                    <Link
-                      href="/save-the-date"
-                      className="inline-block bg-green-700 text-white px-8 py-3 rounded-full font-semibold hover:bg-green-800 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                    >
-                      Save the Date
-                    </Link>
-                  </div>
-                </div>
-              </div>
             </div>
             
             <div className="text-center mt-8 p-6 bg-white/70 rounded-2xl">
@@ -366,8 +293,6 @@ export default function Home() {
             September 2026 • Colorado Mountains
           </p>
           <div className="flex justify-center gap-6 text-sm text-green-300">
-            {/* <Link href="/rsvp" className="hover:text-white transition-colors">RSVP</Link> */}
-            <Link href="/save-the-date" className="hover:text-white transition-colors">Save the Date</Link>
             <Link href="/wedding-party" className="hover:text-white transition-colors">Wedding Party</Link>
           </div>
         </div>
