@@ -4,17 +4,19 @@ import { useState, useEffect } from 'react'
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react'
 
-// Engagement photos — displayed in filename order
-const engagementPhotos = [
+// Engagement photos — displayed in filename order.
+// fit: 'contain' shows the FULL photo (letterboxed over a blurred backdrop)
+// instead of cropping to fill — used where the wide composition matters.
+const engagementPhotos: { src: string; alt: string; fit?: 'contain' }[] = [
   { src: '/images/engagement/DSC01845-100.jpg', alt: 'Emme and Connor engagement photo 1' },
   { src: '/images/engagement/DSC01845-101.jpg', alt: 'Emme and Connor engagement photo 2' },
   { src: '/images/engagement/DSC01845-103.jpg', alt: 'Emme and Connor engagement photo 4' },
   { src: '/images/engagement/DSC01845-104.jpg', alt: 'Emme and Connor engagement photo 5' },
   { src: '/images/engagement/DSC01845-105.jpg', alt: 'Emme and Connor engagement photo 6' },
-  { src: '/images/engagement/DSC01845-106.jpg', alt: 'Emme and Connor engagement photo 7' },
+  { src: '/images/engagement/DSC01845-106.jpg', alt: 'Emme and Connor engagement photo 7', fit: 'contain' },
   { src: '/images/engagement/DSC01845-107.jpg', alt: 'Emme and Connor engagement photo 8' },
   { src: '/images/engagement/DSC01845-108A.jpg', alt: 'Emme and Connor engagement photo 9' },
-  { src: '/images/engagement/DSC01845-109.jpg', alt: 'Emme and Connor engagement photo 10' },
+  { src: '/images/engagement/DSC01845-109.jpg', alt: 'Emme and Connor engagement photo 10', fit: 'contain' },
 ]
 
 export default function Home() {
@@ -54,12 +56,32 @@ export default function Home() {
                 index === currentPhoto ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                className="w-full h-full object-cover object-center"
-                loading={index === 0 ? 'eager' : 'lazy'}
-              />
+              {photo.fit === 'contain' ? (
+                <>
+                  {/* blurred fill behind the letterboxed full photo */}
+                  <img
+                    src={photo.src}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    style={{ filter: 'blur(28px) brightness(0.7)', transform: 'scale(1.1)' }}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                  />
+                  <img
+                    src={photo.src}
+                    alt={photo.alt}
+                    className="relative w-full h-full object-contain object-center"
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                  />
+                </>
+              ) : (
+                <img
+                  src={photo.src}
+                  alt={photo.alt}
+                  className="w-full h-full object-cover object-center"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-br from-green-900/5 via-transparent to-amber-900/5" />
             </div>
           ))}

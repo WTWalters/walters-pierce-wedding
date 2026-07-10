@@ -115,7 +115,7 @@ export default function WeddingPartyPage() {
       name: 'Nathan Grobaski',
       role: 'Groomsman',
       side: 'groom',
-      bio: "Nate is another one of my oldest friends. Nate has been there for me through thick and thin, from picking me up from a house party because I was too— tired to drive, to being there to support and congratulate me during all my major life accomplishments. Though we don't live too close to each other and life has a way of keeping both of us busy, I know I can call him up any time and we'd be right back to best friends. I couldn't be happier having him on the Groomsmen team.",
+      bio: "Nate is another one of my oldest friends. Nate has been there for me through thick and thin, from picking me up from a house party because I was too tired to drive, to being there to support and congratulate me during all my major life accomplishments. Though we don't live close to each other and life has a way of keeping both of us busy, I know I can call him up any time and we'd be right back to best friends. I couldn't be happier having him on the Groomsmen team.",
       photoUrl: '/images/wedding-party/Nate G (Cropped).JPG',
       sortOrder: 5,
       isFeatured: false
