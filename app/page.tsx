@@ -218,7 +218,18 @@ export default function Home() {
           <div className="max-w-md mx-auto">
             <Link
               href="/wedding-party"
-              className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center"
+              className="group"
+              // Plain inline styles on purpose: Tailwind's shadow/transform utilities
+              // mis-paint this card's background on mobile WebKit/embedded renderers
+              // (white fragments at the left edge). Verified clean in this form.
+              style={{
+                display: 'block',
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'center',
+                border: '1px solid rgba(212,175,55,0.25)',
+              }}
             >
               <div className="w-16 h-16 bg-gradient-to-br from-rose-100 to-rose-200 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <div className="text-2xl">👰🤵</div>
