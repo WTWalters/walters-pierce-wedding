@@ -16,7 +16,6 @@ const engagementPhotos = [
   { src: '/images/engagement/DSC01845-107.jpg', alt: 'Emme and Connor engagement photo 8' },
   { src: '/images/engagement/DSC01845-108A.jpg', alt: 'Emme and Connor engagement photo 9' },
   { src: '/images/engagement/DSC01845-109.jpg', alt: 'Emme and Connor engagement photo 10' },
-  { src: '/images/engagement/Proposal-173.jpg', alt: 'Emme and Connor proposal photo' },
 ]
 
 export default function Home() {
