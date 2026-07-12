@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { prisma } from './prisma'
 import { getBlocklist, isBlockedName, normalizeName } from './blocklist'
+import { assertSeatCap } from './guests'
 import { sendEmail, logEmail, NOTIFY_EMAIL } from './email'
 import {
   generateRsvpNotificationEmail,
@@ -24,7 +25,10 @@ export const rsvpSchema = z
 
 export type RsvpInput = z.infer<typeof rsvpSchema>
 
-export type RsvpResult = { outcome: 'blocked' } | { outcome: 'saved'; matched: boolean }
+export type RsvpResult =
+  | { outcome: 'blocked' }
+  | { outcome: 'over_cap'; reservedSeats: number }
+  | { outcome: 'saved'; matched: boolean }
 
 // Notification failures never fail the RSVP — the database row is the source
 // of truth; email is a best-effort channel with an honest log.
@@ -77,6 +81,8 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
   let matchedBy: 'email' | 'name' | undefined
   let emailOnFile: string | undefined
   if (existing) {
+    const emailCap = assertSeatCap({ reservedSeats: existing.reservedSeats, rsvpdCount: responseData.partySize })
+    if (!emailCap.ok) return { outcome: 'over_cap', reservedSeats: existing.reservedSeats as number }
     matched = existing.source === 'imported'
     matchedBy = 'email'
     const updated = await prisma.guest.update({
@@ -96,13 +102,22 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
     const submittedName = normalizeName(`${input.firstName} ${input.lastName}`)
     const named = await prisma.guest.findMany({
       where: { NOT: [{ firstName: '' }, { lastName: '' }] },
-      select: { id: true, email: true, firstName: true, lastName: true, source: true },
+      select: {
+        id: true, email: true, firstName: true, lastName: true, source: true,
+        partnerFirstName: true, partnerLastName: true, reservedSeats: true,
+      },
     })
-    const nameMatches = named.filter(
-      (g) => normalizeName(`${g.firstName} ${g.lastName}`) === submittedName
-    )
+    const nameMatches = named.filter((g) => {
+      const primary = normalizeName(`${g.firstName} ${g.lastName}`)
+      const partner = g.partnerFirstName
+        ? normalizeName(`${g.partnerFirstName} ${g.partnerLastName ?? ''}`)
+        : null
+      return primary === submittedName || partner === submittedName
+    })
     if (nameMatches.length === 1) {
       const byName = nameMatches[0]
+      const nameCap = assertSeatCap({ reservedSeats: byName.reservedSeats, rsvpdCount: responseData.partySize })
+      if (!nameCap.ok) return { outcome: 'over_cap', reservedSeats: byName.reservedSeats as number }
       matched = byName.source === 'imported'
       matchedBy = 'name'
       emailOnFile = byName.email

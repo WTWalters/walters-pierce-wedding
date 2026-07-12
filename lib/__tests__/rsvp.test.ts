@@ -131,4 +131,67 @@ describe('processRsvpSubmission', () => {
     await processRsvpSubmission({ ...input, attending: false, partySize: undefined })
     expect(mockPrisma.guest.create.mock.calls[0][0].data.partySize).toBeNull()
   })
+
+  it('matches a submission against a party partner name without overwriting email on file', async () => {
+    mockPrisma.guest.findUnique.mockResolvedValue(null) // no email match
+    mockPrisma.guest.findMany.mockResolvedValue([
+      { id: 'g1', email: 'andre@x.com', firstName: 'Andre', lastName: 'Justen-Pratt',
+        partnerFirstName: 'Chloe', partnerLastName: 'Hirai', source: 'imported', reservedSeats: null },
+    ])
+    mockPrisma.guest.update.mockResolvedValue({ id: 'g1' })
+
+    const res = await processRsvpSubmission({
+      firstName: 'Chloe', lastName: 'Hirai', email: 'chloe-new@x.com',
+      attending: true, partySize: 2,
+    })
+
+    expect(res).toEqual({ outcome: 'saved', matched: true })
+    const updateArg = mockPrisma.guest.update.mock.calls[0][0]
+    expect(updateArg.where).toEqual({ id: 'g1' })
+    expect(updateArg.data.email).toBeUndefined() // email on file not overwritten by a name match
+  })
+
+  it('rejects a matched submission whose party size exceeds reserved seats (no write)', async () => {
+    mockPrisma.guest.findUnique.mockResolvedValue({
+      id: 'g1', email: 'callie@x.com', firstName: 'Callie', lastName: 'Clark',
+      source: 'imported', reservedSeats: 7,
+    })
+
+    const res = await processRsvpSubmission({
+      firstName: 'Callie', lastName: 'Clark', email: 'callie@x.com',
+      attending: true, partySize: 9,
+    })
+
+    expect(res).toEqual({ outcome: 'over_cap', reservedSeats: 7 })
+    expect(mockPrisma.guest.update).not.toHaveBeenCalled()
+  })
+
+  it('allows a matched submission equal to reserved seats', async () => {
+    mockPrisma.guest.findUnique.mockResolvedValue({
+      id: 'g1', email: 'callie@x.com', firstName: 'Callie', lastName: 'Clark',
+      source: 'imported', reservedSeats: 7,
+    })
+    mockPrisma.guest.update.mockResolvedValue({ id: 'g1' })
+
+    const res = await processRsvpSubmission({
+      firstName: 'Callie', lastName: 'Clark', email: 'callie@x.com',
+      attending: true, partySize: 7,
+    })
+
+    expect(res).toEqual({ outcome: 'saved', matched: true })
+  })
+
+  it('does not cap an unmatched submitter (still saved and flagged)', async () => {
+    mockPrisma.guest.findUnique.mockResolvedValue(null)
+    mockPrisma.guest.findMany.mockResolvedValue([]) // no name match
+    mockPrisma.guest.create.mockResolvedValue({ id: 'new1' })
+
+    const res = await processRsvpSubmission({
+      firstName: 'Unknown', lastName: 'Person', email: 'unknown@x.com',
+      attending: true, partySize: 8,
+    })
+
+    expect(res).toEqual({ outcome: 'saved', matched: false })
+    expect(mockPrisma.guest.create).toHaveBeenCalled()
+  })
 })

@@ -21,7 +21,13 @@ export async function POST(request: NextRequest) {
   try {
     // A blocked submission returns the identical response shape on purpose:
     // the submitter must not be able to distinguish it from a saved one.
-    await submitWithRaceRetry(parsed.data)
+    const result = await submitWithRaceRetry(parsed.data)
+    if (result.outcome === 'over_cap') {
+      return NextResponse.json(
+        { error: `This party is approved for ${result.reservedSeats} guests. Please enter ${result.reservedSeats} or fewer.` },
+        { status: 400 }
+      )
+    }
     return NextResponse.json({ ok: true, attending: parsed.data.attending })
   } catch (error) {
     console.error('RSVP submission failed:', error)
