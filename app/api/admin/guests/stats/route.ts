@@ -12,61 +12,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch guest statistics
-    const [
-      total,
-      invited,
-      rsvpReceived,
-      attending,
-      notAttending,
-      plusOnes
-    ] = await Promise.all([
-      // Total guests
-      prisma.guest.count(),
-      
-      // Invited guests (have invitation sent date)
-      prisma.guest.count({
-        where: {
-          invitationSentAt: { not: null }
-        }
-      }),
-      
-      // RSVP received
-      prisma.guest.count({
-        where: {
-          rsvpReceivedAt: { not: null }
-        }
-      }),
-      
-      // Attending
-      prisma.guest.count({
-        where: {
-          attending: true
-        }
-      }),
-      
-      // Not attending
-      prisma.guest.count({
-        where: {
-          attending: false
-        }
-      }),
-      
-      // Total plus ones
-      prisma.plusOne.count()
+    const [attending, notAttending, seatSum] = await Promise.all([
+      prisma.guest.count({ where: { attending: true } }),
+      prisma.guest.count({ where: { attending: false } }),
+      prisma.guest.aggregate({ _sum: { reservedSeats: true } }),
     ])
 
-    const noResponse = invited - rsvpReceived
+    const totalInvited = seatSum._sum.reservedSeats ?? 0
+    const rsvpReceived = attending + notAttending
 
-    const stats = {
-      total,
-      invited,
-      rsvpReceived,
-      attending,
-      notAttending,
-      noResponse: Math.max(0, noResponse),
-      plusOnes
-    }
+    const stats = { totalInvited, rsvpReceived, attending, notAttending }
 
     return NextResponse.json(stats)
   } catch (error) {
