@@ -9,7 +9,6 @@ import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react
 // instead of cropping to fill — used where the wide composition matters.
 const engagementPhotos: { src: string; alt: string; fit?: 'contain' }[] = [
   { src: '/images/engagement/DSC01845-100.jpg', alt: 'Emme and Connor engagement photo 1' },
-  { src: '/images/engagement/DSC01845-101.jpg', alt: 'Emme and Connor engagement photo 2' },
   { src: '/images/engagement/DSC01845-103.jpg', alt: 'Emme and Connor engagement photo 4' },
   { src: '/images/engagement/DSC01845-104.jpg', alt: 'Emme and Connor engagement photo 5' },
   { src: '/images/engagement/DSC01845-105.jpg', alt: 'Emme and Connor engagement photo 6' },
@@ -17,6 +16,13 @@ const engagementPhotos: { src: string; alt: string; fit?: 'contain' }[] = [
   { src: '/images/engagement/DSC01845-107.jpg', alt: 'Emme and Connor engagement photo 8' },
   { src: '/images/engagement/DSC01845-108A.jpg', alt: 'Emme and Connor engagement photo 9' },
   { src: '/images/engagement/DSC01845-109.jpg', alt: 'Emme and Connor engagement photo 10', fit: 'contain' },
+  { src: '/images/engagement/DSC01767-100.jpg', alt: 'Emme and Connor engagement — seated with the ring', fit: 'contain' },
+  { src: '/images/engagement/DSC01767-101.jpg', alt: 'Emme and Connor engagement — on the rocks at sunset', fit: 'contain' },
+  { src: '/images/engagement/DSC01767-103.jpg', alt: 'Emme and Connor engagement — by the stone wall', fit: 'contain' },
+  { src: '/images/engagement/DSC01767-106.jpg', alt: 'Emme and Connor engagement — walking the trail', fit: 'contain' },
+  { src: '/images/engagement/DSC01767-108.jpg', alt: 'Emme and Connor engagement — a twirl on the path', fit: 'contain' },
+  { src: '/images/engagement/DSC01767-109.jpg', alt: 'Emme and Connor engagement — mountain overlook portrait', fit: 'contain' },
+  { src: '/images/engagement/DSC01767-111.jpg', alt: 'Emme and Connor engagement — the mountain vista', fit: 'contain' },
 ]
 
 export default function Home() {
