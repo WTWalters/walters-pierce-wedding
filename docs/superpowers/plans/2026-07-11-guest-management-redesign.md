@@ -342,22 +342,23 @@ git commit -m "feat(guests): add formatPartyName helper for couple display"
 
 ---
 
-### Task 5: Partner-name matching in `lib/rsvp.ts`
+### Task 5: Partner-name matching + public reserved-seats cap in `lib/rsvp.ts`
 
-> **LEARNING CONTRIBUTION POINT** — extending the matcher touches the security invariant (a name match must never overwrite the email on file). During execution I'll invite you to write the matching predicate before revealing the reference.
+Two coupled changes to the public RSVP path, both in `processRsvpSubmission`: (1) match a submission against a party's **partner** name, and (2) reject a matched submission whose party size exceeds the party's `reservedSeats`. Unmatched submitters are unaffected (accept-all-and-flag preserved); declining is never capped; a name match still never overwrites the email on file.
 
 **Files:**
-- Modify: `lib/rsvp.ts` (`:96-103`)
+- Modify: `lib/rsvp.ts` (`RsvpResult` type `:27`, matcher `:96-113`, email branch `:79-90`)
+- Modify: `app/api/rsvp/submit/route.ts` (map `over_cap` → 400)
 - Test: `lib/__tests__/rsvp.test.ts`
 
-- [ ] **Step 1: Write the failing test** (append a case to `lib/__tests__/rsvp.test.ts`)
+- [ ] **Step 1: Write the failing tests** (append to `lib/__tests__/rsvp.test.ts`)
 
 ```typescript
 it('matches a submission against a party partner name without overwriting email on file', async () => {
   mockPrisma.guest.findUnique.mockResolvedValue(null) // no email match
   mockPrisma.guest.findMany.mockResolvedValue([
     { id: 'g1', email: 'andre@x.com', firstName: 'Andre', lastName: 'Justen-Pratt',
-      partnerFirstName: 'Chloe', partnerLastName: 'Hirai', source: 'imported' },
+      partnerFirstName: 'Chloe', partnerLastName: 'Hirai', source: 'imported', reservedSeats: null },
   ])
   mockPrisma.guest.update.mockResolvedValue({ id: 'g1' })
 
@@ -367,30 +368,91 @@ it('matches a submission against a party partner name without overwriting email 
   })
 
   expect(res).toEqual({ outcome: 'saved', matched: true })
-  expect(mockPrisma.guest.update).toHaveBeenCalledWith(
-    expect.objectContaining({ where: { id: 'g1' } })
-  )
-  // email on file is NOT overwritten by a name match
   const updateArg = mockPrisma.guest.update.mock.calls[0][0]
-  expect(updateArg.data.email).toBeUndefined()
+  expect(updateArg.where).toEqual({ id: 'g1' })
+  expect(updateArg.data.email).toBeUndefined() // email on file not overwritten by a name match
+})
+
+it('rejects a matched submission whose party size exceeds reserved seats (no write)', async () => {
+  mockPrisma.guest.findUnique.mockResolvedValue({
+    id: 'g1', email: 'callie@x.com', firstName: 'Callie', lastName: 'Clark',
+    source: 'imported', reservedSeats: 7,
+  })
+
+  const res = await processRsvpSubmission({
+    firstName: 'Callie', lastName: 'Clark', email: 'callie@x.com',
+    attending: true, partySize: 9,
+  })
+
+  expect(res).toEqual({ outcome: 'over_cap', reservedSeats: 7 })
+  expect(mockPrisma.guest.update).not.toHaveBeenCalled()
+})
+
+it('allows a matched submission equal to reserved seats', async () => {
+  mockPrisma.guest.findUnique.mockResolvedValue({
+    id: 'g1', email: 'callie@x.com', firstName: 'Callie', lastName: 'Clark',
+    source: 'imported', reservedSeats: 7,
+  })
+  mockPrisma.guest.update.mockResolvedValue({ id: 'g1' })
+
+  const res = await processRsvpSubmission({
+    firstName: 'Callie', lastName: 'Clark', email: 'callie@x.com',
+    attending: true, partySize: 7,
+  })
+
+  expect(res).toEqual({ outcome: 'saved', matched: true })
+})
+
+it('does not cap an unmatched submitter (still saved and flagged)', async () => {
+  mockPrisma.guest.findUnique.mockResolvedValue(null)
+  mockPrisma.guest.findMany.mockResolvedValue([]) // no name match
+  mockPrisma.guest.create.mockResolvedValue({ id: 'new1' })
+
+  const res = await processRsvpSubmission({
+    firstName: 'Unknown', lastName: 'Person', email: 'unknown@x.com',
+    attending: true, partySize: 8,
+  })
+
+  expect(res).toEqual({ outcome: 'saved', matched: false })
+  expect(mockPrisma.guest.create).toHaveBeenCalled()
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run tests to verify they fail**
 
-Run: `npx jest lib/__tests__/rsvp.test.ts -t "partner name"`
-Expected: FAIL (partner not matched → a new guest is created instead of updating g1).
+Run: `npx jest lib/__tests__/rsvp.test.ts`
+Expected: FAIL (partner not matched; `over_cap` outcome does not exist yet).
 
-- [ ] **Step 3: Extend the name matcher** (`lib/rsvp.ts`)
+- [ ] **Step 3: Add the `over_cap` outcome to the result type** (`lib/rsvp.ts:27`)
 
-Update the `findMany` select to include partner fields, and broaden the filter. Replace lines `:97-103`:
+```typescript
+export type RsvpResult =
+  | { outcome: 'blocked' }
+  | { outcome: 'over_cap'; reservedSeats: number }
+  | { outcome: 'saved'; matched: boolean }
+```
+
+- [ ] **Step 4: Import the cap helper** — add near the top imports of `lib/rsvp.ts`:
+
+```typescript
+import { assertSeatCap } from './guests'
+```
+
+- [ ] **Step 5: Enforce the cap on the email-match branch** — in the `if (existing) {` block, insert as the first two lines (before `matched = existing.source === 'imported'`):
+
+```typescript
+    const emailCap = assertSeatCap({ reservedSeats: existing.reservedSeats, rsvpdCount: responseData.partySize })
+    if (!emailCap.ok) return { outcome: 'over_cap', reservedSeats: existing.reservedSeats as number }
+```
+
+- [ ] **Step 6: Extend the name matcher and enforce the cap on the name-match branch** — replace the `findMany` + filter (`:97-103`) with:
 
 ```typescript
     const named = await prisma.guest.findMany({
       where: { NOT: [{ firstName: '' }, { lastName: '' }] },
       select: {
         id: true, email: true, firstName: true, lastName: true, source: true,
-        partnerFirstName: true, partnerLastName: true,
+        partnerFirstName: true, partnerLastName: true, reservedSeats: true,
       },
     })
     const nameMatches = named.filter((g) => {
@@ -402,18 +464,47 @@ Update the `findMany` select to include partner fields, and broaden the filter. 
     })
 ```
 
-The existing `nameMatches.length === 1` branch already updates by id **without** writing `email` — the security invariant is preserved unchanged.
+Then inside `if (nameMatches.length === 1) {`, insert as the first two lines (before `matched = byName.source === 'imported'`):
 
-- [ ] **Step 4: Run test to verify it passes**
+```typescript
+      const nameCap = assertSeatCap({ reservedSeats: byName.reservedSeats, rsvpdCount: responseData.partySize })
+      if (!nameCap.ok) return { outcome: 'over_cap', reservedSeats: byName.reservedSeats as number }
+```
+
+(The `nameMatches.length === 1` branch still updates by id **without** writing `email` — the security invariant is unchanged.)
+
+- [ ] **Step 7: Run tests to verify they pass**
 
 Run: `npx jest lib/__tests__/rsvp.test.ts`
-Expected: PASS (new case + all existing rsvp tests).
+Expected: PASS (all new cases + existing rsvp tests).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 8: Map `over_cap` to a 400 in the submit route** (`app/api/rsvp/submit/route.ts`)
+
+In `POST`, change the success block so it captures and branches on the result:
+
+```typescript
+    const result = await submitWithRaceRetry(parsed.data)
+    if (result.outcome === 'over_cap') {
+      return NextResponse.json(
+        { error: `This party is approved for ${result.reservedSeats} guests. Please enter ${result.reservedSeats} or fewer.` },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json({ ok: true, attending: parsed.data.attending })
+```
+
+(The `blocked` outcome still returns the ok shape — its response indistinguishability is intentional and unchanged.)
+
+- [ ] **Step 9: Run the affected suites**
+
+Run: `npx jest lib/__tests__/rsvp.test.ts app/api/rsvp`
+Expected: PASS (rsvp lib + existing submit-route tests still green).
+
+- [ ] **Step 10: Commit**
 
 ```bash
-git add lib/rsvp.ts lib/__tests__/rsvp.test.ts
-git commit -m "feat(rsvp): match submissions against party partner names"
+git add lib/rsvp.ts app/api/rsvp/submit/route.ts lib/__tests__/rsvp.test.ts
+git commit -m "feat(rsvp): match partner names and reject party size over reserved seats"
 ```
 
 ---

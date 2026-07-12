@@ -70,7 +70,16 @@ Migration: `prisma migrate dev --name guest_party_fields`, additive only. No dat
 
 ### The reserved-seats cap invariant
 
-**`rsvpdCount` must never exceed `reservedSeats`.** Enforced server-side in both `POST` and `PUT /api/admin/guests/[id]`: if `rsvpdCount != null && reservedSeats != null && rsvpdCount > reservedSeats`, return `400` with a clear message (e.g. "RSVP count (9) exceeds reserved seats (7) for this party"). Concrete case Nicolle gave: Callie Clark's party is 7 → she can't be recorded as bringing more than 7. The client also disables save / shows inline error, but the server is the source of truth.
+**`rsvpdCount` must never exceed `reservedSeats`.** Enforced server-side in both `POST` and `PUT /api/admin/guests/[id]`: if `rsvpdCount != null && reservedSeats != null && rsvpdCount > reservedSeats`, return `400` with a clear message (e.g. "RSVP count (9) exceeds reserved seats (7) for this party"). Concrete case Nicolle gave: Callie Clark's party is 7 → she can't be recorded as bringing more than 7. The client also disables save / shows inline error, but the server is the source of truth. The shared rule lives in `lib/guests.ts` as `assertSeatCap({ reservedSeats, rsvpdCount })` and is reused by the public path below.
+
+### Public RSVP cap enforcement (guest-facing)
+
+The same cap must bind guests on the public `/rsvp` page — a guest matched to their party may not RSVP more people than their approved `reservedSeats`. Decisions (Nicolle, 2026-07-11):
+
+- **Flow stays single-step, validated on submit.** No "look up your invitation" step is added. The guest fills the existing one form; the server rejects an over-cap submission with a clear message shown in the form's existing error area.
+- **Cap binds matched guests only; the open model is preserved.** In `processRsvpSubmission`, after a submission matches an existing party (by email, or by unambiguous primary/partner name), if that party has `reservedSeats` set and the submitted attending party size exceeds it, the submission is **rejected without writing** — the route returns `400` with "This party is approved for N guests. Please enter N or fewer." Declining (no party size) is never capped.
+- **Unmatched submitters are unaffected** — no match means no `reservedSeats` to enforce, so they keep the existing 1–10 range and are still saved-and-flagged (accept-all-and-flag intact). A matched party with `reservedSeats` still null is likewise uncapped until Nicolle backfills it.
+- **Security invariant preserved:** the cap check is read-only and additive; the existing rule that a name match never overwrites the email on file is unchanged. Over-cap rejection is an ordinary validation error (visible, distinguishable) — unlike the blocklist path, which stays response-indistinguishable.
 
 ### Partner-name matching (`lib/rsvp.ts`)
 
@@ -97,6 +106,7 @@ Change the table to Nicolle's requested columns: **Name · Status · Number in p
 - **Unit — stats:** `reservedSeats` sum = Total Guests Invited; `rsvpReceived == attending + notAttending`; invited/plusOnes no longer returned.
 - **Unit — cap invariant:** PUT/POST reject `rsvpdCount > reservedSeats` (400); accept equal; accept either being null.
 - **Unit — matching:** a submission matching `partnerFirstName`/`partnerLastName` resolves to the existing party; email on file is not overwritten by a name match.
+- **Unit — public cap:** a submission matching a party with `reservedSeats = 7` and party size 9 is rejected (not written); size 7 is saved; an unmatched submission over the old range is still saved-and-flagged; a declining submission is never capped.
 - **Unit — `formatPartyName`:** couple → "A & B"; single → "A"; missing last name handled.
 - **Route:** `/api/admin/guests` POST/PUT — 401 unauthenticated, 400 on cap violation, happy path (existing mocked-session pattern).
 - **Manual smoke (dev):** backfill Callie Clark reservedSeats=7, try rsvpdCount=9 → blocked; set couple partner fields → row shows "A & B"; stat boxes show 4 with correct totals; edit modal fully visible with Save reachable.
