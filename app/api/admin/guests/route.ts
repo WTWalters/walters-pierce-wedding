@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { assertSeatCap } from '@/lib/guests'
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,18 +44,14 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json()
-    const { 
-      firstName, 
-      lastName, 
-      email, 
-      phone, 
-      addressLine1, 
-      addressLine2, 
-      city, 
-      state, 
-      zipCode, 
-      notes 
-    } = data
+    const { firstName, lastName, email, phone, addressLine1, addressLine2, city, state, zipCode, notes,
+            partnerFirstName, partnerLastName, reservedSeats: rawSeats, rsvpdCount: rawRsvpd, songRequest } = data
+    const reservedSeats = rawSeats != null && rawSeats !== '' ? parseInt(rawSeats) : null
+    const rsvpdCount = rawRsvpd != null && rawRsvpd !== '' ? parseInt(rawRsvpd) : null
+    const cap = assertSeatCap({ reservedSeats, rsvpdCount })
+    if (!cap.ok) {
+      return NextResponse.json({ error: cap.message }, { status: 400 })
+    }
 
     if (!firstName || !lastName || !email) {
       return NextResponse.json(
@@ -87,7 +84,12 @@ export async function POST(request: NextRequest) {
         city: city || null,
         state: state || null,
         zipCode: zipCode || null,
-        notes: notes || null
+        notes: notes || null,
+        partnerFirstName: partnerFirstName || null,
+        partnerLastName: partnerLastName || null,
+        reservedSeats,
+        rsvpdCount,
+        songRequest: songRequest || null
       }
     })
 

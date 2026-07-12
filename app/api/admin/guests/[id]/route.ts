@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { assertSeatCap } from '@/lib/guests'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -38,6 +39,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       )
     }
 
+    const reservedSeats = body.reservedSeats != null && body.reservedSeats !== '' ? parseInt(body.reservedSeats) : null
+    const rsvpdCount = body.rsvpdCount != null && body.rsvpdCount !== '' ? parseInt(body.rsvpdCount) : null
+    const cap = assertSeatCap({ reservedSeats, rsvpdCount })
+    if (!cap.ok) {
+      return NextResponse.json({ error: cap.message }, { status: 400 })
+    }
+
     // Update guest
     const updatedGuest = await prisma.guest.update({
       where: { id },
@@ -52,6 +60,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         state: body.state || null,
         zipCode: body.zipCode || null,
         country: body.country || null,
+        partnerFirstName: body.partnerFirstName || null,
+        partnerLastName: body.partnerLastName || null,
+        reservedSeats,
+        rsvpdCount,
+        songRequest: body.songRequest || null,
         tableNumber: body.tableNumber ? parseInt(body.tableNumber) : null,
         dietaryRestrictions: body.dietaryRestrictions || null,
         specialRequests: body.specialRequests || null,
