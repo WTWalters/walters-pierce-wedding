@@ -22,3 +22,18 @@ export function assertSeatCap({ reservedSeats, rsvpdCount }: SeatCapInput): Seat
   }
   return { ok: true }
 }
+
+export type PartyNameInput = {
+  firstName: string
+  lastName: string
+  partnerFirstName?: string | null
+  partnerLastName?: string | null
+}
+
+/** Renders the party's display name: "A B" or "A B & C D". */
+export function formatPartyName(g: PartyNameInput): string {
+  const primary = `${g.firstName} ${g.lastName}`.trim()
+  if (!g.partnerFirstName) return primary
+  const partner = `${g.partnerFirstName} ${g.partnerLastName ?? ''}`.trim()
+  return `${primary} & ${partner}`
+}

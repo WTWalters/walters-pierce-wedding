@@ -17,3 +17,23 @@ describe('assertSeatCap', () => {
     expect(assertSeatCap({})).toEqual({ ok: true })
   })
 })
+
+import { formatPartyName } from '@/lib/guests'
+
+describe('formatPartyName', () => {
+  it('joins a couple with an ampersand', () => {
+    expect(formatPartyName({
+      firstName: 'Andre', lastName: 'Justen-Pratt',
+      partnerFirstName: 'Chloe', partnerLastName: 'Hirai',
+    })).toBe('Andre Justen-Pratt & Chloe Hirai')
+  })
+  it('returns a single name when no partner', () => {
+    expect(formatPartyName({ firstName: 'Amethyst', lastName: 'Johannes' }))
+      .toBe('Amethyst Johannes')
+  })
+  it('handles a partner first name with no partner last name', () => {
+    expect(formatPartyName({
+      firstName: 'Ben', lastName: 'Bright', partnerFirstName: 'Jessica',
+    })).toBe('Ben Bright & Jessica')
+  })
+})
