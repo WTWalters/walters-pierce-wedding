@@ -61,32 +61,11 @@ export default function AdminDashboard() {
 
   const adminActions = [
     {
-      title: 'RSVPs & Communications',
-      description: 'Review responses and send guest emails',
-      href: '/admin/rsvps',
-      icon: '💌',
-      color: 'bg-teal-600 hover:bg-teal-700'
-    },
-    {
       title: 'Guest Management',
-      description: 'Import guest list, manage RSVPs, and track attendance',
+      description: 'Manage the guest list, record RSVPs, and track attendance',
       href: '/admin/guests',
       icon: '👥',
       color: 'bg-blue-600 hover:bg-blue-700'
-    },
-    {
-      title: 'To-Do List',
-      description: 'Track wedding planning tasks and deadlines',
-      href: '/admin/todos',
-      icon: '📋',
-      color: 'bg-green-600 hover:bg-green-700'
-    },
-    {
-      title: 'Venue & Events',
-      description: 'Manage venue information and event timeline',
-      href: '/admin/venues',
-      icon: '🏛️',
-      color: 'bg-purple-600 hover:bg-purple-700'
     },
     {
       title: 'Photo Gallery',
@@ -96,46 +75,11 @@ export default function AdminDashboard() {
       color: 'bg-pink-600 hover:bg-pink-700'
     },
     {
-      title: 'Wedding Party',
-      description: 'Manage bridesmaids, groomsmen, and wedding party',
-      href: '/admin/wedding-party',
-      icon: '👰🤵',
-      color: 'bg-rose-600 hover:bg-rose-700'
-    },
-    {
       title: 'Registry & Gifts',
-      description: 'Manage honeymoon fund and gift registry',
+      description: 'Honeymoon fund and gift registry',
       href: '/admin/registry',
       icon: '🎁',
       color: 'bg-yellow-600 hover:bg-yellow-700'
-    },
-    {
-      title: 'Email Management',
-      description: 'Send save-the-dates and manage email campaigns',
-      href: '/admin/email',
-      icon: '📧',
-      color: 'bg-indigo-600 hover:bg-indigo-700'
-    },
-    {
-      title: 'Save-the-Date Campaign',
-      description: 'Manage and send save-the-date emails to guests',
-      href: '/admin/save-the-date',
-      icon: '📅',
-      color: 'bg-orange-600 hover:bg-orange-700'
-    },
-    {
-      title: 'Admin Users',
-      description: 'Manage admin access and user permissions',
-      href: '/admin/users',
-      icon: '👤',
-      color: 'bg-slate-600 hover:bg-slate-700'
-    },
-    {
-      title: 'Settings',
-      description: 'Configure website settings and preferences',
-      href: '/admin/settings',
-      icon: '⚙️',
-      color: 'bg-gray-600 hover:bg-gray-700'
     }
   ]
 
@@ -187,6 +131,9 @@ export default function AdminDashboard() {
               <p className="text-sm opacity-90">{action.description}</p>
             </Link>
           ))}
+        </div>
+        <div className="mt-6 text-sm">
+          <a href="/admin/users" className="text-gray-500 hover:text-gray-700 underline">Manage admin users</a>
         </div>
       </div>
 
