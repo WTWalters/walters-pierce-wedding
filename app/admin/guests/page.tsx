@@ -23,6 +23,11 @@ interface Guest {
   dietaryRestrictions?: string
   specialRequests?: string
   notes?: string
+  partnerFirstName?: string
+  partnerLastName?: string
+  reservedSeats?: number | null
+  rsvpdCount?: number | null
+  songRequest?: string
   createdAt: string
   plusOnes?: Array<{
     id: string
@@ -35,26 +40,20 @@ interface Guest {
 }
 
 interface GuestStats {
-  total: number
-  invited: number
+  totalInvited: number
   rsvpReceived: number
   attending: number
   notAttending: number
-  noResponse: number
-  plusOnes: number
 }
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<Guest[]>([])
   const [filteredGuests, setFilteredGuests] = useState<Guest[]>([])
   const [stats, setStats] = useState<GuestStats>({
-    total: 0,
-    invited: 0,
+    totalInvited: 0,
     rsvpReceived: 0,
     attending: 0,
     notAttending: 0,
-    noResponse: 0,
-    plusOnes: 0
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -335,14 +334,10 @@ export default function GuestsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-blue-900">{stats.total}</div>
-          <div className="text-blue-800 text-sm">Total Guests</div>
-        </div>
-        <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-purple-900">{stats.invited}</div>
-          <div className="text-purple-800 text-sm">Invited</div>
+          <div className="text-2xl font-bold text-blue-900">{stats.totalInvited}</div>
+          <div className="text-blue-800 text-sm">Total Guests Invited</div>
         </div>
         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-yellow-900">{stats.rsvpReceived}</div>
@@ -355,10 +350,6 @@ export default function GuestsPage() {
         <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-red-900">{stats.notAttending}</div>
           <div className="text-red-800 text-sm">Not Attending</div>
-        </div>
-        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-orange-900">{stats.plusOnes}</div>
-          <div className="text-orange-800 text-sm">Plus Ones</div>
         </div>
       </div>
 
