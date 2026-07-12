@@ -26,6 +26,7 @@ interface Guest {
   notes?: string
   partnerFirstName?: string
   partnerLastName?: string
+  partnerEmail?: string
   reservedSeats?: number | null
   rsvpdCount?: number | null
   songRequest?: string
@@ -729,7 +730,37 @@ export default function GuestsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>
-                
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner First Name</label>
+                  <input
+                    type="text"
+                    value={editingGuest.partnerFirstName || ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, partnerFirstName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner Last Name</label>
+                  <input
+                    type="text"
+                    value={editingGuest.partnerLastName || ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, partnerLastName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner Email</label>
+                  <input
+                    type="email"
+                    value={editingGuest.partnerEmail || ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, partnerEmail: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <input
@@ -804,24 +835,6 @@ export default function GuestsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner First Name</label>
-                  <input
-                    type="text"
-                    value={editingGuest.partnerFirstName || ''}
-                    onChange={(e) => setEditingGuest({...editingGuest, partnerFirstName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner Last Name</label>
-                  <input
-                    type="text"
-                    value={editingGuest.partnerLastName || ''}
-                    onChange={(e) => setEditingGuest({...editingGuest, partnerLastName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Reserved Seats (number in party)</label>
                   <input
                     type="number"
@@ -851,7 +864,7 @@ export default function GuestsPage() {
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 lg:col-span-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dietary Restrictions</label>
                   <input
                     type="text"
@@ -860,17 +873,7 @@ export default function GuestsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>
-                
-                <div className="md:col-span-2 lg:col-span-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                  <textarea
-                    value={editingGuest.notes || ''}
-                    onChange={(e) => setEditingGuest({...editingGuest, notes: e.target.value})}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                  />
-                </div>
-                
+
                 {assertSeatCap({ reservedSeats: editingGuest.reservedSeats, rsvpdCount: editingGuest.rsvpdCount }).ok === false && (
                   <div className="md:col-span-2 lg:col-span-3 text-sm text-red-700">
                     {(assertSeatCap({ reservedSeats: editingGuest.reservedSeats, rsvpdCount: editingGuest.rsvpdCount }) as { message: string }).message}
