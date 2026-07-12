@@ -1,8 +1,14 @@
 'use client'
 
 import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
+import Link from 'next/link'
+
+const NAV_LINKS = [
+  { label: 'Dashboard', href: '/admin' },
+  { label: 'Guest Management', href: '/admin/guests' },
+]
 
 export default function AdminLayout({
   children,
@@ -11,6 +17,7 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (status === 'loading') return // Still loading
@@ -47,15 +54,15 @@ export default function AdminLayout({
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-green-900 font-serif">
+            <Link href="/admin" className="group" aria-label="Go to admin dashboard">
+              <h1 className="text-2xl font-bold text-green-900 font-serif group-hover:text-green-700 transition-colors">
                 Wedding Admin
               </h1>
               <p className="text-sm text-gray-600">Walters-Pierce Wedding</p>
-            </div>
-            
+            </Link>
+
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
+              <span className="hidden sm:inline text-sm text-gray-700">
                 Welcome, {session.user.email}
               </span>
               <button
@@ -69,6 +76,30 @@ export default function AdminLayout({
               </button>
             </div>
           </div>
+
+          {/* Primary navigation */}
+          <nav className="flex items-center gap-1 -mb-px" aria-label="Admin sections">
+            {NAV_LINKS.map((link) => {
+              const isActive =
+                link.href === '/admin'
+                  ? pathname === '/admin'
+                  : pathname.startsWith(link.href)
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    isActive
+                      ? 'border-green-800 text-green-900'
+                      : 'border-transparent text-gray-600 hover:text-green-800 hover:border-green-300'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+          </nav>
         </div>
       </header>
 
