@@ -42,6 +42,10 @@ model Guest {
   attending           Boolean?
   partySize           Int?       @map("party_size")
   songRequest         String?    @map("song_request")
+  partnerFirstName    String?    @map("partner_first_name")
+  partnerLastName     String?    @map("partner_last_name")
+  reservedSeats       Int?       @map("reserved_seats")
+  rsvpdCount          Int?       @map("rsvpd_count")
   source              String     @default("imported")
   tableNumber         Int?       @map("table_number")
   notes               String?
