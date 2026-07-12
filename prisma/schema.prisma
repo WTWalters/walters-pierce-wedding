@@ -44,6 +44,7 @@ model Guest {
   songRequest         String?    @map("song_request")
   partnerFirstName    String?    @map("partner_first_name")
   partnerLastName     String?    @map("partner_last_name")
+  partnerEmail        String?    @map("partner_email")
   reservedSeats       Int?       @map("reserved_seats")
   rsvpdCount          Int?       @map("rsvpd_count")
   source              String     @default("imported")

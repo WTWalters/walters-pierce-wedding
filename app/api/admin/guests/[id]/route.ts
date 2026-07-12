@@ -62,6 +62,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         country: body.country || null,
         partnerFirstName: body.partnerFirstName || null,
         partnerLastName: body.partnerLastName || null,
+        partnerEmail: body.partnerEmail || null,
         reservedSeats,
         rsvpdCount,
         songRequest: body.songRequest || null,

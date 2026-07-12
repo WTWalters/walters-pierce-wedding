@@ -26,8 +26,11 @@ export async function GET(request: NextRequest) {
     // Generate CSV content
     const headers = [
       'First Name',
-      'Last Name', 
+      'Last Name',
       'Email',
+      'Partner First Name',
+      'Partner Last Name',
+      'Partner Email',
       'Phone',
       'Address Line 1',
       'Address Line 2',
@@ -59,6 +62,9 @@ export async function GET(request: NextRequest) {
         escapeCSV(guest.firstName),
         escapeCSV(guest.lastName),
         escapeCSV(guest.email),
+        escapeCSV(guest.partnerFirstName || ''),
+        escapeCSV(guest.partnerLastName || ''),
+        escapeCSV(guest.partnerEmail || ''),
         escapeCSV(guest.phone || ''),
         escapeCSV(guest.addressLine1 || ''),
         escapeCSV(guest.addressLine2 || ''),

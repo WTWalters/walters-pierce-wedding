@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json()
     const { firstName, lastName, email, phone, addressLine1, addressLine2, city, state, zipCode, notes,
-            partnerFirstName, partnerLastName, reservedSeats: rawSeats, rsvpdCount: rawRsvpd, songRequest } = data
+            partnerFirstName, partnerLastName, partnerEmail, reservedSeats: rawSeats, rsvpdCount: rawRsvpd, songRequest } = data
     const reservedSeats = rawSeats != null && rawSeats !== '' ? parseInt(rawSeats) : null
     const rsvpdCount = rawRsvpd != null && rawRsvpd !== '' ? parseInt(rawRsvpd) : null
     const cap = assertSeatCap({ reservedSeats, rsvpdCount })
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
         notes: notes || null,
         partnerFirstName: partnerFirstName || null,
         partnerLastName: partnerLastName || null,
+        partnerEmail: partnerEmail || null,
         reservedSeats,
         rsvpdCount,
         songRequest: songRequest || null
