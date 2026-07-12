@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { assertSeatCap, formatPartyName } from '@/lib/guests'
 
 interface Guest {
   id: string
@@ -733,7 +734,7 @@ export default function GuestsPage() {
       {/* Edit Guest Modal */}
       {editingGuest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[85vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">
@@ -853,7 +854,55 @@ export default function GuestsPage() {
                     <option value="false">No</option>
                   </select>
                 </div>
-                
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner First Name</label>
+                  <input
+                    type="text"
+                    value={editingGuest.partnerFirstName || ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, partnerFirstName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner Last Name</label>
+                  <input
+                    type="text"
+                    value={editingGuest.partnerLastName || ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, partnerLastName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reserved Seats (number in party)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editingGuest.reservedSeats ?? ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, reservedSeats: e.target.value ? parseInt(e.target.value) : null})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number RSVP&apos;d</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editingGuest.rsvpdCount ?? ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, rsvpdCount: e.target.value ? parseInt(e.target.value) : null})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+                <div className="md:col-span-2 lg:col-span-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Favorite Song</label>
+                  <input
+                    type="text"
+                    value={editingGuest.songRequest || ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, songRequest: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dietary Restrictions</label>
                   <input
@@ -874,10 +923,17 @@ export default function GuestsPage() {
                   />
                 </div>
                 
+                {assertSeatCap({ reservedSeats: editingGuest.reservedSeats, rsvpdCount: editingGuest.rsvpdCount }).ok === false && (
+                  <div className="md:col-span-2 lg:col-span-3 text-sm text-red-700">
+                    {(assertSeatCap({ reservedSeats: editingGuest.reservedSeats, rsvpdCount: editingGuest.rsvpdCount }) as { message: string }).message}
+                  </div>
+                )}
+
                 <div className="md:col-span-2 lg:col-span-3 flex space-x-3 pt-4">
                   <button
                     type="submit"
-                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
+                    disabled={!assertSeatCap({ reservedSeats: editingGuest.reservedSeats, rsvpdCount: editingGuest.rsvpdCount }).ok}
+                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Save Changes
                   </button>
