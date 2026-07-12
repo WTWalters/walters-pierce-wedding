@@ -112,6 +112,8 @@ export default function GuestsPage() {
         guest.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guest.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guest.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (guest.partnerFirstName && guest.partnerFirstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (guest.partnerLastName && guest.partnerLastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (guest.invitationCode && guest.invitationCode.toLowerCase().includes(searchTerm.toLowerCase()))
 
       const matchesStatus = statusFilter === 'all' ||
@@ -543,83 +545,29 @@ export default function GuestsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Guest
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  RSVP Details
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number in Party</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number RSVP&apos;d</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredGuests.map((guest) => (
                 <tr key={guest.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {guest.firstName} {guest.lastName}
-                      </div>
-                      {guest.invitationCode && (
-                        <div className="text-sm text-gray-500 font-mono">
-                          Code: {guest.invitationCode}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{guest.email}</div>
-                    {guest.phone && (
-                      <div className="text-sm text-gray-500">{guest.phone}</div>
+                    <div className="text-sm font-medium text-gray-900">{formatPartyName(guest)}</div>
+                    {guest.invitationCode && (
+                      <div className="text-sm text-gray-500 font-mono">Code: {guest.invitationCode}</div>
                     )}
                   </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(guest)}
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {guest.rsvpReceivedAt && (
-                      <div>
-                        <div>RSVP: {new Date(guest.rsvpReceivedAt).toLocaleDateString()}</div>
-                        {guest.plusOnes && guest.plusOnes.length > 0 && (
-                          <div>Plus ones: {guest.plusOnes.length}</div>
-                        )}
-                        {guest.dietaryRestrictions && (
-                          <div className="text-xs">Dietary: {guest.dietaryRestrictions}</div>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  
+                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(guest)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{guest.reservedSeats ?? ''}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{guest.rsvpdCount ?? ''}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => setSelectedGuest(guest)}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                    >
-                      View
-                    </button>
-                    <button 
-                      className="text-green-600 hover:text-green-900 mr-3"
-                      onClick={() => startEditGuest(guest)}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="text-red-600 hover:text-red-900"
-                      onClick={() => deleteGuest(guest.id, `${guest.firstName} ${guest.lastName}`)}
-                    >
-                      Delete
-                    </button>
+                    <button onClick={() => setSelectedGuest(guest)} className="text-blue-600 hover:text-blue-900 mr-3">View</button>
+                    <button className="text-green-600 hover:text-green-900 mr-3" onClick={() => startEditGuest(guest)}>Edit</button>
+                    <button className="text-red-600 hover:text-red-900" onClick={() => deleteGuest(guest.id, formatPartyName(guest))}>Delete</button>
                   </td>
                 </tr>
               ))}
