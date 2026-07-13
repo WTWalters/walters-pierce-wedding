@@ -27,3 +27,16 @@ it('emits CSV with a header and one row per contribution', async () => {
   expect(csv).toContain('Buy us Dinner')
   expect(csv).toContain('Sue')
 })
+
+it('neutralizes CSV/formula injection in donor-supplied fields', async () => {
+  mockPrisma.contribution.findMany.mockResolvedValue([
+    { contributorName: '=cmd()', contributorEmail: 'x@x.com', amount: 5, message: '+HYPERLINK(1)', thankYouSent: false, createdAt: new Date('2026-09-01T00:00:00Z'), registryItem: { title: 'Buy us Coffee' } },
+  ])
+  const res: any = await GET({} as any)
+  const csv: string = res.body
+  // dangerous leading char is prefixed with a single quote so it can't execute
+  expect(csv).toContain(`'=cmd()`)
+  expect(csv).toContain(`'+HYPERLINK(1)`)
+  // no field begins with a raw formula character
+  expect(csv).not.toMatch(/(^|,)[=+\-@]/m)
+})

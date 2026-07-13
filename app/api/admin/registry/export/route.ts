@@ -4,7 +4,10 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 function esc(v: string): string {
-  return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
+  // Neutralize CSV/formula injection: a donor-supplied name/message starting with
+  // = + - @ could execute in Excel/Sheets. Prefix with a quote to force text.
+  const s = /^[=+\-@]/.test(v) ? `'${v}` : v
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 export async function GET(request: NextRequest) {

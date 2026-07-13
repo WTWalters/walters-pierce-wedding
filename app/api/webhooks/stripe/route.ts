@@ -36,7 +36,15 @@ export async function POST(request: NextRequest) {
         const name = s.metadata?.contributorName ?? 'A friend'
         const email = s.customer_details?.email ?? ''
         try {
-          await prisma.contribution.create({
+          // Capture the charge id for reconciliation/refunds (best-effort; the
+          // payment_intent is the durable key, so a failed retrieve is non-fatal).
+          let stripeChargeId: string | null = null
+          try {
+            const pi = await getStripe().paymentIntents.retrieve(paymentIntentId)
+            stripeChargeId = typeof pi.latest_charge === 'string' ? pi.latest_charge : null
+          } catch { /* leave null */ }
+
+          const contribution = await prisma.contribution.create({
             data: {
               registryItemId,
               contributorName: name,
@@ -44,9 +52,9 @@ export async function POST(request: NextRequest) {
               amount,
               message: s.metadata?.contributorMessage || null,
               stripePaymentIntentId: paymentIntentId,
+              stripeChargeId,
               paymentStatus: 'paid',
-              thankYouSent: true,
-              thankYouSentAt: new Date(),
+              // thankYouSent stays false until the receipt actually sends (below).
             },
           })
           await prisma.registryItem.update({ where: { id: registryItemId }, data: { amountRaised: { increment: amount } } })
@@ -59,6 +67,14 @@ export async function POST(request: NextRequest) {
               emailType: 'registry_thank_you', recipientEmail: email, subject: tmpl.subject,
               status: res.success ? 'sent' : 'failed', resendMessageId: res.success ? res.messageId : null,
             })
+            // Only mark thanked when the receipt genuinely went out — this flag drives
+            // the admin "who still needs a thank-you card" report.
+            if (res.success) {
+              await prisma.contribution.update({
+                where: { id: contribution.id },
+                data: { thankYouSent: true, thankYouSentAt: new Date() },
+              })
+            }
           }
         } catch (err) {
           console.error('Registry webhook processing failed:', err)

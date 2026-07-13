@@ -6,7 +6,7 @@ const mockConstructEvent = jest.fn()
 jest.mock('@/lib/stripe', () => ({ getStripe: () => ({ webhooks: { constructEvent: mockConstructEvent } }) }))
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    contribution: { findUnique: jest.fn(), create: jest.fn() },
+    contribution: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     registryItem: { update: jest.fn(), findUnique: jest.fn() },
   },
 }))
@@ -53,6 +53,7 @@ it('records the contribution, bumps the tier, and sends the receipt', async () =
   mockConstructEvent.mockReturnValue(completedEvent)
   mockPrisma.contribution.findUnique.mockResolvedValue(null)
   mockPrisma.contribution.create.mockResolvedValue({ id: 'c1' })
+  mockPrisma.contribution.update.mockResolvedValue({})
   mockPrisma.registryItem.update.mockResolvedValue({})
 
   const res: any = await POST(req())
@@ -61,11 +62,15 @@ it('records the contribution, bumps the tier, and sends the receipt', async () =
   const created = mockPrisma.contribution.create.mock.calls[0][0].data
   expect(created).toMatchObject({
     registryItemId: 'a', contributorName: 'Aunt Sue', contributorEmail: 'sue@example.com',
-    stripePaymentIntentId: 'pi_1', paymentStatus: 'paid', thankYouSent: true,
+    stripePaymentIntentId: 'pi_1', paymentStatus: 'paid',
   })
   expect(Number(created.amount)).toBe(100)
   expect(mockPrisma.registryItem.update).toHaveBeenCalledWith(
     expect.objectContaining({ where: { id: 'a' }, data: { amountRaised: { increment: 100 } } })
+  )
+  // receipt sent successfully → thank-you flag is only set afterward
+  expect(mockPrisma.contribution.update).toHaveBeenCalledWith(
+    expect.objectContaining({ where: { id: 'c1' }, data: expect.objectContaining({ thankYouSent: true }) })
   )
   expect(sendEmail).toHaveBeenCalled()
 })
