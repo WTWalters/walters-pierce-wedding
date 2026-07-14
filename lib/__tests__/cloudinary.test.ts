@@ -44,7 +44,10 @@ describe('with env configured', () => {
   })
 
   it('verifyGuestPhoto accepts assets under guest-photos/', async () => {
-    mockResource.mockResolvedValue({ secure_url: 'https://res.cloudinary.com/x.jpg' })
+    mockResource.mockResolvedValue({
+      public_id: 'guest-photos/abc',
+      secure_url: 'https://res.cloudinary.com/x.jpg',
+    })
     await expect(cl.verifyGuestPhoto('guest-photos/abc')).resolves.toEqual({
       secureUrl: 'https://res.cloudinary.com/x.jpg',
     })
@@ -55,9 +58,39 @@ describe('with env configured', () => {
     expect(mockResource).not.toHaveBeenCalled()
   })
 
+  it('verifyGuestPhoto rejects traversal attempts without calling the API', async () => {
+    await expect(cl.verifyGuestPhoto('guest-photos/../sneaky')).resolves.toBeNull()
+    expect(mockResource).not.toHaveBeenCalled()
+  })
+
   it('verifyGuestPhoto returns null when the asset does not exist', async () => {
-    mockResource.mockRejectedValue(new Error('not found'))
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockResource.mockRejectedValue({ error: { http_code: 404, message: 'not found' } })
     await expect(cl.verifyGuestPhoto('guest-photos/missing')).resolves.toBeNull()
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('verifyGuestPhoto logs non-404 errors and still returns null', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockResource.mockRejectedValue({ error: { http_code: 500, message: 'boom' } })
+    await expect(cl.verifyGuestPhoto('guest-photos/unlucky')).resolves.toBeNull()
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('verifyGuestPhoto returns null when the API returns a different public_id', async () => {
+    mockResource.mockResolvedValue({
+      public_id: 'guest-photos/other',
+      secure_url: 'https://res.cloudinary.com/other.jpg',
+    })
+    await expect(cl.verifyGuestPhoto('guest-photos/abc')).resolves.toBeNull()
+  })
+
+  it('destroyPhoto calls uploader.destroy with the publicId', async () => {
+    mockDestroy.mockResolvedValue({ result: 'ok' })
+    await cl.destroyPhoto('guest-photos/abc')
+    expect(mockDestroy).toHaveBeenCalledWith('guest-photos/abc')
   })
 
   it('photoUrls builds full + thumbnail delivery URLs', () => {
@@ -69,12 +102,20 @@ describe('with env configured', () => {
 })
 
 describe('without env', () => {
-  it('isCloudinaryConfigured is false', () => {
+  beforeEach(() => {
     jest.resetModules()
     delete process.env.CLOUDINARY_CLOUD_NAME
     delete process.env.CLOUDINARY_API_KEY
     delete process.env.CLOUDINARY_API_SECRET
+  })
+
+  it('isCloudinaryConfigured is false', () => {
     const cl = require('@/lib/cloudinary')
     expect(cl.isCloudinaryConfigured()).toBe(false)
+  })
+
+  it('signUploadParams throws when unconfigured', () => {
+    const cl = require('@/lib/cloudinary')
+    expect(() => cl.signUploadParams()).toThrow('Cloudinary not configured')
   })
 })
