@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { verifyGuestPhoto, photoUrls } from '@/lib/cloudinary'
 
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const parsed = createSchema.safeParse(await request.json())
+    const body = await request.json().catch(() => null)
+    const parsed = createSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid photo details' }, { status: 400 })
     }
@@ -76,6 +78,12 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json({ ok: true, id: photo.id })
   } catch (error) {
+    // The findFirst check above is only a fast path — two concurrent POSTs
+    // can both pass it. The unique index on cloudinaryPublicId makes the
+    // loser's create throw P2002; report it as the same duplicate outcome.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'Photo already added' }, { status: 409 })
+    }
     console.error('Error creating photo:', error)
     return NextResponse.json({ error: 'Failed to save photo' }, { status: 500 })
   }

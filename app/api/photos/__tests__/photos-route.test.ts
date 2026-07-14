@@ -1,3 +1,20 @@
+// Mirrors app/api/rsvp/__tests__/submit-route.test.ts: the route's
+// `error instanceof Prisma.PrismaClientKnownRequestError` check needs a
+// constructible class, so mock @prisma/client with one.
+jest.mock('@prisma/client', () => {
+  class MockPrismaClientKnownRequestError extends Error {
+    code: string
+    clientVersion: string
+    constructor(message: string, opts: { code: string; clientVersion: string }) {
+      super(message)
+      this.code = opts.code
+      this.clientVersion = opts.clientVersion
+    }
+  }
+  return { Prisma: { PrismaClientKnownRequestError: MockPrismaClientKnownRequestError } }
+})
+import { Prisma } from '@prisma/client'
+
 jest.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
@@ -90,5 +107,23 @@ describe('POST', () => {
   it('400s on validation failure (name too long)', async () => {
     const res = (await POST(makePost({ ...valid, name: 'x'.repeat(101) }))) as { status: number }
     expect(res.status).toBe(400)
+  })
+
+  it('409s when the create loses a duplicate race (P2002)', async () => {
+    ;(verifyGuestPhoto as jest.Mock).mockResolvedValue({ secureUrl: 'S' })
+    ;(prisma.photo.findFirst as jest.Mock).mockResolvedValue(null)
+    ;(prisma.photo.create as jest.Mock).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('duplicate', { code: 'P2002', clientVersion: 'test' })
+    )
+    const res = (await POST(makePost(valid))) as { body: { error: string }; status: number }
+    expect(res.status).toBe(409)
+    expect(res.body).toEqual({ error: 'Photo already added' })
+  })
+
+  it('400s on malformed JSON body', async () => {
+    const badRequest = { json: async () => Promise.reject(new SyntaxError('bad json')) } as never
+    const res = (await POST(badRequest)) as { status: number }
+    expect(res.status).toBe(400)
+    expect(prisma.photo.create).not.toHaveBeenCalled()
   })
 })
