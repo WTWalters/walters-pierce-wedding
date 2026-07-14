@@ -66,6 +66,7 @@ describe('processRsvpSubmission', () => {
     const updateArg = mockPrisma.guest.update.mock.calls[0][0]
     expect(updateArg.data.firstName).toBe('Jane') // fills empty name on file
     expect(updateArg.data.partySize).toBe(2)
+    expect(updateArg.data.rsvpdCount).toBe(2) // canonical admin count mirrors partySize
   })
 
   it('creates an unmatched guest with source=self_rsvp', async () => {
@@ -125,11 +126,12 @@ describe('processRsvpSubmission', () => {
     expect(mockPrisma.guest.create).toHaveBeenCalled()
   })
 
-  it('nulls partySize when declining', async () => {
+  it('nulls partySize and rsvpdCount when declining', async () => {
     mockPrisma.guest.findUnique.mockResolvedValue(null)
     mockPrisma.guest.create.mockResolvedValue({ id: 'g4' })
     await processRsvpSubmission({ ...input, attending: false, partySize: undefined })
     expect(mockPrisma.guest.create.mock.calls[0][0].data.partySize).toBeNull()
+    expect(mockPrisma.guest.create.mock.calls[0][0].data.rsvpdCount).toBeNull()
   })
 
   it('matches a submission against a party partner name without overwriting email on file', async () => {

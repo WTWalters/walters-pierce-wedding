@@ -12,14 +12,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const [attending, notAttending, seatSum] = await Promise.all([
-      prisma.guest.count({ where: { attending: true } }),
+    const [attendingParties, notAttending, seatSum] = await Promise.all([
+      prisma.guest.findMany({
+        where: { attending: true },
+        select: { rsvpdCount: true, partySize: true },
+      }),
       prisma.guest.count({ where: { attending: false } }),
       prisma.guest.aggregate({ _sum: { reservedSeats: true } }),
     ])
 
     const totalInvited = seatSum._sum.reservedSeats ?? 0
-    const rsvpReceived = attending + notAttending
+    // "Attending" is a people count for catering: sum each party's headcount.
+    // rsvpdCount is canonical; partySize is legacy; an attending party with
+    // neither still counts as at least 1 person.
+    const attending = attendingParties.reduce(
+      (sum, g) => sum + (g.rsvpdCount ?? g.partySize ?? 1),
+      0
+    )
+    // "RSVP Received" is a response count: parties that answered either way.
+    const rsvpReceived = attendingParties.length + notAttending
 
     const stats = { totalInvited, rsvpReceived, attending, notAttending }
 

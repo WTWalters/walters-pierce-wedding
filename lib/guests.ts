@@ -30,10 +30,21 @@ export type PartyNameInput = {
   partnerLastName?: string | null
 }
 
-/** Renders the party's display name: "A B" or "A B & C D". */
+/**
+ * Renders the party's display name:
+ *   - solo:                    "A Blake"
+ *   - shared last name:        "A & B Blake"  (partner last name blank or equal)
+ *   - different last names:    "A Blake & C Doe"
+ */
 export function formatPartyName(g: PartyNameInput): string {
-  const primary = `${g.firstName} ${g.lastName}`.trim()
+  const lastName = g.lastName.trim()
+  const primary = `${g.firstName} ${lastName}`.trim()
   if (!g.partnerFirstName) return primary
-  const partner = `${g.partnerFirstName} ${g.partnerLastName ?? ''}`.trim()
-  return `${primary} & ${partner}`
+
+  const partnerLast = (g.partnerLastName ?? '').trim()
+  const sharesLastName = partnerLast === '' || partnerLast === lastName
+  if (sharesLastName) {
+    return `${g.firstName.trim()} & ${g.partnerFirstName.trim()} ${lastName}`.trim()
+  }
+  return `${primary} & ${g.partnerFirstName.trim()} ${partnerLast}`.trim()
 }

@@ -39,8 +39,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       )
     }
 
+    const attending = body.attending !== undefined ? body.attending : null
+    // Explicitly choosing "No Response" is a full reset: the guest should look
+    // like they never RSVP'd, so we wipe the count and the received timestamp
+    // (and skip the seat cap, since there's no headcount left to check). An
+    // absent attending field is a plain edit, not a reset.
+    const isReset = body.attending === null
+
     const reservedSeats = body.reservedSeats != null && body.reservedSeats !== '' ? parseInt(body.reservedSeats) : null
-    const rsvpdCount = body.rsvpdCount != null && body.rsvpdCount !== '' ? parseInt(body.rsvpdCount) : null
+    const rsvpdCount = isReset
+      ? null
+      : (body.rsvpdCount != null && body.rsvpdCount !== '' ? parseInt(body.rsvpdCount) : null)
     const cap = assertSeatCap({ reservedSeats, rsvpdCount })
     if (!cap.ok) {
       return NextResponse.json({ error: cap.message }, { status: 400 })
@@ -70,7 +79,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         dietaryRestrictions: body.dietaryRestrictions || null,
         specialRequests: body.specialRequests || null,
         notes: body.notes || null,
-        attending: body.attending !== undefined ? body.attending : null
+        attending,
+        ...(isReset ? { rsvpReceivedAt: null, partySize: null } : {}),
       },
       include: {
         plusOnes: true

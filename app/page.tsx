@@ -180,7 +180,7 @@ export default function Home() {
                   Connor and Emme's story begins at the most romantic of places… a Kava bar in Longmont. Their "official" first meeting, however, was anything but romantic. Connor showed up at Emme's house—not for her—but to pick up her friend for a date. Naturally, Emme and another partner-in-crime decided the only logical thing to do was tag along and spy on said date.
                 </p>
                 <p style={{ hyphens: 'none', wordBreak: 'normal' }}>
-                  The undercover mission? A total flop. Subtlety was not their strong suit. After the date, everyone regrouped at the Kava bar, where Connor and Emme laughed over how terrible they were at being sneaky. And don't worry—her friend wasn't upset about the whole "stolen date" thing; she knew it wasn't exactly a Harry-and-Meghan type of fairytale in the making. Somewhere between the laughter, the kava, and a little harmless chaos… sparks flew.
+                  The undercover mission? A total flop. Subtlety was not their strong suit. After the date, everyone regrouped at the Kava bar, where Connor and Emme laughed over how terrible they were at being sneaky. And don't worry—her friend wasn't upset about the whole "stolen date" thing; she knew it wasn't exactly a Wesley-and-Buttercup type of fairytale in the making. Somewhere between the laughter, the kava, and a little harmless chaos… sparks flew.
                 </p>
                 <p style={{ hyphens: 'none', wordBreak: 'normal' }}>
                   There was only one small complication: Emme already had a boyfriend. But just like a true Ross-and-Rachel storyline, the friendship with Connor came first… and it didn't take long (about a week, to be exact) for her to realize he wasn't just another friend—he was The One. Boyfriend: dumped. Connor: upgraded to leading man.
@@ -284,8 +284,8 @@ export default function Home() {
             
             <div className="text-center space-y-8">
               <p className="text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed px-4" style={{ hyphens: 'none', wordBreak: 'normal', whiteSpace: 'normal' }}>
-                Join us for an intimate celebration surrounded by the beauty of the Colorado mountains. 
-                Your presence is the greatest gift we could ask for.
+                Join us for an intimate celebration surrounded by the beauty of the Colorado mountains.
+                Your love, laughter, and company mean the world to us.
               </p>
               
             </div>

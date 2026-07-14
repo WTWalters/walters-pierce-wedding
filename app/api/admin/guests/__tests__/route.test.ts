@@ -77,4 +77,32 @@ describe('PUT /api/admin/guests/[id]', () => {
     expect(res.body.error).toMatch(/exceeds reserved seats/)
     expect(mockPrisma.guest.update).not.toHaveBeenCalled()
   })
+
+  it('fully resets the RSVP when attending is set to No Response (null)', async () => {
+    mockPrisma.guest.findFirst.mockResolvedValue(null)
+    mockPrisma.guest.update.mockResolvedValue({ id: 'g1' })
+    const res: any = await PUT(req({
+      firstName: 'Whit', lastName: 'Walters', email: 'whit@x.com',
+      attending: null, rsvpdCount: 3, reservedSeats: 2,
+    }), { params })
+    expect(res.status).toBe(200) // count is wiped, so no seat-cap rejection
+    const data = mockPrisma.guest.update.mock.calls[0][0].data
+    expect(data.attending).toBeNull()
+    expect(data.rsvpReceivedAt).toBeNull()
+    expect(data.rsvpdCount).toBeNull()
+    expect(data.partySize).toBeNull()
+  })
+
+  it('does not wipe rsvpReceivedAt on a normal attending edit', async () => {
+    mockPrisma.guest.findFirst.mockResolvedValue(null)
+    mockPrisma.guest.update.mockResolvedValue({ id: 'g1' })
+    await PUT(req({
+      firstName: 'Whit', lastName: 'Walters', email: 'whit@x.com',
+      attending: true, rsvpdCount: 3, reservedSeats: 4,
+    }), { params })
+    const data = mockPrisma.guest.update.mock.calls[0][0].data
+    expect(data.attending).toBe(true)
+    expect(data.rsvpdCount).toBe(3)
+    expect(data.rsvpReceivedAt).toBeUndefined() // left untouched, existing value persists
+  })
 })

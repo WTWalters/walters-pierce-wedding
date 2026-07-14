@@ -31,9 +31,23 @@ describe('formatPartyName', () => {
     expect(formatPartyName({ firstName: 'Amethyst', lastName: 'Johannes' }))
       .toBe('Amethyst Johannes')
   })
-  it('handles a partner first name with no partner last name', () => {
+  it('shares the last name once when the couple has the same last name', () => {
     expect(formatPartyName({
-      firstName: 'Ben', lastName: 'Bright', partnerFirstName: 'Jessica',
-    })).toBe('Ben Bright & Jessica')
+      firstName: 'Heather', lastName: 'Gonzales',
+      partnerFirstName: 'Andre', partnerLastName: 'Gonzales',
+    })).toBe('Heather & Andre Gonzales')
+  })
+  it('treats a blank partner last name as the shared last name', () => {
+    // Nicolle's case: she enters "Heather Gonzales" then just "Andre".
+    expect(formatPartyName({
+      firstName: 'Heather', lastName: 'Gonzales',
+      partnerFirstName: 'Andre', partnerLastName: '',
+    })).toBe('Heather & Andre Gonzales')
+  })
+  it('keeps both last names when they differ', () => {
+    expect(formatPartyName({
+      firstName: 'Andre', lastName: 'Justen-Pratt',
+      partnerFirstName: 'Chloe', partnerLastName: 'Hirai',
+    })).toBe('Andre Justen-Pratt & Chloe Hirai')
   })
 })

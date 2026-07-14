@@ -67,9 +67,13 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
   }
 
   const email = input.email.trim().toLowerCase()
+  const headcount = input.attending ? input.partySize ?? 1 : null
   const responseData = {
     attending: input.attending,
-    partySize: input.attending ? input.partySize ?? 1 : null,
+    // partySize is legacy; rsvpdCount is the canonical count the admin screens
+    // (grid, stats, seat-cap) read. Keep both in sync on every submission.
+    partySize: headcount,
+    rsvpdCount: headcount,
     dietaryRestrictions: input.dietaryRestrictions || null,
     songRequest: input.songRequest || null,
     rsvpReceivedAt: new Date(),

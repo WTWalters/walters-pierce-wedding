@@ -5,7 +5,7 @@ jest.mock('next/server', () => ({
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
 jest.mock('@/lib/prisma', () => ({
-  prisma: { guest: { count: jest.fn(), aggregate: jest.fn() } },
+  prisma: { guest: { count: jest.fn(), aggregate: jest.fn(), findMany: jest.fn() } },
 }))
 
 import { GET } from '../stats/route'
@@ -20,17 +20,22 @@ beforeEach(() => {
   mockSession.mockResolvedValue({ user: { role: 'admin' } })
 })
 
-it('totalInvited is the sum of reservedSeats; rsvpReceived = attending + notAttending', async () => {
+it('attending tallies headcount; rsvpReceived counts responding parties', async () => {
   mockPrisma.guest.aggregate.mockResolvedValue({ _sum: { reservedSeats: 117 } })
-  // order: attending, notAttending
-  mockPrisma.guest.count.mockResolvedValueOnce(7).mockResolvedValueOnce(2)
+  // 3 attending parties: rsvpdCount 3, legacy partySize 2, and one with neither (counts as 1)
+  mockPrisma.guest.findMany.mockResolvedValue([
+    { rsvpdCount: 3, partySize: null },
+    { rsvpdCount: null, partySize: 2 },
+    { rsvpdCount: null, partySize: null },
+  ])
+  mockPrisma.guest.count.mockResolvedValue(2) // notAttending parties
 
   const res: any = await GET({} as any)
 
   expect(res.body.totalInvited).toBe(117)
-  expect(res.body.attending).toBe(7)
+  expect(res.body.attending).toBe(6) // 3 + 2 + 1 people, not 3 parties
   expect(res.body.notAttending).toBe(2)
-  expect(res.body.rsvpReceived).toBe(9)
+  expect(res.body.rsvpReceived).toBe(5) // 3 attending parties + 2 declining
   expect(res.body).not.toHaveProperty('plusOnes')
   expect(res.body).not.toHaveProperty('invited')
 })
