@@ -781,7 +781,7 @@ beforeEach(() => {
 
 it('likes when no existing like', async () => {
   ;(prisma.photoLike.create as jest.Mock).mockResolvedValue({})
-  const res = (await POST(makeRequest({ deviceId: 'd1' }), ctx)) as { body: Record<string, unknown> }
+  const res = (await POST(makeRequest({ deviceId: 'd1-abcdefgh' }), ctx)) as { body: Record<string, unknown> }
   expect(res.body).toEqual({ liked: true, likeCount: 5 })
 })
 
@@ -789,16 +789,16 @@ it('unlikes on P2002 (already liked)', async () => {
   ;(prisma.photoLike.create as jest.Mock).mockRejectedValue(
     new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' })
   )
-  const res = (await POST(makeRequest({ deviceId: 'd1' }), ctx)) as { body: Record<string, unknown> }
+  const res = (await POST(makeRequest({ deviceId: 'd1-abcdefgh' }), ctx)) as { body: Record<string, unknown> }
   expect(prisma.photoLike.deleteMany).toHaveBeenCalledWith({
-    where: { photoId: 'p1', deviceId: 'd1' },
+    where: { photoId: 'p1', deviceId: 'd1-abcdefgh' },
   })
   expect(res.body).toEqual({ liked: false, likeCount: 5 })
 })
 
 it('404s for unknown or hidden photo', async () => {
   ;(prisma.photo.findFirst as jest.Mock).mockResolvedValue(null)
-  const res = (await POST(makeRequest({ deviceId: 'd1' }), ctx)) as { status: number }
+  const res = (await POST(makeRequest({ deviceId: 'd1-abcdefgh' }), ctx)) as { status: number }
   expect(res.status).toBe(404)
 })
 
