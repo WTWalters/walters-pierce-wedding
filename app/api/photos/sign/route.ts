@@ -7,7 +7,10 @@ export async function POST(request: NextRequest) {
     if (!isCloudinaryConfigured()) {
       return NextResponse.json({ error: 'Photo uploads are not available yet' }, { status: 503 })
     }
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    // Take the LAST x-forwarded-for hop: Railway's proxy appends the real
+    // client IP, while leftmost entries are client-controllable (a client can
+    // send its own XFF header to evade the rate limit).
+    const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown'
     if (!checkRateLimit(`photo-sign:${ip}`, 30, 60 * 60 * 1000)) {
       return NextResponse.json({ error: 'Too many uploads — please wait a bit' }, { status: 429 })
     }
