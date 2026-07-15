@@ -27,7 +27,11 @@ export async function POST(request: NextRequest) {
   const charge = resolveChargeCents({ category: item.category, targetAmount: Number(item.targetAmount) }, amount)
   if (!charge.ok) return NextResponse.json({ error: charge.message }, { status: 400 })
 
-  const origin = new URL(request.url).origin
+  // Behind Railway's proxy, request.url resolves to the internal host
+  // (http://0.0.0.0:8080), which breaks the post-payment redirect. Prefer an
+  // explicit public base URL, falling back to the request origin for local dev.
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || new URL(request.url).origin).replace(/\/$/, '')
+  const origin = base
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     line_items: [{

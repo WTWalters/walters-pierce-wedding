@@ -249,7 +249,7 @@ export default function Home() {
             <div className="w-24 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto" />
           </div>
           
-          <div className="max-w-md mx-auto">
+          <div className="grid gap-8 md:grid-cols-2 max-w-3xl mx-auto">
             <Link
               href="/wedding-party"
               className="group"
@@ -271,6 +271,27 @@ export default function Home() {
               <h3 className="text-xl font-semibold text-gray-900 mb-3" style={{ hyphens: 'none', wordBreak: 'keep-all' }}>Wedding Party</h3>
               <p className="text-gray-600 leading-relaxed" style={{ hyphens: 'none', wordBreak: 'normal' }}>
                 Meet the special people who will be standing with us on our big day.
+              </p>
+            </Link>
+            <Link
+              href="/registry"
+              className="group"
+              // Same inline-style rationale as the Wedding Party card above.
+              style={{
+                display: 'block',
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'center',
+                border: '1px solid rgba(212,175,55,0.25)',
+              }}
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-amber-200 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <div className="text-2xl">🎁</div>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3" style={{ hyphens: 'none', wordBreak: 'keep-all' }}>Honeymoon Fund</h3>
+              <p className="text-gray-600 leading-relaxed" style={{ hyphens: 'none', wordBreak: 'normal' }}>
+                Help send Emme &amp; Connor to Ireland with a gift toward the honeymoon.
               </p>
             </Link>
           </div>
@@ -317,6 +338,7 @@ export default function Home() {
           </p>
           <div className="flex justify-center gap-6 text-sm text-green-300">
             <Link href="/wedding-party" className="hover:text-white transition-colors">Wedding Party</Link>
+            <Link href="/registry" className="hover:text-white transition-colors">Honeymoon Fund</Link>
           </div>
         </div>
       </footer>
