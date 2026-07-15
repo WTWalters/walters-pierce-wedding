@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { isVariable } from '@/lib/registry'
 
 interface Tier {
   id: string
@@ -11,9 +12,6 @@ interface Tier {
   targetAmount: number
   amountRaised: number
 }
-
-const isGoal = (c: string) => c === 'flights' || c === 'accommodation'
-const isVariable = (c: string) => c === 'flights'
 
 export default function RegistryPage() {
   const [tiers, setTiers] = useState<Tier[]>([])
@@ -64,7 +62,6 @@ export default function RegistryPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
           {tiers.map((t) => {
-            const pct = t.targetAmount > 0 ? Math.min(100, Math.round((t.amountRaised / t.targetAmount) * 100)) : 0
             return (
               <div key={t.id} className="bg-white border border-[#D4AF37]/40 rounded-lg p-6 flex flex-col shadow-sm">
                 {t.imageUrl && <img src={t.imageUrl} alt="" className="w-full h-40 object-cover rounded-md mb-4" />}
@@ -74,16 +71,6 @@ export default function RegistryPage() {
                   {isVariable(t.category)
                     ? <p className="text-[#00330a] font-semibold">Choose an amount</p>
                     : <p className="text-[#00330a] font-semibold">${t.targetAmount.toLocaleString('en-US')}</p>}
-                  {isGoal(t.category) && (
-                    <div className="mt-2">
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#00330a]" style={{ width: `${pct}%` }} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        ${t.amountRaised.toLocaleString('en-US')} of ${t.targetAmount.toLocaleString('en-US')} raised
-                      </p>
-                    </div>
-                  )}
                 </div>
                 <button onClick={() => open(t)}
                   className="mt-5 bg-[#00330a] text-white py-2 rounded-md hover:bg-[#004d0f] transition-colors">
