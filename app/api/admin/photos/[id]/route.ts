@@ -19,8 +19,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
-    const photo = await prisma.photo.update({ where: { id }, data: { isHidden: parsed.data.isHidden } })
-    return NextResponse.json({ ok: true, isHidden: photo.isHidden })
+    // Scope to category:'guest' so moderation can never touch non-guest rows;
+    // updateMany also lets us 404 a missing row instead of throwing P2025 → 500.
+    const result = await prisma.photo.updateMany({
+      where: { id, category: 'guest' },
+      data: { isHidden: parsed.data.isHidden },
+    })
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
+    }
+    return NextResponse.json({ ok: true, isHidden: parsed.data.isHidden })
   } catch (error) {
     console.error('Error updating photo:', error)
     return NextResponse.json({ error: 'Failed to update photo' }, { status: 500 })
@@ -34,7 +42,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { id } = await params
-    const photo = await prisma.photo.findUnique({ where: { id } })
+    const photo = await prisma.photo.findFirst({ where: { id, category: 'guest' } })
     if (!photo) {
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
     }

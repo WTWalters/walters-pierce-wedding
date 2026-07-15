@@ -15,13 +15,21 @@ export async function PATCH(
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { commentId } = await params
+    const { id, commentId } = await params
     const body = await request.json().catch(() => null)
     const parsed = patchSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
-    await prisma.photoComment.update({ where: { id: commentId }, data: { isHidden: parsed.data.isHidden } })
+    // Scope to the photo in the URL so the photoId segment is meaningful (not
+    // decorative); updateMany 404s a mismatched/missing comment instead of 500.
+    const result = await prisma.photoComment.updateMany({
+      where: { id: commentId, photoId: id },
+      data: { isHidden: parsed.data.isHidden },
+    })
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 })
+    }
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Error updating comment:', error)
@@ -38,8 +46,11 @@ export async function DELETE(
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { commentId } = await params
-    await prisma.photoComment.delete({ where: { id: commentId } })
+    const { id, commentId } = await params
+    const result = await prisma.photoComment.deleteMany({ where: { id: commentId, photoId: id } })
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 })
+    }
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Error deleting comment:', error)
