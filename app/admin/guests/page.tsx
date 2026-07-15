@@ -7,7 +7,7 @@ interface Guest {
   id: string
   firstName: string
   lastName: string
-  email: string
+  email?: string | null
   phone?: string
   addressLine1?: string
   addressLine2?: string
@@ -76,7 +76,11 @@ export default function GuestsPage() {
     city: '',
     state: '',
     zipCode: '',
-    notes: ''
+    notes: '',
+    partnerFirstName: '',
+    partnerLastName: '',
+    partnerEmail: '',
+    reservedSeats: ''
   })
 
   useEffect(() => {
@@ -112,7 +116,7 @@ export default function GuestsPage() {
       const matchesSearch = searchTerm === '' || 
         guest.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guest.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        guest.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (guest.email && guest.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (guest.partnerFirstName && guest.partnerFirstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (guest.partnerLastName && guest.partnerLastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (guest.invitationCode && guest.invitationCode.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -133,7 +137,7 @@ export default function GuestsPage() {
         case 'name':
           return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
         case 'email':
-          return a.email.localeCompare(b.email)
+          return (a.email ?? '').localeCompare(b.email ?? '')
         case 'rsvp':
           if (a.rsvpReceivedAt && b.rsvpReceivedAt) {
             return new Date(b.rsvpReceivedAt).getTime() - new Date(a.rsvpReceivedAt).getTime()
@@ -171,7 +175,11 @@ export default function GuestsPage() {
           city: '',
           state: '',
           zipCode: '',
-          notes: ''
+          notes: '',
+          partnerFirstName: '',
+          partnerLastName: '',
+          partnerEmail: '',
+          reservedSeats: ''
         })
         setShowAddForm(false)
         fetchGuests()
@@ -403,10 +411,9 @@ export default function GuestsPage() {
             />
             <input
               type="email"
-              placeholder="Email"
+              placeholder="Email (optional)"
               value={newGuest.email}
               onChange={(e) => setNewGuest({...newGuest, email: e.target.value})}
-              required
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
             />
             <input
@@ -451,6 +458,51 @@ export default function GuestsPage() {
               onChange={(e) => setNewGuest({...newGuest, notes: e.target.value})}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
             />
+
+            {/* Second guest on the invite — the displayed party name combines
+                automatically (formatPartyName): same last name → "Ann & Ben Blake";
+                different last names → "Ann Blake & Cara Doe". */}
+            <div className="md:col-span-2 lg:col-span-3 border-t border-gray-100 pt-4">
+              <p className="text-sm font-medium text-gray-700">Second guest on this invite (optional)</p>
+              <p className="text-xs text-gray-500">
+                Names combine automatically — same last name shows &ldquo;Ann &amp; Ben Blake&rdquo;; different last names show &ldquo;Ann Blake &amp; Cara Doe&rdquo;.
+              </p>
+            </div>
+            <input
+              type="text"
+              placeholder="Partner First Name"
+              value={newGuest.partnerFirstName}
+              onChange={(e) => setNewGuest({...newGuest, partnerFirstName: e.target.value})}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+            <input
+              type="text"
+              placeholder="Partner Last Name (optional)"
+              value={newGuest.partnerLastName}
+              onChange={(e) => setNewGuest({...newGuest, partnerLastName: e.target.value})}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+            <input
+              type="email"
+              placeholder="Partner Email (optional)"
+              value={newGuest.partnerEmail}
+              onChange={(e) => setNewGuest({...newGuest, partnerEmail: e.target.value})}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+
+            <div className="md:col-span-2 lg:col-span-3 border-t border-gray-100 pt-4">
+              <p className="text-sm font-medium text-gray-700">Places reserved for this invite</p>
+              <p className="text-xs text-gray-500">How many seats you&rsquo;re holding for this party.</p>
+            </div>
+            <input
+              type="number"
+              min="0"
+              placeholder="Number of places reserved"
+              value={newGuest.reservedSeats}
+              onChange={(e) => setNewGuest({...newGuest, reservedSeats: e.target.value})}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+
             <div className="md:col-span-2 lg:col-span-3 flex space-x-3">
               <button
                 type="submit"
