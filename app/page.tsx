@@ -51,18 +51,6 @@ export default function Home() {
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50">
-      {/* Sticky RSVP banner — the printed invitation QR resolves to the bare
-          domain and lands here, so give scanners an always-visible one-tap
-          path to /rsvp regardless of scroll position. */}
-      <Link
-        href="/rsvp"
-        aria-label="Go to the RSVP page"
-        className="sticky top-0 z-50 flex items-center justify-center gap-2 text-sm md:text-base font-serif tracking-wide transition-opacity hover:opacity-90"
-        style={{ background: '#00330a', color: '#D4AF37', padding: '10px 12px', borderBottom: '1px solid #D4AF37' }}
-      >
-        Here to RSVP? Tap here <span aria-hidden="true">→</span>
-      </Link>
-
       {/* Hero Section with Photo Carousel */}
       <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
         {/* Background Carousel */}
