@@ -27,34 +27,44 @@ export default function AdminPhotosPage() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // Run a moderation mutation, then re-pull authoritative state. Surfaces a
+  // message on failure so a silently-failed hide/delete can't look like success.
+  async function mutate(url: string, init: RequestInit) {
+    try {
+      const res = await fetch(url, init)
+      if (!res.ok) throw new Error('request failed')
+      setError('')
+    } catch {
+      setError('That action didn’t go through — please try again.')
+    } finally {
+      refresh()
+    }
+  }
+
   async function setPhotoHidden(id: string, isHidden: boolean) {
-    await fetch(`/api/admin/photos/${id}`, {
+    await mutate(`/api/admin/photos/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isHidden }),
     })
-    refresh()
   }
 
   async function deletePhoto(id: string) {
     if (!confirm('Permanently delete this photo (including from Cloudinary)? This cannot be undone.')) return
-    await fetch(`/api/admin/photos/${id}`, { method: 'DELETE' })
-    refresh()
+    await mutate(`/api/admin/photos/${id}`, { method: 'DELETE' })
   }
 
   async function setCommentHidden(photoId: string, commentId: string, isHidden: boolean) {
-    await fetch(`/api/admin/photos/${photoId}/comments/${commentId}`, {
+    await mutate(`/api/admin/photos/${photoId}/comments/${commentId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isHidden }),
     })
-    refresh()
   }
 
   async function deleteComment(photoId: string, commentId: string) {
     if (!confirm('Permanently delete this comment?')) return
-    await fetch(`/api/admin/photos/${photoId}/comments/${commentId}`, { method: 'DELETE' })
-    refresh()
+    await mutate(`/api/admin/photos/${photoId}/comments/${commentId}`, { method: 'DELETE' })
   }
 
   return (
