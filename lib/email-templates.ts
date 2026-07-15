@@ -149,3 +149,25 @@ export function generateWeddingIcs(d: WeddingDetails): string | null {
     'END:VCALENDAR',
   ].join('\r\n')
 }
+
+export function generateRegistryThankYouEmail(data: {
+  name: string
+  tierTitle: string
+  amount: number
+}): Rendered {
+  const name = escapeHtml(data.name)
+  const tier = escapeHtml(data.tierTitle)
+  const amount = `$${data.amount.toLocaleString('en-US')}`
+  const subject = `Thank you for your honeymoon gift, ${data.name}!`
+  const body = `
+    <p>Dear ${name},</p>
+    <p>Thank you so much for your generous gift of <strong>${amount}</strong> toward
+    <strong>${tier}</strong>. It means the world to us as we get ready for our honeymoon in Ireland.</p>
+    <p>We can't wait to celebrate with you — and we'll be sure to share a photo of us enjoying it!</p>
+    <p style="margin-top: 24px;">With love and gratitude,<br><strong>Emme &amp; Connor</strong></p>`
+  const html = wrap('A heartfelt thank you', body)
+  const text = `Dear ${data.name},\n\nThank you so much for your generous gift of ${amount} toward ${data.tierTitle}. `
+    + `It means the world to us as we get ready for our honeymoon in Ireland. We can't wait to celebrate with you.\n\n`
+    + `With love and gratitude,\nEmme & Connor\nwalters-pierce-wedding.com`
+  return { subject, html, text }
+}

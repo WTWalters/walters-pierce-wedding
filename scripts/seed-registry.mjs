@@ -1,0 +1,44 @@
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+
+// One-time rename: "Help us pay for the Hotel" became "Help us pay for the Air BnB".
+// Runs before the upsert so the existing row (and its amountRaised) is preserved.
+await prisma.registryItem.updateMany({
+  where: { title: 'Help us pay for the Hotel' },
+  data: { title: 'Help us pay for the Air BnB' },
+})
+
+// Full honeymoon-registry tier list. Upserts by title:
+// existing rows are updated (price/target/desc/order/image) WITHOUT touching amountRaised;
+// new rows are created. Safe to re-run.
+const TIERS = [
+  { title: 'Buy us Coffee',                       description: 'Fuel a cozy Irish morning.',                        targetAmount: 25,   category: 'dining',        sortOrder: 1,  imageUrl: '/images/registry/coffee.webp' },
+  { title: 'Buy us Breakfast',                     description: 'A hearty start before the day’s adventures.',       targetAmount: 50,   category: 'dining',        sortOrder: 2,  imageUrl: '/images/registry/breakfast.jpg' },
+  { title: 'Buy us Lunch',                         description: 'A midday bite between the sights.',                 targetAmount: 75,   category: 'dining',        sortOrder: 3,  imageUrl: '/images/registry/lunch.jpg' },
+  { title: 'Buy us Dinner',                        description: 'A romantic dinner out in Ireland.',                targetAmount: 100,  category: 'dining',        sortOrder: 4,  imageUrl: '/images/registry/dinner.jpg' },
+  { title: 'Buy us a Round of Golf',               description: 'A round on an emerald Irish course.',              targetAmount: 85,   category: 'activities',    sortOrder: 5,  imageUrl: '/images/registry/golf.jpg' },
+  { title: 'Tour of the Guinness Storehouse',      description: 'A pint with a view at the source.',                targetAmount: 100,  category: 'activities',    sortOrder: 6,  imageUrl: '/images/registry/guinness.jpg' },
+  { title: 'Tour of St. Patrick’s Cathedral',      description: 'Ireland’s largest cathedral, up close.',           targetAmount: 25,   category: 'activities',    sortOrder: 7,  imageUrl: '/images/registry/st-patricks.jpg' },
+  { title: 'Tour of Trinity College',             description: 'The Book of Kells and Ireland’s oldest university.', targetAmount: 40,   category: 'activities',    sortOrder: 8,  imageUrl: '/images/registry/trinity.jpg' },
+  { title: 'Tour of Teeling Whiskey Distillery',   description: 'A taste of Dublin’s craft whiskey.',               targetAmount: 70,   category: 'activities',    sortOrder: 9,  imageUrl: '/images/registry/teeling.jpg' },
+  { title: 'Tour of Malahide',                     description: 'The castle and village north of Dublin.',          targetAmount: 40,   category: 'activities',    sortOrder: 10, imageUrl: '/images/registry/malahide.jpg' },
+  { title: 'A Tank of Gas',                        description: 'Keep the road trip rolling.',                      targetAmount: 30,   category: 'other',         sortOrder: 11, imageUrl: '/images/registry/gas.jpg' },
+  { title: 'Train Tickets to Howth',               description: 'A seaside day trip by rail.',                      targetAmount: 20,   category: 'other',         sortOrder: 12, imageUrl: '/images/registry/train.avif' },
+  { title: 'Help us pay for the Flight',           description: 'Chip in toward our flights to Ireland — pick an amount.', targetAmount: 2000, category: 'flights',       sortOrder: 13, imageUrl: '/images/registry/flight.jpg' },
+  { title: 'Help us pay for the Air BnB',          description: 'Help cover our honeymoon Air BnB — pick an amount.', targetAmount: 1300, category: 'accommodation', sortOrder: 14, imageUrl: '/images/registry/airbnb.avif' },
+]
+
+for (const t of TIERS) {
+  const existing = await prisma.registryItem.findFirst({ where: { title: t.title } })
+  if (existing) {
+    await prisma.registryItem.update({
+      where: { id: existing.id },
+      data: { description: t.description, targetAmount: t.targetAmount, category: t.category, sortOrder: t.sortOrder, imageUrl: t.imageUrl ?? null, isActive: true },
+    })
+    console.log('updated:', t.title, '→ $' + t.targetAmount, t.imageUrl ? '(img)' : '')
+  } else {
+    await prisma.registryItem.create({ data: { ...t, imageUrl: t.imageUrl ?? null, isActive: true } })
+    console.log('created:', t.title, '→ $' + t.targetAmount, t.imageUrl ? '(img)' : '')
+  }
+}
+await prisma.$disconnect()

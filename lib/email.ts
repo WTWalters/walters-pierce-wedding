@@ -3,6 +3,7 @@ import { prisma } from './prisma'
 
 export const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'lnawalters@protonmail.com'
 export const COORDINATOR_FROM = 'Wedding Coordinator <coordinator@walters-pierce-wedding.com>'
+export const EMME_CONNOR_FROM = 'Emme & Connor <coordinator@walters-pierce-wedding.com>'
 
 function htmlToText(html: string): string {
   return html
