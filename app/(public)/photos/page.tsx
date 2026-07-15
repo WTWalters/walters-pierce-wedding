@@ -10,13 +10,14 @@ type Photo = {
   fileUrl: string; thumbnailUrl: string | null; createdAt: string
   likeCount: number; likedByMe: boolean; comments: Comment[]
 }
-type UploadItem = { key: string; fileName: string; status: 'uploading' | 'done' | 'error' }
+type UploadItem = { key: string; fileName: string; status: 'uploading' | 'done' | 'error'; message?: string }
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // Cloudinary free-tier image limit
 
 export default function PhotosPage() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [name, setName] = useState<string | null>(null)
   const [namePrompt, setNamePrompt] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
@@ -24,16 +25,24 @@ export default function PhotosPage() {
   const [uploadsAvailable, setUploadsAvailable] = useState(true)
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
+  const [pendingComments, setPendingComments] = useState<Record<string, boolean>>({})
+  const [pendingLikes, setPendingLikes] = useState<Record<string, boolean>>({})
+  const [commentError, setCommentError] = useState<Record<string, boolean>>({})
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingFiles = useRef<File[] | null>(null)
 
   const refresh = useCallback(async () => {
-    const res = await fetch(`/api/photos?deviceId=${getDeviceId()}`)
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/photos?deviceId=${getDeviceId()}`)
+      if (!res.ok) throw new Error('load failed')
       const data = await res.json()
       setPhotos(data.photos)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -42,9 +51,16 @@ export default function PhotosPage() {
   }, [refresh])
 
   async function uploadFiles(files: File[], uploaderName: string) {
+    const fail = (key: string, message?: string) =>
+      setUploads((u) => u.map((x) => (x.key === key ? { ...x, status: 'error' as const, message } : x)))
+
     for (const file of files) {
       const key = `${file.name}-${Date.now()}-${Math.random()}`
-      if (!file.type.startsWith('image/')) continue
+      // Android pickers don't always honor accept=, so videos WILL be attempted at a wedding
+      if (!file.type.startsWith('image/')) {
+        setUploads((u) => [...u, { key, fileName: file.name, status: 'error', message: 'Only photos can be shared' }])
+        continue
+      }
       if (file.size > MAX_FILE_BYTES) {
         setUploads((u) => [...u, { key, fileName: `${file.name} (too large — 10MB max)`, status: 'error' }])
         continue
@@ -52,7 +68,15 @@ export default function PhotosPage() {
       setUploads((u) => [...u, { key, fileName: file.name, status: 'uploading' }])
       try {
         const signRes = await fetch('/api/photos/sign', { method: 'POST' })
-        if (signRes.status === 503) { setUploadsAvailable(false); throw new Error('unavailable') }
+        if (signRes.status === 503) {
+          setUploadsAvailable(false)
+          fail(key)
+          break // uploads are unavailable — don't re-hit sign for remaining files
+        }
+        if (signRes.status === 429) {
+          fail(key, 'Too many uploads right now — try again in a few minutes')
+          continue
+        }
         if (!signRes.ok) throw new Error('sign failed')
         const sign = await signRes.json()
 
@@ -66,7 +90,12 @@ export default function PhotosPage() {
         const upRes = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`, {
           method: 'POST', body: form,
         })
-        if (!upRes.ok) throw new Error('cloudinary upload failed')
+        if (!upRes.ok) {
+          let detail: string | undefined
+          try { detail = (await upRes.json())?.error?.message } catch { /* not JSON */ }
+          fail(key, detail || 'Photo was rejected — try a smaller image')
+          continue
+        }
         const uploaded = await upRes.json()
 
         const recRes = await fetch('/api/photos', {
@@ -77,7 +106,7 @@ export default function PhotosPage() {
         if (!recRes.ok) throw new Error('record failed')
         setUploads((u) => u.map((x) => (x.key === key ? { ...x, status: 'done' } : x)))
       } catch {
-        setUploads((u) => u.map((x) => (x.key === key ? { ...x, status: 'error' } : x)))
+        fail(key)
       }
     }
     await refresh()
@@ -108,20 +137,26 @@ export default function PhotosPage() {
   }
 
   async function toggleLike(photo: Photo) {
+    if (pendingLikes[photo.id]) return
+    setPendingLikes((p) => ({ ...p, [photo.id]: true }))
     // optimistic
     setPhotos((ps) => ps.map((p) => p.id === photo.id
       ? { ...p, likedByMe: !p.likedByMe, likeCount: p.likeCount + (p.likedByMe ? -1 : 1) }
       : p))
-    const res = await fetch(`/api/photos/${photo.id}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: getDeviceId() }),
-    })
-    if (res.ok) {
-      const { liked, likeCount } = await res.json()
-      setPhotos((ps) => ps.map((p) => (p.id === photo.id ? { ...p, likedByMe: liked, likeCount } : p)))
-    } else {
-      await refresh() // roll back optimism on failure
+    try {
+      const res = await fetch(`/api/photos/${photo.id}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: getDeviceId() }),
+      })
+      if (res.ok) {
+        const { liked, likeCount } = await res.json()
+        setPhotos((ps) => ps.map((p) => (p.id === photo.id ? { ...p, likedByMe: liked, likeCount } : p)))
+      } else {
+        await refresh() // roll back optimism on failure
+      }
+    } finally {
+      setPendingLikes((p) => ({ ...p, [photo.id]: false }))
     }
   }
 
@@ -129,15 +164,24 @@ export default function PhotosPage() {
     const text = (commentDrafts[photo.id] ?? '').trim()
     if (!text) return
     if (!name) { setNamePrompt(true); return }
-    const res = await fetch(`/api/photos/${photo.id}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, comment: text }),
-    })
-    if (res.ok) {
+    if (pendingComments[photo.id]) return
+    setPendingComments((p) => ({ ...p, [photo.id]: true }))
+    try {
+      const res = await fetch(`/api/photos/${photo.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, comment: text }),
+      })
+      if (!res.ok) throw new Error('comment failed')
       const { comment } = await res.json()
       setPhotos((ps) => ps.map((p) => (p.id === photo.id ? { ...p, comments: [...p.comments, comment] } : p)))
       setCommentDrafts((d) => ({ ...d, [photo.id]: '' }))
+      setCommentError((e) => ({ ...e, [photo.id]: false }))
+    } catch {
+      // keep the draft so the guest can retry
+      setCommentError((e) => ({ ...e, [photo.id]: true }))
+    } finally {
+      setPendingComments((p) => ({ ...p, [photo.id]: false }))
     }
   }
 
@@ -164,13 +208,13 @@ export default function PhotosPage() {
       </header>
 
       {uploads.length > 0 && (
-        <div className="max-w-3xl mx-auto mt-4 px-4 space-y-1">
+        <div className="max-w-3xl mx-auto mt-4 px-4 space-y-1" aria-live="polite">
           {uploads.map((u) => (
-            <div key={u.key} className="flex items-center justify-between text-sm bg-white rounded px-3 py-2 shadow">
+            <div key={u.key} className="flex items-center justify-between gap-3 text-sm bg-white rounded px-3 py-2 shadow">
               <span className="truncate">{u.fileName}</span>
-              {u.status === 'uploading' && <span className="text-gray-500">Uploading…</span>}
-              {u.status === 'done' && <span className="text-green-700">✓ Shared</span>}
-              {u.status === 'error' && <span className="text-red-600">Failed</span>}
+              {u.status === 'uploading' && <span className="text-gray-500 shrink-0">Uploading…</span>}
+              {u.status === 'done' && <span className="text-green-700 shrink-0">✓ Shared</span>}
+              {u.status === 'error' && <span className="text-red-600 text-right">{u.message ?? 'Failed'}</span>}
             </div>
           ))}
         </div>
@@ -179,6 +223,16 @@ export default function PhotosPage() {
       <main className="max-w-6xl mx-auto px-4 py-10">
         {loading ? (
           <p className="text-center text-gray-500">Loading photos…</p>
+        ) : loadError ? (
+          <div className="text-center text-gray-500">
+            <p>Couldn&apos;t load photos — check your connection.</p>
+            <button
+              onClick={() => { setLoading(true); refresh() }}
+              className="mt-3 bg-[#00330a] text-white px-6 py-2 rounded-full text-sm"
+            >
+              Retry
+            </button>
+          </div>
         ) : photos.length === 0 ? (
           <p className="text-center text-gray-500">No photos yet — be the first to share one!</p>
         ) : (
@@ -193,7 +247,7 @@ export default function PhotosPage() {
                     <span className="text-sm text-gray-700">
                       {photo.uploadedByName ? `Shared by ${photo.uploadedByName}` : 'A wedding guest'}
                     </span>
-                    <button onClick={() => toggleLike(photo)} className="text-sm" aria-label="Like photo">
+                    <button onClick={() => toggleLike(photo)} className="text-sm" aria-label={photo.likedByMe ? 'Unlike photo' : 'Like photo'}>
                       {photo.likedByMe ? '❤️' : '🤍'} {photo.likeCount > 0 ? photo.likeCount : ''}
                     </button>
                   </div>
@@ -219,10 +273,17 @@ export default function PhotosPage() {
                           placeholder="Say something nice…"
                           className="flex-1 border rounded px-2 py-1 text-xs"
                         />
-                        <button onClick={() => addComment(photo)} className="text-xs bg-[#00330a] text-white px-3 rounded">
+                        <button
+                          onClick={() => addComment(photo)}
+                          disabled={!!pendingComments[photo.id]}
+                          className="text-xs bg-[#00330a] text-white px-3 rounded disabled:opacity-60"
+                        >
                           Post
                         </button>
                       </div>
+                      {commentError[photo.id] && (
+                        <p className="text-xs text-red-600">Couldn&apos;t post — try again</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -233,13 +294,19 @@ export default function PhotosPage() {
       </main>
 
       {namePrompt && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+          role="dialog" aria-modal="true" aria-labelledby="name-prompt-title"
+        >
           <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h2 className="text-lg font-semibold text-[#00330a]">What&apos;s your name?</h2>
+            <h2 id="name-prompt-title" className="text-lg font-semibold text-[#00330a]">What&apos;s your name?</h2>
             <p className="text-sm text-gray-600 mt-1">So Emme &amp; Connor know who shared — we&apos;ll remember it on this device.</p>
             <input
               autoFocus value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} maxLength={100}
-              onKeyDown={(e) => e.key === 'Enter' && confirmName()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmName()
+                if (e.key === 'Escape') { setNamePrompt(false); pendingFiles.current = null }
+              }}
               className="mt-3 w-full border rounded px-3 py-2"
               placeholder="Your name"
             />

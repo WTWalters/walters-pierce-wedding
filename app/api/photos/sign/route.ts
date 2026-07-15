@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
     // client IP, while leftmost entries are client-controllable (a client can
     // send its own XFF header to evade the rate limit).
     const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown'
-    if (!checkRateLimit(`photo-sign:${ip}`, 30, 60 * 60 * 1000)) {
+    // Per-IP means per-venue-NAT at the reception; 600/hr still blocks scripted floods without capping 200 guests' legitimate burst.
+    if (!checkRateLimit(`photo-sign:${ip}`, 600, 60 * 60 * 1000)) {
       return NextResponse.json({ error: 'Too many uploads — please wait a bit' }, { status: 429 })
     }
     return NextResponse.json(signUploadParams())

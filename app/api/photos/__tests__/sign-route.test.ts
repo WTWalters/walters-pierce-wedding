@@ -28,19 +28,19 @@ it('returns signing params', async () => {
   const res = (await POST(makeRequest())) as { body: Record<string, unknown>; status: number }
   expect(res.status).toBe(200)
   expect(res.body).toEqual({ signature: 's', timestamp: 1 })
-  expect(checkRateLimit).toHaveBeenCalledWith('photo-sign:1.2.3.4', 30, 3600000)
+  expect(checkRateLimit).toHaveBeenCalledWith('photo-sign:1.2.3.4', 600, 3600000)
 })
 
 it('rate-limits on the last x-forwarded-for hop, ignoring spoofed prefixes', async () => {
   // Railway's proxy APPENDS the real client IP, so the last entry is trusted;
   // leftmost entries can be sent by the client itself.
   await POST(makeRequest('6.6.6.6, 1.2.3.4'))
-  expect(checkRateLimit).toHaveBeenCalledWith('photo-sign:1.2.3.4', 30, 3600000)
+  expect(checkRateLimit).toHaveBeenCalledWith('photo-sign:1.2.3.4', 600, 3600000)
 })
 
 it('falls back to the shared unknown bucket without the header', async () => {
   await POST({ headers: new Map() } as never)
-  expect(checkRateLimit).toHaveBeenCalledWith('photo-sign:unknown', 30, 3600000)
+  expect(checkRateLimit).toHaveBeenCalledWith('photo-sign:unknown', 600, 3600000)
 })
 
 it('500s without leaking details when signing throws', async () => {
