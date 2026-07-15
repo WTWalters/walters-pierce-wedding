@@ -108,7 +108,20 @@ export default function RegistryPage() {
             {isVariable(active.category) && (
               <>
                 <label className="block text-sm text-gray-700 mb-1">Amount (USD)</label>
-                <input type="number" min={5} value={amount} onChange={(e) => setAmount(e.target.value)}
+                <div className="flex gap-2 mb-2">
+                  {['50', '100'].map((preset) => (
+                    <button key={preset} type="button" onClick={() => setAmount(preset)}
+                      className={`flex-1 py-2 rounded-md border text-sm transition-colors ${
+                        amount === preset
+                          ? 'bg-[#00330a] text-white border-[#00330a]'
+                          : 'border-gray-300 text-gray-700 hover:border-[#00330a]'
+                      }`}>
+                      ${preset}
+                    </button>
+                  ))}
+                </div>
+                <input type="number" min={5} value={amount} placeholder="Or enter a custom amount"
+                  onChange={(e) => setAmount(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-[#00330a]" />
               </>
             )}

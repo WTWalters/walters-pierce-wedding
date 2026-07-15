@@ -12,10 +12,11 @@ describe('tierType', () => {
 })
 
 describe('isVariable', () => {
-  it('only flights lets the donor choose the amount', () => {
+  it('both goal items (Flight + Hotel) let the donor choose the amount', () => {
     expect(isVariable('flights')).toBe(true)
-    expect(isVariable('accommodation')).toBe(false)
+    expect(isVariable('accommodation')).toBe(true)
     expect(isVariable('dining')).toBe(false)
+    expect(isVariable('activities')).toBe(false)
   })
 })
 
@@ -30,7 +31,8 @@ describe('resolveChargeCents', () => {
     expect(resolveChargeCents({ category: 'flights', targetAmount: 2000 }, 3).ok).toBe(false)
     expect(resolveChargeCents({ category: 'flights', targetAmount: 2000 }).ok).toBe(false)
   })
-  it('charges the fixed $500 for the Hotel (accommodation, not variable)', () => {
-    expect(resolveChargeCents({ category: 'accommodation', targetAmount: 500 })).toEqual({ ok: true, cents: 50000 })
+  it('charges the donor amount for the Hotel goal (accommodation, choose amount)', () => {
+    expect(resolveChargeCents({ category: 'accommodation', targetAmount: 1300 }, 100)).toEqual({ ok: true, cents: 10000 })
+    expect(resolveChargeCents({ category: 'accommodation', targetAmount: 1300 }).ok).toBe(false)
   })
 })

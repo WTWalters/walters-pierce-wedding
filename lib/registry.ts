@@ -5,9 +5,12 @@ export function tierType(category: string): TierType {
   return category === 'flights' || category === 'accommodation' ? 'goal' : 'fixed'
 }
 
-/** Only the Flight (flights) lets the donor enter their own amount. */
+/**
+ * Goal items (Flight + Hotel) let the donor choose their amount — quick $50/$100
+ * picks or a custom value — contributing toward the goal. Fixed treats charge their price.
+ */
 export function isVariable(category: string): boolean {
-  return category === 'flights'
+  return tierType(category) === 'goal'
 }
 
 export type ChargeResult = { ok: true; cents: number } | { ok: false; message: string }
