@@ -311,6 +311,7 @@ export default function Home() {
           </p>
           <div className="flex justify-center gap-6 text-sm text-green-300">
             <Link href="/wedding-party" className="hover:text-white transition-colors">Wedding Party</Link>
+            <Link href="/photos" className="hover:text-white transition-colors">Photos</Link>
           </div>
         </div>
       </footer>
