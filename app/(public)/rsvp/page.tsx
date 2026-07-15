@@ -144,10 +144,21 @@ export default function RSVPPage() {
           <div className="max-w-md w-full rounded-lg bg-[#FFFDF7] border border-[#D4AF37] p-8 text-center shadow-xl">
             <h2 className="font-serif text-2xl text-[#00330a] mb-3">Thank you!</h2>
             {submitted.attending ? (
-              <p className="text-gray-700">
-                We look forward to celebrating with you. Watch your inbox for further
-                information — the date, time, and venue are on their way.
-              </p>
+              <>
+                <p className="text-gray-700">
+                  We look forward to celebrating with you. Watch your inbox for further
+                  information — the date, time, and venue are on their way.
+                </p>
+                <p className="mt-4 text-gray-700">
+                  Planning a gift? Emme &amp; Connor are honeymooning in Ireland.
+                </p>
+                <a
+                  href="/registry"
+                  className="inline-block mt-4 rounded border border-[#D4AF37] px-6 py-2 text-[#00330a] text-sm hover:bg-[#D4AF37]/10 transition"
+                >
+                  View the Honeymoon Fund
+                </a>
+              </>
             ) : (
               <>
                 <p className="text-gray-700">
