@@ -16,12 +16,14 @@ export default function RSVPPage() {
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState<null | { attending: boolean }>(null)
 
-  // Decliners get a warm goodbye, then drift back to the homepage.
+  // After the thank-you shows, attending guests are ushered to the honeymoon
+  // fund; decliners drift back to the homepage.
   useEffect(() => {
-    if (submitted && !submitted.attending) {
-      const timer = setTimeout(() => router.push('/'), 7000)
-      return () => clearTimeout(timer)
-    }
+    if (!submitted) return
+    const dest = submitted.attending ? '/registry' : '/'
+    const delay = submitted.attending ? 4000 : 7000
+    const timer = setTimeout(() => router.push(dest), delay)
+    return () => clearTimeout(timer)
   }, [submitted, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,8 +65,13 @@ export default function RSVPPage() {
     <main className="min-h-screen bg-[#FFFDF7] py-16 px-4">
       <div className="max-w-xl mx-auto">
         <h1 className="font-serif text-4xl text-center text-[#00330a] mb-2">RSVP</h1>
-        <p className="text-center text-gray-600 mb-10">
+        <p className="text-center text-gray-600 mb-3">
           Emme &amp; Connor — September 2026
+        </p>
+        <p className="text-center mb-10">
+          <a href="/registry" className="text-sm text-[#00330a] underline decoration-[#D4AF37] underline-offset-4 hover:text-[#004d10] transition">
+            Visit our Honeymoon Fund →
+          </a>
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6 bg-white border border-[#D4AF37]/40 rounded-lg p-8 shadow-sm">
@@ -150,13 +157,14 @@ export default function RSVPPage() {
                   information — the date, time, and venue are on their way.
                 </p>
                 <p className="mt-4 text-gray-700">
-                  Planning a gift? Emme &amp; Connor are honeymooning in Ireland.
+                  Emme &amp; Connor are honeymooning in Ireland — taking you to
+                  our Honeymoon Fund now&hellip;
                 </p>
                 <a
                   href="/registry"
-                  className="inline-block mt-4 rounded border border-[#D4AF37] px-6 py-2 text-[#00330a] text-sm hover:bg-[#D4AF37]/10 transition"
+                  className="inline-block mt-4 rounded bg-[#00330a] px-6 py-2 text-white text-sm hover:bg-[#004d10] transition"
                 >
-                  View the Honeymoon Fund
+                  Go to the Honeymoon Fund now
                 </a>
               </>
             ) : (
