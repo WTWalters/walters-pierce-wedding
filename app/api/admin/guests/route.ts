@@ -53,23 +53,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: cap.message }, { status: 400 })
     }
 
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName) {
       return NextResponse.json(
-        { error: 'First name, last name, and email are required' },
+        { error: 'First name and last name are required' },
         { status: 400 }
       )
     }
 
-    // Check if guest with this email already exists
-    const existingGuest = await prisma.guest.findUnique({
-      where: { email }
-    })
-
-    if (existingGuest) {
-      return NextResponse.json(
-        { error: 'A guest with this email already exists' },
-        { status: 400 }
-      )
+    // Email is optional (postal-only invites). Only enforce uniqueness when given.
+    const normalizedEmail = email && email.trim() ? email.trim() : null
+    if (normalizedEmail) {
+      const existingGuest = await prisma.guest.findUnique({
+        where: { email: normalizedEmail }
+      })
+      if (existingGuest) {
+        return NextResponse.json(
+          { error: 'A guest with this email already exists' },
+          { status: 400 }
+        )
+      }
     }
 
     // Create new guest
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
       data: {
         firstName,
         lastName,
-        email,
+        email: normalizedEmail,
         phone: phone || null,
         addressLine1: addressLine1 || null,
         addressLine2: addressLine2 || null,
