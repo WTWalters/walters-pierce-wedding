@@ -30,6 +30,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
     }
 
+    // Prevent locking everyone out by deleting the last remaining admin
+    if (userToDelete.role === 'admin') {
+      const adminCount = await prisma.user.count({ where: { role: 'admin' } })
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot delete the last remaining admin' },
+          { status: 400 }
+        )
+      }
+    }
+
     // Delete the user
     await prisma.user.delete({
       where: { id: userId }
@@ -91,6 +102,17 @@ export async function PUT(
     // Prevent changing your own role
     if (userToUpdate.id === session.user.id) {
       return NextResponse.json({ error: 'Cannot change your own role' }, { status: 400 })
+    }
+
+    // Prevent locking everyone out by demoting the last remaining admin
+    if (userToUpdate.role === 'admin' && role !== 'admin') {
+      const adminCount = await prisma.user.count({ where: { role: 'admin' } })
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot demote the last remaining admin' },
+          { status: 400 }
+        )
+      }
     }
 
     // Update the user
