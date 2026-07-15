@@ -30,6 +30,7 @@ export default function PhotosPage() {
   const [commentError, setCommentError] = useState<Record<string, boolean>>({})
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingFiles = useRef<File[] | null>(null)
+  const pendingComment = useRef<{ photoId: string; text: string } | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -110,7 +111,9 @@ export default function PhotosPage() {
       }
     }
     await refresh()
+    // 'done' rows clear quickly; 'error' rows linger longer so guests have time to read them.
     setTimeout(() => setUploads((u) => u.filter((x) => x.status !== 'done')), 4000)
+    setTimeout(() => setUploads((u) => u.filter((x) => x.status !== 'error')), 10000)
   }
 
   function onFilesPicked(list: FileList | null) {
@@ -133,6 +136,11 @@ export default function PhotosPage() {
     if (pendingFiles.current) {
       uploadFiles(pendingFiles.current, trimmed)
       pendingFiles.current = null
+    }
+    if (pendingComment.current) {
+      const { photoId, text } = pendingComment.current
+      pendingComment.current = null
+      submitComment(photoId, text, trimmed)
     }
   }
 
@@ -160,29 +168,37 @@ export default function PhotosPage() {
     }
   }
 
-  async function addComment(photo: Photo) {
-    const text = (commentDrafts[photo.id] ?? '').trim()
-    if (!text) return
-    if (!name) { setNamePrompt(true); return }
-    if (pendingComments[photo.id]) return
-    setPendingComments((p) => ({ ...p, [photo.id]: true }))
+  async function submitComment(photoId: string, text: string, uploaderName: string) {
+    if (pendingComments[photoId]) return
+    setPendingComments((p) => ({ ...p, [photoId]: true }))
     try {
-      const res = await fetch(`/api/photos/${photo.id}/comments`, {
+      const res = await fetch(`/api/photos/${photoId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, comment: text }),
+        body: JSON.stringify({ name: uploaderName, comment: text }),
       })
       if (!res.ok) throw new Error('comment failed')
       const { comment } = await res.json()
-      setPhotos((ps) => ps.map((p) => (p.id === photo.id ? { ...p, comments: [...p.comments, comment] } : p)))
-      setCommentDrafts((d) => ({ ...d, [photo.id]: '' }))
-      setCommentError((e) => ({ ...e, [photo.id]: false }))
+      setPhotos((ps) => ps.map((p) => (p.id === photoId ? { ...p, comments: [...p.comments, comment] } : p)))
+      setCommentDrafts((d) => ({ ...d, [photoId]: '' }))
+      setCommentError((e) => ({ ...e, [photoId]: false }))
     } catch {
       // keep the draft so the guest can retry
-      setCommentError((e) => ({ ...e, [photo.id]: true }))
+      setCommentError((e) => ({ ...e, [photoId]: true }))
     } finally {
-      setPendingComments((p) => ({ ...p, [photo.id]: false }))
+      setPendingComments((p) => ({ ...p, [photoId]: false }))
     }
+  }
+
+  async function addComment(photo: Photo) {
+    const text = (commentDrafts[photo.id] ?? '').trim()
+    if (!text) return
+    if (!name) {
+      pendingComment.current = { photoId: photo.id, text }
+      setNamePrompt(true)
+      return
+    }
+    await submitComment(photo.id, text, name)
   }
 
   return (
@@ -305,13 +321,13 @@ export default function PhotosPage() {
               autoFocus value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} maxLength={100}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') confirmName()
-                if (e.key === 'Escape') { setNamePrompt(false); pendingFiles.current = null }
+                if (e.key === 'Escape') { setNamePrompt(false); pendingFiles.current = null; pendingComment.current = null }
               }}
               className="mt-3 w-full border rounded px-3 py-2"
               placeholder="Your name"
             />
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => { setNamePrompt(false); pendingFiles.current = null }} className="px-4 py-2 text-sm text-gray-600">
+              <button onClick={() => { setNamePrompt(false); pendingFiles.current = null; pendingComment.current = null }} className="px-4 py-2 text-sm text-gray-600">
                 Cancel
               </button>
               <button onClick={confirmName} className="px-4 py-2 text-sm bg-[#00330a] text-white rounded">
