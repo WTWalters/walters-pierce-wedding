@@ -52,7 +52,7 @@ export default function Home() {
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50">
       {/* Hero Section with Photo Carousel */}
-      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Carousel */}
         <div className="absolute inset-0 z-0">
           {engagementPhotos.map((photo, index) => (
@@ -93,6 +93,52 @@ export default function Home() {
           ))}
         </div>
 
+        {/* Hero Content — names & date overlaid on the full-screen carousel (original layout) */}
+        <div className="relative z-10 text-center text-white max-w-4xl mx-auto px-6">
+          <div className="mb-8">
+            <div className="inline-block">
+              <h1 className="text-7xl md:text-8xl lg:text-9xl font-light font-serif mb-4 tracking-wide">
+                <span className="block text-4xl md:text-5xl lg:text-6xl mb-2 text-amber-200 font-normal" style={{ textShadow: '3px 3px 8px rgba(0,0,0,0.9), 1px 1px 4px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.6)' }}>
+                  The Wedding of
+                </span>
+                <span className="block text-white font-light" style={{ textShadow: '4px 4px 12px rgba(0,0,0,0.9), 2px 2px 6px rgba(0,0,0,0.8), 0 0 25px rgba(0,0,0,0.7)' }}>
+                  Emme &amp; Connor
+                </span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-lg md:text-xl text-amber-100 mb-12" style={{ textShadow: '3px 3px 8px rgba(0,0,0,0.9), 1px 1px 4px rgba(0,0,0,0.8)' }}>
+            <div className="flex items-center gap-2">
+              {/* Calendar file travels only in the gated email — the icon here is decorative */}
+              <Calendar className="w-6 h-6" style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 8px rgba(0,0,0,0.6))' }} />
+              <span className="font-light">September 2026</span>
+            </div>
+            <div className="hidden md:block w-px h-6 bg-amber-200/50" />
+            <div className="flex items-center gap-2">
+              <a
+                href="https://www.google.com/maps/place/Rocky+Mountains,+Colorado"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer hover:scale-110 transition-transform duration-200"
+                aria-label="Open the Colorado Mountains in Google Maps"
+              >
+                <MapPin className="w-6 h-6" style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 8px rgba(0,0,0,0.6))' }} />
+              </a>
+              <span className="font-light">Colorado Mountains</span>
+            </div>
+          </div>
+
+          {/* RSVP CTA kept from the later redesign — the printed invitation QR lands here */}
+          <Link
+            href="/rsvp"
+            className="inline-block font-serif transition-opacity hover:opacity-90"
+            style={{ background: '#D4AF37', color: '#00330a', fontSize: '20px', letterSpacing: '2px', fontWeight: 500, padding: '16px 64px', borderRadius: '999px' }}
+          >
+            RSVP
+          </Link>
+        </div>
+
         {/* Carousel Controls */}
         <button
           onClick={prevPhoto}
@@ -123,38 +169,6 @@ export default function Home() {
           ))}
         </div>
 
-      </section>
-
-      {/* Names + RSVP call-to-action, directly beneath the featured carousel */}
-      <section className="w-full text-center px-6 py-14" style={{ background: '#faf6ee' }}>
-        <p className="text-lg md:text-xl font-serif tracking-widest mb-2" style={{ color: '#9a7b1f' }}>
-          The Wedding of
-        </p>
-        <h1 className="text-5xl md:text-6xl font-light font-serif text-green-900 mb-5">
-          Emme &amp; Connor
-        </h1>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-green-800 mb-9 text-lg">
-          <span className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" /> September 2026
-          </span>
-          <span className="hidden sm:block w-px h-5 bg-amber-300" />
-          <a
-            href="https://www.google.com/maps/place/Rocky+Mountains,+Colorado"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:text-green-900 transition-colors"
-            aria-label="Open the Colorado Mountains in Google Maps"
-          >
-            <MapPin className="w-5 h-5" /> Colorado Mountains
-          </a>
-        </div>
-        <Link
-          href="/rsvp"
-          className="inline-block font-serif transition-opacity hover:opacity-90"
-          style={{ background: '#D4AF37', color: '#00330a', fontSize: '20px', letterSpacing: '2px', fontWeight: 500, padding: '16px 64px', borderRadius: '999px' }}
-        >
-          RSVP
-        </Link>
       </section>
 
       {/* Our Story Section */}
