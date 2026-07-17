@@ -1105,3 +1105,440 @@ git add -A && git commit -m "test(review): fixes from live smoke"  # only if nee
 - reviewedAt/reviewedBy migration → Task 1 ✓
 - Retire /admin/rsvps, keep wedding-details editor → Tasks 9, 10 ✓
 - Admin auth guard on all new routes → Tasks 5, 6, 7 ✓
+
+---
+
+## Revision (2026-07-17) — Nicolle's three branded messages + "Message to Send" dropdown
+
+Supersedes the earlier "reuse venue_details/gracious_regrets" approach. Adds Tasks 12–15.
+**Task 9 change:** replace its two separate "Send info / Send regrets" buttons with the
+shared `<MessageToSend>` dropdown from Task 14 (same three options).
+
+Added file-map entries:
+
+| File | Responsibility |
+|---|---|
+| `lib/email-templates.ts` | + `generateRsvpYesEmail`, `generateRsvpNoEmail`, `generateRsvpOverCountEmail` (registry-thank-you style) |
+| `app/api/admin/rsvps/send/route.ts` | extend template enum + render branches for the 3 new templates |
+| `components/admin/MessageToSend.tsx` | shared per-row dropdown (Yes/No/Incorrect) + confirm + send |
+| `app/admin/guests/page.tsx` | add `<MessageToSend>` to each row |
+| `scripts/seed-wedding-details.mjs` | seed the `wedding_details` Setting with the real venue |
+
+---
+
+### Task 12: Three branded RSVP message templates
+
+**Files:**
+- Modify: `lib/email-templates.ts`
+- Test: `lib/__tests__/rsvp-messages.test.ts`
+
+Style them after the existing `generateRegistryThankYouEmail` in the same file (same
+wrapper markup / colors). Each returns `{ subject, html, text }`.
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+// lib/__tests__/rsvp-messages.test.ts
+import { generateRsvpYesEmail, generateRsvpNoEmail, generateRsvpOverCountEmail } from '@/lib/email-templates'
+
+const details = { date: 'TBA', time: 'TBA', venueName: 'Blackstone Rivers Ranch', venueAddress: '3673 Chicago Creek Rd\nIdaho Springs, CO 80452' }
+
+it('RSVP Yes includes the confirmation line and the venue from details', () => {
+  const m = generateRsvpYesEmail('Sam', details)
+  expect(m.subject).toMatch(/locked in|You're|invited/i)
+  expect(m.html).toContain('Blackstone Rivers Ranch')
+  expect(m.html).toContain('Idaho Springs')
+  expect(m.text).toContain('locked in')
+})
+
+it('RSVP No is the sorry-to-miss-you acknowledgement, with no venue', () => {
+  const m = generateRsvpNoEmail('Sam')
+  expect(m.html).toMatch(/sorry to miss you/i)
+  expect(m.html).not.toContain('Blackstone Rivers Ranch')
+})
+
+it('Over-count is personalized with name, submitted count, and invited seats', () => {
+  const m = generateRsvpOverCountEmail('Sam', 5, 4)
+  expect(m.html).toContain('Sam')
+  expect(m.html).toContain('5')
+  expect(m.html).toContain('4')
+  expect(m.html).not.toContain('Blackstone Rivers Ranch')
+})
+
+it('Over-count degrades gracefully when invited seats are unknown', () => {
+  const m = generateRsvpOverCountEmail('Sam', 5, null)
+  expect(m.html).not.toContain('null')
+})
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx jest lib/__tests__/rsvp-messages.test.ts`
+Expected: FAIL — functions not exported
+
+- [ ] **Step 3: Implement** — add to `lib/email-templates.ts`. First read `generateRegistryThankYouEmail` and reuse its exact HTML wrapper/escape helper (`escapeHtml`) and color constants so these match its look. Then add:
+
+```typescript
+export function generateRsvpYesEmail(firstName: string, details: WeddingDetails): EmailTemplate {
+  const name = escapeHtml(firstName || 'there')
+  const venueName = escapeHtml(details.venueName || 'our venue')
+  const venueAddress = escapeHtml(details.venueAddress || '').replace(/\n/g, '<br>')
+  const body = `
+    <p>It's official—you're locked in! We received your RSVP and couldn't be happier.
+    We're counting down the days until we get to celebrate together!</p>
+    <p>Our venue is <strong>${venueName}</strong>.</p>
+    ${venueAddress ? `<p>The address is:<br>${venueAddress}</p>` : ''}
+  `
+  const text = `It's official—you're locked in! We received your RSVP and couldn't be happier. `
+    + `We're counting down the days until we get to celebrate together!\n\n`
+    + `Our venue is ${details.venueName || 'our venue'}.\n`
+    + (details.venueAddress ? `The address is:\n${details.venueAddress}\n` : '')
+  return { subject: "You're locked in — Emme & Connor", html: wrapBrandedEmail(name, body), text }
+}
+
+export function generateRsvpNoEmail(firstName: string): EmailTemplate {
+  const name = escapeHtml(firstName || 'there')
+  const body = `<p>Thank you for updating your RSVP! We are so sorry to miss you on our
+    special day, but we truly appreciate you letting us know.</p>`
+  const text = `Thank you for updating your RSVP! We are so sorry to miss you on our special day, `
+    + `but we truly appreciate you letting us know.`
+  return { subject: 'Thank you for your RSVP — Emme & Connor', html: wrapBrandedEmail(name, body), text }
+}
+
+export function generateRsvpOverCountEmail(
+  firstName: string, rsvpdCount: number | null, reservedSeats: number | null
+): EmailTemplate {
+  const name = escapeHtml(firstName || 'there')
+  const submitted = rsvpdCount ?? 0
+  const seatsPhrase = reservedSeats != null
+    ? `the ${reservedSeats} spots listed on your invitation`
+    : `the number of spots listed on your invitation`
+  const body = `
+    <p>Hi ${name}! We are so looking forward to having you at our wedding. We noticed your
+    RSVP included ${submitted} guests, but due to our intimate guest count and venue space,
+    we are only able to host ${seatsPhrase}. Let us know if you can still celebrate with us
+    within that count—we'd love to have you!</p>
+  `
+  const text = `Hi ${firstName || 'there'}! We are so looking forward to having you at our wedding. `
+    + `We noticed your RSVP included ${submitted} guests, but due to our intimate guest count `
+    + `and venue space, we are only able to host ${reservedSeats != null ? `the ${reservedSeats} spots` : 'the spots'} `
+    + `listed on your invitation. Let us know if you can still celebrate with us within that count—we'd love to have you!`
+  return { subject: 'A quick note about your RSVP — Emme & Connor', html: wrapBrandedEmail(name, body), text }
+}
+```
+
+If `generateRegistryThankYouEmail` does not already factor out a reusable wrapper, extract
+a small local `wrapBrandedEmail(name, bodyHtml)` helper from its markup and have the
+registry template call it too (DRY) — do not duplicate the full HTML shell three times.
+`EmailTemplate` and `escapeHtml` already exist in this file; reuse them.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx jest lib/__tests__/rsvp-messages.test.ts`
+Expected: 4 passed. Then `npx jest lib/__tests__/email-templates.test.ts` — existing template tests still green.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add lib/email-templates.ts lib/__tests__/rsvp-messages.test.ts
+git commit -m "feat(review): three branded RSVP messages (yes/no/over-count) in thank-you style"
+```
+
+---
+
+### Task 13: Extend the send endpoint with the three templates
+
+**Files:**
+- Modify: `app/api/admin/rsvps/send/route.ts`
+- Test: `app/api/admin/rsvps/__tests__/send-templates.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+// app/api/admin/rsvps/__tests__/send-templates.test.ts
+jest.mock('next/server', () => ({
+  NextRequest: class {},
+  NextResponse: { json: (body: unknown, init?: { status?: number }) => ({ body, status: init?.status ?? 200 }) },
+}))
+jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
+jest.mock('@/lib/auth', () => ({ authOptions: {} }))
+jest.mock('@/lib/prisma', () => ({ prisma: {
+  guest: { findMany: jest.fn() },
+  setting: { findUnique: jest.fn() },
+} }))
+jest.mock('@/lib/email', () => ({
+  sendEmail: jest.fn().mockResolvedValue({ success: true, messageId: 'm1' }),
+  logEmail: jest.fn().mockResolvedValue(undefined),
+  COORDINATOR_FROM: 'Coordinator <c@x.com>',
+  NOTIFY_EMAIL: 'n@x.com',
+}))
+
+import { getServerSession } from 'next-auth'
+import { POST } from '../send/route'
+import { prisma } from '@/lib/prisma'
+import { sendEmail, logEmail } from '@/lib/email'
+
+const req = (body: unknown) => ({ json: async () => body }) as never
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  ;(getServerSession as jest.Mock).mockResolvedValue({ user: { role: 'admin' } })
+  ;(prisma.setting.findUnique as jest.Mock).mockResolvedValue({ value: JSON.stringify({ date:'TBA', time:'TBA', venueName:'Blackstone Rivers Ranch', venueAddress:'3673 Chicago Creek Rd' }) })
+  ;(prisma.guest.findMany as jest.Mock).mockResolvedValue([
+    { id: '11111111-1111-1111-1111-111111111111', firstName: 'Sam', email: 's@x.com', rsvpdCount: 5, reservedSeats: 4 },
+  ])
+})
+
+it('accepts rsvp_yes and logs gated_rsvp_yes', async () => {
+  const res = (await POST(req({ guestIds: ['11111111-1111-1111-1111-111111111111'], template: 'rsvp_yes' }))) as { status: number }
+  expect(res.status).toBe(200)
+  expect(sendEmail).toHaveBeenCalled()
+  expect((logEmail as jest.Mock).mock.calls[0][0].emailType).toBe('gated_rsvp_yes')
+})
+
+it('rsvp_over_count renders with the guest counts', async () => {
+  await POST(req({ guestIds: ['11111111-1111-1111-1111-111111111111'], template: 'rsvp_over_count' }))
+  const sent = (sendEmail as jest.Mock).mock.calls[0][0]
+  expect(sent.html).toContain('5')
+  expect(sent.html).toContain('4')
+})
+
+it('rsvp_no sends the acknowledgement', async () => {
+  const res = (await POST(req({ guestIds: ['11111111-1111-1111-1111-111111111111'], template: 'rsvp_no' }))) as { status: number }
+  expect(res.status).toBe(200)
+  expect((logEmail as jest.Mock).mock.calls[0][0].emailType).toBe('gated_rsvp_no')
+})
+
+it('rejects an unknown template', async () => {
+  const res = (await POST(req({ guestIds: ['11111111-1111-1111-1111-111111111111'], template: 'bogus' }))) as { status: number }
+  expect(res.status).toBe(400)
+})
+
+it('401s non-admin', async () => {
+  ;(getServerSession as jest.Mock).mockResolvedValue(null)
+  const res = (await POST(req({ guestIds: ['11111111-1111-1111-1111-111111111111'], template: 'rsvp_yes' }))) as { status: number }
+  expect(res.status).toBe(401)
+})
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx jest app/api/admin/rsvps/__tests__/send-templates.test.ts`
+Expected: FAIL — new template values rejected by the enum
+
+- [ ] **Step 3: Edit `app/api/admin/rsvps/send/route.ts`**
+
+Update imports:
+```typescript
+import {
+  generateVenueDetailsEmail,
+  generateGraciousRegretsEmail,
+  generateRsvpYesEmail,
+  generateRsvpNoEmail,
+  generateRsvpOverCountEmail,
+  generateWeddingIcs,
+  WeddingDetails,
+} from '@/lib/email-templates'
+```
+Extend the enum:
+```typescript
+const sendSchema = z.object({
+  guestIds: z.array(z.string().uuid()).min(1).max(100),
+  template: z.enum(['venue_details', 'gracious_regrets', 'rsvp_yes', 'rsvp_no', 'rsvp_over_count']),
+  dryRun: z.boolean().optional(),
+})
+```
+Replace the `render` helper (currently `render(firstName)`) with a per-guest renderer that
+has access to counts + details:
+```typescript
+  type GuestRow = { firstName: string; rsvpdCount: number | null; reservedSeats: number | null }
+  const render = (g: GuestRow) => {
+    switch (template) {
+      case 'rsvp_yes': return generateRsvpYesEmail(g.firstName, details)
+      case 'rsvp_no': return generateRsvpNoEmail(g.firstName)
+      case 'rsvp_over_count': return generateRsvpOverCountEmail(g.firstName, g.rsvpdCount, g.reservedSeats)
+      case 'gracious_regrets': return generateGraciousRegretsEmail(g.firstName)
+      case 'venue_details':
+      default: return generateVenueDetailsEmail(g.firstName, details)
+    }
+  }
+```
+Update the dry-run and send loop to pass the guest object:
+```typescript
+  if (dryRun) {
+    const sample = guests[0]
+    return NextResponse.json({ preview: render(sample ?? { firstName: '', rsvpdCount: null, reservedSeats: null }), recipients: guests.length })
+  }
+```
+```typescript
+    const tpl = render(guest)
+```
+Attach the `.ics` for the venue-bearing templates (now `rsvp_yes` as well as `venue_details`):
+```typescript
+  if (template === 'venue_details' || template === 'rsvp_yes') {
+    const ics = generateWeddingIcs(details)
+    if (ics) attachments = [{ filename: 'Emme-Connor-Wedding.ics', content: Buffer.from(ics).toString('base64') }]
+  }
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx jest app/api/admin/rsvps/__tests__/send-templates.test.ts`
+Expected: 5 passed. Full suite tail — no regressions (the retired page's absence doesn't affect the route).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add app/api/admin/rsvps/send/route.ts app/api/admin/rsvps/__tests__/send-templates.test.ts
+git commit -m "feat(review): send endpoint supports the three branded RSVP messages"
+```
+
+---
+
+### Task 14: Shared `<MessageToSend>` dropdown + wire into both grids
+
+**Files:**
+- Create: `components/admin/MessageToSend.tsx`
+- Modify: `app/admin/review/page.tsx` (replace the two send buttons from Task 9)
+- Modify: `app/admin/guests/page.tsx` (add to each row)
+
+UI task (build + live smoke). The component is a small select + Send button that POSTs to
+`/api/admin/rsvps/send` for one guest, with a confirm dialog.
+
+- [ ] **Step 1: Create the component**
+
+```tsx
+// components/admin/MessageToSend.tsx
+'use client'
+
+import { useState } from 'react'
+
+type Template = 'rsvp_yes' | 'rsvp_no' | 'rsvp_over_count'
+const OPTIONS: { value: Template; label: string; confirm: string }[] = [
+  { value: 'rsvp_yes', label: 'RSVP Yes', confirm: 'the “you’re locked in” confirmation (with venue)' },
+  { value: 'rsvp_no', label: 'RSVP No', confirm: 'the “sorry to miss you” note' },
+  { value: 'rsvp_over_count', label: 'Incorrect RSVP', confirm: 'the “too many guests” note' },
+]
+
+export function MessageToSend({ guestId, email, onSent }: { guestId: string; email: string | null; onSent?: () => void }) {
+  const [template, setTemplate] = useState<Template | ''>('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  async function send() {
+    if (!template) return
+    if (!email) { setMsg('No email on file'); return }
+    const opt = OPTIONS.find((o) => o.value === template)!
+    if (!confirm(`Send ${opt.confirm} to ${email}?`)) return
+    setBusy(true); setMsg('')
+    try {
+      const res = await fetch('/api/admin/rsvps/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestIds: [guestId], template }),
+      })
+      if (!res.ok) throw new Error()
+      setMsg('Sent ✓'); setTemplate(''); onSent?.()
+    } catch { setMsg('Failed') } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <select
+        value={template}
+        onChange={(e) => setTemplate(e.target.value as Template | '')}
+        className="border rounded px-1 py-1 text-xs"
+        aria-label="Message to send"
+      >
+        <option value="">Message…</option>
+        {OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <button disabled={!template || busy} onClick={send}
+        className="px-2 py-1 rounded bg-[#00330a] text-white text-xs disabled:opacity-40">Send</button>
+      {msg && <span className="text-xs text-gray-500">{msg}</span>}
+    </div>
+  )
+}
+```
+
+- [ ] **Step 2: Use it in the review page** — in `app/admin/review/page.tsx`, remove the
+two `send(s, 'venue_details')` / `send(s, 'gracious_regrets')` buttons and the `send`
+helper added in Task 9, and render `<MessageToSend guestId={s.id} email={s.email} onSent={refresh} />`
+in the actions cell instead. Import it: `import { MessageToSend } from '@/components/admin/MessageToSend'`.
+
+- [ ] **Step 3: Use it in Guest Management** — in `app/admin/guests/page.tsx`, import the
+component and add it to each row's actions cell (near View/Edit/Delete):
+`<MessageToSend guestId={guest.id} email={guest.email} />`. (The `Guest` type in that file
+already has `id` and `email`.)
+
+- [ ] **Step 4: Build check**
+
+Run: `npx next build 2>&1 | tail -6`
+Expected: success; `/admin/review` and `/admin/guests` compile.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add components/admin/MessageToSend.tsx app/admin/review/page.tsx app/admin/guests/page.tsx
+git commit -m "feat(review): shared Message-to-Send dropdown on both guest grids"
+```
+
+---
+
+### Task 15: Seed the wedding-details Setting with the real venue
+
+**Files:**
+- Create: `scripts/seed-wedding-details.mjs`
+
+- [ ] **Step 1: Write the seed script**
+
+```javascript
+// scripts/seed-wedding-details.mjs
+// Seeds the wedding_details Setting used by the RSVP-Yes email. Idempotent (upsert).
+// Run locally: node scripts/seed-wedding-details.mjs
+// Prod: DATABASE_URL=<public> node scripts/seed-wedding-details.mjs (see registry seed note)
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+
+const details = {
+  date: 'TBA',
+  time: 'TBA',
+  venueName: 'Blackstone Rivers Ranch',
+  venueAddress: '3673 Chicago Creek Rd\nIdaho Springs, CO 80452',
+}
+
+await prisma.setting.upsert({
+  where: { key: 'wedding_details' },
+  update: { value: JSON.stringify(details) },
+  create: { key: 'wedding_details', value: JSON.stringify(details) },
+})
+console.log('Seeded wedding_details:', details.venueName)
+await prisma.$disconnect()
+```
+
+Note: `date`/`time` stay TBA until finalized — the admin can edit them in the Wedding
+Details editor on the review page. Only `venueName`/`venueAddress` are pre-filled now.
+
+- [ ] **Step 2: Run against local dev DB**
+
+Run: `node scripts/seed-wedding-details.mjs`
+Expected: `Seeded wedding_details: Blackstone Rivers Ranch`. Verify the RSVP-Yes preview
+then shows the venue (covered in Task 11 live smoke, step 6).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add scripts/seed-wedding-details.mjs
+git commit -m "chore(review): idempotent seed for the wedding_details venue Setting"
+```
+
+---
+
+## Revision spec-coverage self-check (2026-07-17)
+
+- "Message to Send" dropdown on both grids → Tasks 14 (component + both pages) ✓
+- Three branded messages, thank-you style → Task 12 ✓
+- RSVP Yes carries venue from editable Setting → Tasks 12, 13, 15 ✓
+- Over-count personalized (name + counts), graceful null → Task 12 ✓
+- Send endpoint supports the three + logs them → Task 13 ✓
+- Venue stays gated (email only, never public) → venue lives only in Setting + email templates; no public route renders it (unchanged from prior privacy sweep) ✓
+- Task 9's separate send buttons replaced by the shared dropdown → Task 14 step 2 ✓
