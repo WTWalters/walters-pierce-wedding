@@ -26,6 +26,7 @@ it('guests/stats excludes awaiting-review from attending and notAttending', asyn
   await guestStats(req())
   expect(prisma.guest.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { attending: true, ...EXCLUDE } }))
   expect(prisma.guest.count).toHaveBeenCalledWith({ where: { attending: false, ...EXCLUDE } })
+  expect(prisma.guest.aggregate).toHaveBeenCalledWith(expect.objectContaining({ where: EXCLUDE }))
 })
 
 it('dashboard stats excludes awaiting-review from all counts', async () => {
