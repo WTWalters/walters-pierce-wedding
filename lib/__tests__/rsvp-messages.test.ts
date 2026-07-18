@@ -4,10 +4,12 @@ const details = { date: 'TBA', time: 'TBA', venueName: 'Blackstone Rivers Ranch'
 
 it('RSVP Yes includes the confirmation line and the venue from details', () => {
   const m = generateRsvpYesEmail('Sam', details)
-  expect(m.subject).toMatch(/locked in|You're|invited/i)
+  expect(m.subject).toMatch(/thank you for your rsvp/i)
+  expect(m.html).toContain('Thank you so much for your RSVP!')
   expect(m.html).toContain('Blackstone Rivers Ranch')
   expect(m.html).toContain('Idaho Springs')
-  expect(m.text).toContain('locked in')
+  expect(m.text).toContain('Thank you so much for your RSVP!')
+  expect(m.text.toLowerCase()).not.toContain('locked in')
 })
 
 it('RSVP No is the sorry-to-miss-you acknowledgement, with no venue', () => {
