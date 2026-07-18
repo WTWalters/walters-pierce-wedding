@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { label: 'Dashboard', href: '/admin' },
   { label: 'Guest Management', href: '/admin/guests' },
   { label: 'To Review', href: '/admin/review' },
+  { label: 'Emails', href: '/admin/emails' },
 ]
 
 export default function AdminLayout({
