@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { assertSeatCap, formatPartyName } from '@/lib/guests'
+import { MessageToSend } from '@/components/admin/MessageToSend'
 
 interface Guest {
   id: string
@@ -617,10 +618,13 @@ export default function GuestsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(guest)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{guest.reservedSeats ?? ''}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{guest.rsvpdCount ?? ''}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onClick={() => setSelectedGuest(guest)} className="text-blue-600 hover:text-blue-900 mr-3">View</button>
-                    <button className="text-green-600 hover:text-green-900 mr-3" onClick={() => startEditGuest(guest)}>Edit</button>
-                    <button className="text-red-600 hover:text-red-900" onClick={() => deleteGuest(guest.id, formatPartyName(guest))}>Delete</button>
+                  <td className="px-6 py-4 text-sm font-medium">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <button onClick={() => setSelectedGuest(guest)} className="text-blue-600 hover:text-blue-900">View</button>
+                      <button className="text-green-600 hover:text-green-900" onClick={() => startEditGuest(guest)}>Edit</button>
+                      <button className="text-red-600 hover:text-red-900" onClick={() => deleteGuest(guest.id, formatPartyName(guest))}>Delete</button>
+                      <MessageToSend guestId={guest.id} email={guest.email ?? null} />
+                    </div>
                   </td>
                 </tr>
               ))}
