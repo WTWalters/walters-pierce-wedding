@@ -55,6 +55,7 @@ Return shape: `{ sent, delivered, opened, openRate, bounced, failed, complained 
 - New nav link **"Emails"** in `app/admin/layout.tsx`, placed after "To Review".
 - Page fetches stats + list on load.
 - **Six stat tiles** at the top (Sent · Delivered · Opened w/ rate · Bounced · Failed · Spam).
+- **Refresh button** (near the tiles) — re-fetches both stats and the list (respecting the active type filter) without a full page reload. Because Resend delivers open/bounce events asynchronously (seconds-to-minutes after a send), this lets Nicolle pull the latest numbers on demand. Shows a brief loading/disabled state while fetching and a subtle "updated just now" acknowledgement; failures surface the same friendly "couldn't load" message without wiping the currently-shown data.
 - **Type-filter dropdown** — re-fetches the list from the server with `?type=` (server-side filter, so it stays accurate even if total emails exceed the 500 cap). Friendly labels map raw types (e.g. `gated_rsvp_yes` → "RSVP Yes", `save_the_date` → "Save-the-Date", `rsvp_notification` → "New-RSVP alert (to you)").
 - **Table**, one row per email: **Recipient · Type · Subject · Sent (date/time, Denver) · Status badge.**
 - **Derived status badge** per row, first match wins:
