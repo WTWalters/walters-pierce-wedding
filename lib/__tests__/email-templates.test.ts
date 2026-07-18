@@ -14,26 +14,36 @@ const submission = {
 
 describe('generateRsvpNotificationEmail', () => {
   it('includes all response fields and the matched flag in subject', () => {
-    const t = generateRsvpNotificationEmail({ ...submission, matched: true })
+    const t = generateRsvpNotificationEmail({ ...submission, status: 'matched' })
     expect(t.subject).toContain('matched')
     expect(t.subject).toContain('Jane Smith')
+    expect(t.html).toContain('Matched — on your guest list')
     for (const s of ['jane@x.com', 'party of 2', 'vegetarian', 'September - EWF']) {
       expect(t.html).toContain(s)
     }
     expect(t.text).toContain('jane@x.com')
   })
   it('marks unmatched yeses for review', () => {
-    const t = generateRsvpNotificationEmail({ ...submission, matched: false })
+    const t = generateRsvpNotificationEmail({ ...submission, status: 'unmatched' })
     expect(t.subject.toLowerCase()).toContain('unmatched')
     expect(t.html.toLowerCase()).toContain('not on the original list')
   })
+  it('shows approved guests as added on the date you approved them', () => {
+    const t = generateRsvpNotificationEmail({
+      ...submission, status: 'added', addedAt: new Date('2026-07-18T18:00:00Z'),
+    })
+    expect(t.subject).toContain('added')
+    expect(t.subject).not.toContain('UNMATCHED')
+    expect(t.html).toContain('Added by you on Jul 18, 2026')
+    expect(t.html.toLowerCase()).not.toContain('not on the original list')
+  })
   it('handles declines', () => {
-    const t = generateRsvpNotificationEmail({ ...submission, attending: false, matched: true })
+    const t = generateRsvpNotificationEmail({ ...submission, attending: false, status: 'matched' })
     expect(t.subject).toContain('declined')
   })
   it('flags name-only matches with the email on file', () => {
     const t = generateRsvpNotificationEmail({
-      ...submission, matched: true, matchedBy: 'name', emailOnFile: 'old-address@x.com',
+      ...submission, status: 'matched', matchedBy: 'name', emailOnFile: 'old-address@x.com',
     })
     expect(t.subject).toContain('matched by NAME')
     expect(t.html).toContain('old-address@x.com')
@@ -44,7 +54,7 @@ describe('generateRsvpNotificationEmail', () => {
       ...submission,
       firstName: '<img src=x onerror=alert(1)>',
       songRequest: '<script>evil()</script>',
-      matched: false,
+      status: 'unmatched',
     })
     expect(t.html).not.toContain('<img src=x')
     expect(t.html).not.toContain('<script>')
