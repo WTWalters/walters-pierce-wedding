@@ -1,5 +1,6 @@
 import {
   generateRsvpNotificationEmail,
+  generateRsvpYesEmail,
   generateBlockedAttemptEmail,
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
@@ -59,6 +60,43 @@ describe('generateRsvpNotificationEmail', () => {
     expect(t.html).not.toContain('<img src=x')
     expect(t.html).not.toContain('<script>')
     expect(t.html).toContain('&lt;script&gt;')
+  })
+})
+
+describe('generateRsvpYesEmail', () => {
+  const details = {
+    date: 'September 12, 2026', time: '4:00 PM',
+    venueName: 'Blackstone Rivers Ranch',
+    venueAddress: '3673 Chicago Creek Road, Idaho Springs, Colorado 80452',
+  }
+  it('uses the warm "thank you" copy, not "locked in"', () => {
+    const t = generateRsvpYesEmail('Jill', details)
+    expect(t.subject).toBe('Thank you for your RSVP — Emme & Connor')
+    expect(t.html).toContain('Thank you so much for your RSVP!')
+    expect(t.html).toContain('Get ready for an amazing night!')
+    expect(t.html.toLowerCase()).not.toContain('locked in')
+    expect(t.text.toLowerCase()).not.toContain('locked in')
+  })
+  it('stacks the venue name and address on their own lines (no "The address is:")', () => {
+    const t = generateRsvpYesEmail('Jill', details)
+    expect(t.html).toContain('Our venue is')
+    expect(t.html).toContain('<strong>Blackstone Rivers Ranch</strong>')
+    expect(t.html).toContain('3673 Chicago Creek Road<br>Idaho Springs, Colorado 80452')
+    expect(t.html).not.toContain('The address is')
+    // plain-text mirror is stacked too
+    expect(t.text).toContain('Blackstone Rivers Ranch\n3673 Chicago Creek Road\nIdaho Springs, Colorado 80452')
+  })
+  it('confirms the guest count (plural), and omits it when unknown', () => {
+    const t = generateRsvpYesEmail('Jill', details, 4)
+    expect(t.html).toContain('We have you down for <strong>4</strong> guests.')
+    expect(t.text).toContain('We have you down for 4 guests.')
+    const none = generateRsvpYesEmail('Jill', details, null)
+    expect(none.html).not.toContain('We have you down for')
+  })
+  it('uses the singular "guest" for a party of one', () => {
+    const t = generateRsvpYesEmail('Jill', details, 1)
+    expect(t.html).toContain('We have you down for <strong>1</strong> guest.')
+    expect(t.html).not.toContain('1</strong> guests')
   })
 })
 

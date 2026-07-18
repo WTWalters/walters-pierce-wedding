@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   type GuestRow = { firstName: string; rsvpdCount: number | null; reservedSeats: number | null }
   const render = (g: GuestRow) => {
     switch (template) {
-      case 'rsvp_yes': return generateRsvpYesEmail(g.firstName, details)
+      case 'rsvp_yes': return generateRsvpYesEmail(g.firstName, details, g.rsvpdCount)
       case 'rsvp_no': return generateRsvpNoEmail(g.firstName)
       case 'rsvp_over_count': return generateRsvpOverCountEmail(g.firstName, g.rsvpdCount, g.reservedSeats)
       case 'gracious_regrets': return generateGraciousRegretsEmail(g.firstName)

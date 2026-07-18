@@ -165,20 +165,45 @@ export function generateWeddingIcs(d: WeddingDetails): string | null {
   ].join('\r\n')
 }
 
-export function generateRsvpYesEmail(firstName: string, details: WeddingDetails): Rendered {
+// Break a one-line address into stacked lines ("street" / "city, state zip") so the
+// venue reads like a mailing address. Honors explicit newlines if the address was
+// entered multi-line; otherwise splits at the first comma (street vs. the rest).
+function venueAddressLines(raw: string): string[] {
+  const t = (raw || '').trim()
+  if (!t) return []
+  const parts = t.includes('\n')
+    ? t.split('\n')
+    : (() => {
+        const i = t.indexOf(',')
+        return i === -1 ? [t] : [t.slice(0, i), t.slice(i + 1)]
+      })()
+  return parts.map((s) => s.trim()).filter(Boolean)
+}
+
+export function generateRsvpYesEmail(
+  firstName: string,
+  details: WeddingDetails,
+  guestCount?: number | null
+): Rendered {
   const name = escapeHtml(firstName || 'there')
   const venueName = escapeHtml(details.venueName || 'our venue')
-  const venueAddress = escapeHtml(details.venueAddress || '').replace(/\n/g, '<br>')
+  const addrLines = venueAddressLines(details.venueAddress || '')
+  const venueLinesHtml = addrLines.map((l) => escapeHtml(l)).join('<br>')
+  const venueLinesText = addrLines.join('\n')
+  // Confirm the party size back to the guest so they can catch a wrong count.
+  const count = guestCount != null && guestCount > 0 ? guestCount : null
+  const countSentence = count ? `We have you down for ${count} ${count === 1 ? 'guest' : 'guests'}.` : ''
   const body = `
-    <p>Hi ${name}! It's official—you're locked in! We received your RSVP and couldn't be happier.
-    We're counting down the days until we get to celebrate together!</p>
-    <p>Our venue is <strong>${venueName}</strong>.</p>
-    ${venueAddress ? `<p>The address is:<br>${venueAddress}</p>` : ''}`
-  const text = `Hi ${firstName || 'there'}! It's official—you're locked in! We received your RSVP and couldn't be happier. `
-    + `We're counting down the days until we get to celebrate together!\n\n`
-    + `Our venue is ${details.venueName || 'our venue'}.\n`
-    + (details.venueAddress ? `The address is:\n${details.venueAddress}\n` : '')
-  return { subject: "You're locked in — Emme & Connor", html: wrap('You’re locked in!', body), text }
+    <p>Hi ${name}! Thank you so much for your RSVP! We are so happy to hear that you'll be there
+    to share our special day with us. Get ready for an amazing night!</p>
+    ${count ? `<p>We have you down for <strong>${count}</strong> ${count === 1 ? 'guest' : 'guests'}.</p>` : ''}
+    <p style="margin-bottom:4px;">Our venue is</p>
+    <p style="margin-top:0;"><strong>${venueName}</strong>${venueLinesHtml ? `<br>${venueLinesHtml}` : ''}</p>`
+  const text = `Hi ${firstName || 'there'}! Thank you so much for your RSVP! We are so happy to hear that `
+    + `you'll be there to share our special day with us. Get ready for an amazing night!\n\n`
+    + (countSentence ? `${countSentence}\n\n` : '')
+    + `Our venue is\n${details.venueName || 'our venue'}${venueLinesText ? `\n${venueLinesText}` : ''}\n`
+  return { subject: 'Thank you for your RSVP — Emme & Connor', html: wrap('We can’t wait to celebrate!', body), text }
 }
 
 export function generateRsvpNoEmail(firstName: string): Rendered {
