@@ -42,7 +42,7 @@ it('rsvp_over_count renders with the guest counts', async () => {
   await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_over_count' }))
   const sent = (sendEmail as jest.Mock).mock.calls[0][0]
   expect(sent.html).toContain('included 5 guests')
-  expect(sent.html).toContain('the 4 spots')
+  expect(sent.html).toContain('allow 4 guests')
 })
 
 it('skips a guest with no email on file (no send fired for it)', async () => {
