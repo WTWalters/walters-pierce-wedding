@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { assertSeatCap, formatPartyName } from '@/lib/guests'
+import { guestListStatus, formatAddedDate } from '@/lib/review'
 import { MessageToSend } from '@/components/admin/MessageToSend'
 
 interface Guest {
@@ -31,6 +32,8 @@ interface Guest {
   reservedSeats?: number | null
   rsvpdCount?: number | null
   songRequest?: string
+  source?: string | null
+  reviewedAt?: string | null
   createdAt: string
   plusOnes?: Array<{
     id: string
@@ -286,6 +289,25 @@ export default function GuestsPage() {
     } catch (error) {
       setMessage('❌ Failed to delete guest')
     }
+  }
+
+  // How this guest reached the list — "Matched" if they were on your imported
+  // list, or "Added <date>" if you approved them from the To Review queue. The
+  // grid never shows pending self-RSVPs, so those two are the only cases here.
+  const getListBadge = (guest: Guest) => {
+    const s = guestListStatus({ source: guest.source ?? null, reviewedAt: guest.reviewedAt ?? null })
+    if (s.kind === 'added') {
+      return (
+        <span className="inline-block mt-1 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs">
+          Added {formatAddedDate(s.addedAt)}
+        </span>
+      )
+    }
+    return (
+      <span className="inline-block mt-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs">
+        Matched
+      </span>
+    )
   }
 
   const getStatusBadge = (guest: Guest) => {
@@ -611,6 +633,7 @@ export default function GuestsPage() {
                 <tr key={guest.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{formatPartyName(guest)}</div>
+                    <div>{getListBadge(guest)}</div>
                     {guest.invitationCode && (
                       <div className="text-sm text-gray-500 font-mono">Code: {guest.invitationCode}</div>
                     )}

@@ -69,6 +69,24 @@ describe('processRsvpSubmission', () => {
     expect(updateArg.data.rsvpdCount).toBe(2) // canonical admin count mirrors partySize
   })
 
+  it('reports an approved self-RSVP re-submission as "added", not unmatched', async () => {
+    // Nicolle approved this self-RSVP on 7/18 (reviewedAt set, source still self_rsvp).
+    // A later re-RSVP by the same email must NOT re-flag them for review.
+    mockPrisma.guest.findUnique.mockResolvedValue({
+      id: 'g1', email: 'jane@x.com', firstName: 'Jane', lastName: 'Smith',
+      source: 'self_rsvp', reviewedAt: new Date('2026-07-18T18:00:00Z'), reservedSeats: null,
+    })
+    mockPrisma.guest.update.mockResolvedValue({ id: 'g1' })
+    const result = await processRsvpSubmission(input)
+    // matched stays false (they were never on the imported list)…
+    expect(result).toEqual({ outcome: 'saved', matched: false })
+    // …but the notification tells Nicolle they're vetted, with the date she added them.
+    const emailArg = (sendEmail as jest.Mock).mock.calls[0][0]
+    expect(emailArg.subject).toContain('added')
+    expect(emailArg.html).toContain('Added by you on Jul 18, 2026')
+    expect(emailArg.html.toLowerCase()).not.toContain('not on the original list')
+  })
+
   it('creates an unmatched guest with source=self_rsvp', async () => {
     mockPrisma.guest.findUnique.mockResolvedValue(null)
     mockPrisma.guest.create.mockResolvedValue({ id: 'g2' })

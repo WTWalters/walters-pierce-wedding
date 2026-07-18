@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { prisma } from './prisma'
 import { getBlocklist, isBlockedName, normalizeName } from './blocklist'
 import { assertSeatCap } from './guests'
+import { guestListStatus, type GuestListStatus } from './review'
 import { sendEmail, logEmail, NOTIFY_EMAIL } from './email'
 import {
   generateRsvpNotificationEmail,
@@ -82,12 +83,15 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
   const existing = await prisma.guest.findUnique({ where: { email } })
   let guestId: string
   let matched: boolean
+  let status: 'matched' | 'added' | 'unmatched'
+  let addedAt: Date | undefined
   let matchedBy: 'email' | 'name' | undefined
   let emailOnFile: string | undefined
   if (existing) {
     const emailCap = assertSeatCap({ reservedSeats: existing.reservedSeats, rsvpdCount: responseData.partySize })
     if (!emailCap.ok) return { outcome: 'over_cap', reservedSeats: existing.reservedSeats as number }
-    matched = existing.source === 'imported'
+    ;({ status, addedAt } = toNotifyStatus(guestListStatus(existing)))
+    matched = status === 'matched'
     matchedBy = 'email'
     const updated = await prisma.guest.update({
       where: { id: existing.id },
@@ -108,6 +112,7 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
       where: { NOT: [{ firstName: '' }, { lastName: '' }] },
       select: {
         id: true, email: true, firstName: true, lastName: true, source: true,
+        reviewedAt: true,
         partnerFirstName: true, partnerLastName: true, reservedSeats: true,
       },
     })
@@ -122,7 +127,8 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
       const byName = nameMatches[0]
       const nameCap = assertSeatCap({ reservedSeats: byName.reservedSeats, rsvpdCount: responseData.partySize })
       if (!nameCap.ok) return { outcome: 'over_cap', reservedSeats: byName.reservedSeats as number }
-      matched = byName.source === 'imported'
+      ;({ status, addedAt } = toNotifyStatus(guestListStatus(byName)))
+      matched = status === 'matched'
       matchedBy = 'name'
       emailOnFile = byName.email
       const updated = await prisma.guest.update({
@@ -132,6 +138,7 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
       guestId = updated.id
     } else {
       matched = false
+      status = 'unmatched'
       const created = await prisma.guest.create({
         data: {
           ...responseData,
@@ -146,9 +153,20 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
   }
 
   await notify(
-    generateRsvpNotificationEmail({ ...input, matched, matchedBy, emailOnFile }),
+    generateRsvpNotificationEmail({ ...input, status, addedAt, matchedBy, emailOnFile }),
     'rsvp_notification',
     guestId
   )
   return { outcome: 'saved', matched }
+}
+
+// Collapse the richer list-status into the flags the notification email needs.
+// A still-pending self-RSVP reads as 'unmatched' to Nicolle — it's landing in
+// To Review either way.
+function toNotifyStatus(
+  s: GuestListStatus
+): { status: 'matched' | 'added' | 'unmatched'; addedAt?: Date } {
+  if (s.kind === 'matched') return { status: 'matched' }
+  if (s.kind === 'added') return { status: 'added', addedAt: s.addedAt }
+  return { status: 'unmatched' }
 }

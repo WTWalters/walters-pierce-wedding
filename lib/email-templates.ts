@@ -1,3 +1,5 @@
+import { formatAddedDate } from './review'
+
 interface Rendered { subject: string; html: string; text: string }
 
 function escapeHtml(value: string): string {
@@ -36,26 +38,39 @@ export interface RsvpSubmissionSummary {
 
 export function generateRsvpNotificationEmail(
   data: RsvpSubmissionSummary & {
-    matched: boolean
+    // 'matched'   — RSVP matched a guest already on the list (imported).
+    // 'added'     — a guest you approved from To Review (see addedAt).
+    // 'unmatched' — not on the list yet; sitting in To Review.
+    status: 'matched' | 'added' | 'unmatched'
+    addedAt?: Date | string | null
     matchedBy?: 'email' | 'name'
     emailOnFile?: string
   }
 ): Rendered {
   const name = `${data.firstName} ${data.lastName}`
   const verdict = data.attending ? 'YES' : 'declined'
-  const matchTag = data.matched
-    ? data.matchedBy === 'name'
-      ? 'matched by NAME'
-      : 'matched'
-    : 'UNMATCHED'
+  const matchTag =
+    data.status === 'matched'
+      ? data.matchedBy === 'name'
+        ? 'matched by NAME'
+        : 'matched'
+      : data.status === 'added'
+        ? 'added'
+        : 'UNMATCHED'
   const subject = `RSVP ${verdict} (${matchTag}): ${name}${data.attending && data.partySize ? ` — party of ${data.partySize}` : ''}`
+  const guestStatus =
+    data.status === 'matched'
+      ? 'Matched — on your guest list'
+      : data.status === 'added'
+        ? `Added by you on ${data.addedAt ? formatAddedDate(data.addedAt) : 'an earlier date'}`
+        : 'No — not on the original list, review before sending details'
   const rows: Array<[string, string]> = [
     ['Name', name],
     ['Email', data.email],
     ['Attending', data.attending ? `Yes — party of ${data.partySize ?? 1}` : 'No'],
     ['Dietary restrictions', data.dietaryRestrictions || '—'],
     ['Song request', data.songRequest || '—'],
-    ['On original list', data.matched ? 'Yes' : 'No — not on the original list, review before sending details'],
+    ['Guest status', guestStatus],
     ['Received', new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })],
   ]
   if (data.matchedBy === 'name' && data.emailOnFile) {
