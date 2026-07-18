@@ -7,6 +7,9 @@ import { sendEmail, logEmail, COORDINATOR_FROM, NOTIFY_EMAIL } from '@/lib/email
 import {
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
+  generateRsvpYesEmail,
+  generateRsvpNoEmail,
+  generateRsvpOverCountEmail,
   generateWeddingIcs,
   WeddingDetails,
 } from '@/lib/email-templates'
@@ -15,7 +18,7 @@ type SendAttachments = Array<{ filename: string; content: string }> | undefined
 
 const sendSchema = z.object({
   guestIds: z.array(z.string().uuid()).min(1).max(100),
-  template: z.enum(['venue_details', 'gracious_regrets']),
+  template: z.enum(['venue_details', 'gracious_regrets', 'rsvp_yes', 'rsvp_no', 'rsvp_over_count']),
   dryRun: z.boolean().optional(),
 })
 
@@ -40,20 +43,27 @@ export async function POST(request: NextRequest) {
   const guests = await prisma.guest.findMany({ where: { id: { in: guestIds } } })
   const details = await loadDetails()
 
-  const render = (firstName: string) =>
-    template === 'venue_details'
-      ? generateVenueDetailsEmail(firstName, details)
-      : generateGraciousRegretsEmail(firstName)
+  type GuestRow = { firstName: string; rsvpdCount: number | null; reservedSeats: number | null }
+  const render = (g: GuestRow) => {
+    switch (template) {
+      case 'rsvp_yes': return generateRsvpYesEmail(g.firstName, details)
+      case 'rsvp_no': return generateRsvpNoEmail(g.firstName)
+      case 'rsvp_over_count': return generateRsvpOverCountEmail(g.firstName, g.rsvpdCount, g.reservedSeats)
+      case 'gracious_regrets': return generateGraciousRegretsEmail(g.firstName)
+      case 'venue_details':
+      default: return generateVenueDetailsEmail(g.firstName, details)
+    }
+  }
 
   if (dryRun) {
     const sample = guests[0]
-    return NextResponse.json({ preview: render(sample?.firstName ?? ''), recipients: guests.length })
+    return NextResponse.json({ preview: render(sample ?? { firstName: '', rsvpdCount: null, reservedSeats: null }), recipients: guests.length })
   }
 
-  // Venue-details emails carry the calendar invite; it exists nowhere on the
-  // public site. Skipped automatically while details are still TBA/unparseable.
+  // Venue-details and RSVP-yes emails carry the calendar invite; it exists
+  // nowhere on the public site. Skipped automatically while details are TBA/unparseable.
   let attachments: SendAttachments
-  if (template === 'venue_details') {
+  if (template === 'venue_details' || template === 'rsvp_yes') {
     const ics = generateWeddingIcs(details)
     if (ics) {
       attachments = [
@@ -65,7 +75,7 @@ export async function POST(request: NextRequest) {
   const results = []
   for (const [i, guest] of guests.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, 600))
-    const tpl = render(guest.firstName)
+    const tpl = render(guest)
     const res = await sendEmail(
       { ...tpl, to: guest.email },
       { from: COORDINATOR_FROM, replyTo: NOTIFY_EMAIL, attachments }
