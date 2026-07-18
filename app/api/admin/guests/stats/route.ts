@@ -2,23 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { NOT_AWAITING_REVIEW } from '@/lib/review'
 
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const [attendingParties, notAttending, seatSum] = await Promise.all([
       prisma.guest.findMany({
-        where: { attending: true },
+        where: { attending: true, ...NOT_AWAITING_REVIEW },
         select: { rsvpdCount: true, partySize: true },
       }),
-      prisma.guest.count({ where: { attending: false } }),
-      prisma.guest.aggregate({ _sum: { reservedSeats: true } }),
+      prisma.guest.count({ where: { attending: false, ...NOT_AWAITING_REVIEW } }),
+      prisma.guest.aggregate({ _sum: { reservedSeats: true }, where: NOT_AWAITING_REVIEW }),
     ])
 
     const totalInvited = seatSum._sum.reservedSeats ?? 0
