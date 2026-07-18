@@ -215,25 +215,30 @@ export function generateRsvpNoEmail(firstName: string): Rendered {
   return { subject: 'Thank you for your RSVP — Emme & Connor', html: wrap('We’ll miss you', body), text }
 }
 
+// `allowedCount` is the number of guests Nicolle has approved for this party
+// (their reservedSeats on record). Worded to fit an unmatched guest who never had
+// an invitation with a pre-set count — she sets the number in the portal, then sends.
 export function generateRsvpOverCountEmail(
   firstName: string,
   rsvpdCount: number | null,
-  reservedSeats: number | null
+  allowedCount: number | null
 ): Rendered {
   const name = escapeHtml(firstName || 'there')
   const submitted = rsvpdCount ?? 0
-  const seatsPhrase = reservedSeats != null
-    ? `the ${reservedSeats} spots listed on your invitation`
-    : `the number of spots listed on your invitation`
+  const guestWord = (n: number) => (n === 1 ? 'guest' : 'guests')
+  const lead = submitted > 0
+    ? `We noticed your RSVP included ${submitted} ${guestWord(submitted)}, but due to our intimate guest count and venue space,`
+    : `Due to our intimate guest count and venue space,`
+  const allowedPhrase = allowedCount != null
+    ? `we're only able to allow ${allowedCount} ${guestWord(allowedCount)}`
+    : `we're only able to allow a limited number of guests`
   const body = `
-    <p>Hi ${name}! We are so looking forward to having you at our wedding. We noticed your
-    RSVP included ${submitted} guests, but due to our intimate guest count and venue space,
-    we are only able to host ${seatsPhrase}. Let us know if you can still celebrate with us
-    within that count—we'd love to have you!</p>`
+    <p>Hi ${name}! We are so looking forward to having you at our wedding. ${lead}
+    ${allowedPhrase}. Let us know if you can still celebrate with us within that count—we'd
+    love to have you!</p>`
   const text = `Hi ${firstName || 'there'}! We are so looking forward to having you at our wedding. `
-    + `We noticed your RSVP included ${submitted} guests, but due to our intimate guest count `
-    + `and venue space, we are only able to host ${reservedSeats != null ? `the ${reservedSeats} spots` : 'the spots'} `
-    + `listed on your invitation. Let us know if you can still celebrate with us within that count—we'd love to have you!`
+    + `${lead} ${allowedPhrase}. `
+    + `Let us know if you can still celebrate with us within that count—we'd love to have you!`
   return { subject: 'A quick note about your RSVP — Emme & Connor', html: wrap('A quick note about your RSVP', body), text }
 }
 
