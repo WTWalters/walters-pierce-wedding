@@ -4,7 +4,10 @@ jest.mock('next/server', () => ({
 }))
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
-jest.mock('@/lib/prisma', () => ({ prisma: { guest: { findFirst: jest.fn(), update: jest.fn(), delete: jest.fn() } } }))
+jest.mock('@/lib/prisma', () => ({ prisma: {
+  guest: { findFirst: jest.fn(), update: jest.fn(), delete: jest.fn() },
+  $transaction: jest.fn().mockResolvedValue([]),
+} }))
 
 import { getServerSession } from 'next-auth'
 import { POST } from '../[id]/match/route'

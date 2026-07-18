@@ -35,21 +35,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const overCap = target.reservedSeats != null && (submission.rsvpdCount ?? 0) > target.reservedSeats
 
-    // Copy the RSVP answer onto the official record. Identity + email + reservedSeats
+    // Copy the RSVP answer onto the official record and remove the duplicate
+    // submission atomically — so a failure can't leave the guest updated but the
+    // submission still sitting in the review queue. Identity + email + reservedSeats
     // on the target are left untouched (the official record stays authoritative —
     // same invariant as name-matching in lib/rsvp.ts).
-    await prisma.guest.update({
-      where: { id: target.id },
-      data: {
-        attending: submission.attending,
-        rsvpdCount: submission.rsvpdCount,
-        partySize: submission.partySize,
-        dietaryRestrictions: submission.dietaryRestrictions,
-        songRequest: submission.songRequest,
-        rsvpReceivedAt: submission.rsvpReceivedAt,
-      },
-    })
-    await prisma.guest.delete({ where: { id: submission.id } })
+    await prisma.$transaction([
+      prisma.guest.update({
+        where: { id: target.id },
+        data: {
+          attending: submission.attending,
+          rsvpdCount: submission.rsvpdCount,
+          partySize: submission.partySize, // legacy mirror of headcount — kept in sync (see lib/rsvp.ts)
+          dietaryRestrictions: submission.dietaryRestrictions,
+          songRequest: submission.songRequest,
+          rsvpReceivedAt: submission.rsvpReceivedAt,
+        },
+      }),
+      prisma.guest.delete({ where: { id: submission.id } }),
+    ])
 
     return NextResponse.json({ ok: true, overCap })
   } catch (error) {
