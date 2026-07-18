@@ -10,7 +10,7 @@ type Submission = {
   rsvpReceivedAt: string | null
   emailLogs: { status: string; emailType: string }[]
 }
-type InvitedGuest = { id: string; firstName: string; lastName: string; email: string | null; reservedSeats: number | null }
+type InvitedGuest = { id: string; firstName: string; lastName: string; email: string | null; reservedSeats: number | null; source: string }
 
 export default function ReviewPage() {
   const [subs, setSubs] = useState<Submission[]>([])
@@ -162,13 +162,16 @@ export default function ReviewPage() {
               Link <span className="font-medium">{matchFor.firstName} {matchFor.lastName}</span>’s RSVP to the right person on the invite list.
             </p>
             <div className="space-y-1">
-              {guests.map((g) => (
+              {guests.filter((g) => g.source === 'imported').map((g) => (
                 <button key={g.id} onClick={() => confirmMatch(g.id)}
                   className="w-full text-left px-3 py-2 rounded border hover:border-[#00330a] text-sm">
                   {g.firstName} {g.lastName} <span className="text-gray-400">{g.email}</span>
                 </button>
               ))}
               {guests.length === 0 && <p className="text-gray-500 text-sm">Loading guests…</p>}
+              {guests.length > 0 && guests.filter((g) => g.source === 'imported').length === 0 && (
+                <p className="text-gray-500 text-sm">No invited guests to match to.</p>
+              )}
             </div>
           </div>
         </div>

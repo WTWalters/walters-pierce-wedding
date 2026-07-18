@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { NOT_AWAITING_REVIEW } from '@/lib/review'
 
 // Next.js route files may only export handlers/config — keep this const local.
 const WEDDING_DETAILS_KEY = 'wedding_details'
@@ -17,6 +18,7 @@ export async function GET() {
   }
   const [guests, detailsRow] = await Promise.all([
     prisma.guest.findMany({
+      where: NOT_AWAITING_REVIEW,
       select: {
         id: true, firstName: true, lastName: true, email: true,
         attending: true, partySize: true, dietaryRestrictions: true,

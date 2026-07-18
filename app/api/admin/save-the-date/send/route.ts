@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, generateSaveTheDateEmail } from '@/lib/email'
+import { NOT_AWAITING_REVIEW } from '@/lib/review'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,8 @@ export async function POST(request: NextRequest) {
       where: {
         email: { not: '' },
         invitationCode: { not: null },
-        invitationSentAt: null // Haven't received save-the-date yet
+        invitationSentAt: null, // Haven't received save-the-date yet
+        ...NOT_AWAITING_REVIEW
       },
       select: {
         id: true,

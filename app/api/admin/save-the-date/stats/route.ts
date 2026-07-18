@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { NOT_AWAITING_REVIEW } from '@/lib/review'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,17 +23,19 @@ export async function GET(request: NextRequest) {
       // Total guests with email addresses
       prisma.guest.count({
         where: {
-          email: { not: '' }
+          email: { not: '' },
+          ...NOT_AWAITING_REVIEW
         }
       }),
-      
+
       // Guests who have been sent save-the-dates
       prisma.guest.count({
         where: {
-          invitationSentAt: { not: null }
+          invitationSentAt: { not: null },
+          ...NOT_AWAITING_REVIEW
         }
       }),
-      
+
       // Email logs that have been opened
       prisma.emailLog.count({
         where: {
@@ -40,13 +43,14 @@ export async function GET(request: NextRequest) {
           openedAt: { not: null }
         }
       }),
-      
+
       // Guests who haven't received save-the-dates yet (have email and invitation code but no sent date)
       prisma.guest.count({
         where: {
           email: { not: '' },
           invitationCode: { not: null },
-          invitationSentAt: null
+          invitationSentAt: null,
+          ...NOT_AWAITING_REVIEW
         }
       })
     ])
