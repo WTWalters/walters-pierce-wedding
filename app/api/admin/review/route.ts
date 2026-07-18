@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const submissions = await prisma.guest.findMany({
       where: AWAITING_REVIEW,
       orderBy: { rsvpReceivedAt: 'desc' },
-      include: { emailLogs: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      include: { emailLogs: { orderBy: { sentAt: 'desc' }, take: 1 } },
     })
     return NextResponse.json({ submissions, count: submissions.length })
   } catch (error) {

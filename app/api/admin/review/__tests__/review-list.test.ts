@@ -23,6 +23,11 @@ it('returns awaiting-review submissions with a count', async () => {
   expect(prisma.guest.findMany).toHaveBeenCalledWith(
     expect.objectContaining({ where: { source: 'self_rsvp', reviewedAt: null } })
   )
+  // EmailLog's timestamp is sentAt (not createdAt) — a wrong field throws at runtime
+  // against real Prisma, which the mocked findMany here would otherwise hide.
+  expect(prisma.guest.findMany).toHaveBeenCalledWith(
+    expect.objectContaining({ include: { emailLogs: { orderBy: { sentAt: 'desc' }, take: 1 } } })
+  )
   expect(res.body.count).toBe(2)
   expect(res.body.submissions).toHaveLength(2)
 })
