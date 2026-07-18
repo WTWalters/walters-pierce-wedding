@@ -4,7 +4,7 @@ jest.mock('next/server', () => ({
 }))
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
-jest.mock('@/lib/prisma', () => ({ prisma: { emailLog: { count: jest.fn() } } }))
+jest.mock('@/lib/prisma', () => ({ prisma: { emailLog: { count: jest.fn(), findMany: jest.fn() } } }))
 
 import { getServerSession } from 'next-auth'
 import { GET } from '../stats/route'
@@ -15,6 +15,10 @@ const req = () => ({ url: 'http://x' }) as never
 beforeEach(() => {
   jest.clearAllMocks()
   ;(getServerSession as jest.Mock).mockResolvedValue({ user: { role: 'admin' } })
+  // Distinct email types present, for the filter dropdown.
+  ;(prisma.emailLog.findMany as jest.Mock).mockResolvedValue([
+    { emailType: 'gated_rsvp_yes' }, { emailType: 'save_the_date' },
+  ])
 })
 
 it('401s non-admin', async () => {
@@ -32,8 +36,17 @@ it('computes the six tiles with a correct open rate', async () => {
     .mockResolvedValueOnce(40)  // opened
     .mockResolvedValueOnce(6)   // bounced
     .mockResolvedValueOnce(2)   // complained
-  const res = (await GET(req())) as { body: Record<string, number> }
-  expect(res.body).toEqual({ sent: 96, delivered: 80, opened: 40, openRate: 50, bounced: 6, failed: 4, complained: 2 })
+  const res = (await GET(req())) as { body: Record<string, unknown> }
+  expect(res.body).toEqual({
+    sent: 96, delivered: 80, opened: 40, openRate: 50, bounced: 6, failed: 4, complained: 2,
+    types: ['gated_rsvp_yes', 'save_the_date'],
+  })
+})
+
+it('returns the distinct email types present, for the filter dropdown', async () => {
+  ;(prisma.emailLog.count as jest.Mock).mockResolvedValue(0)
+  const res = (await GET(req())) as { body: { types: string[] } }
+  expect(res.body.types).toEqual(['gated_rsvp_yes', 'save_the_date'])
 })
 
 it('reports a 0 open rate when nothing is delivered (no divide-by-zero)', async () => {

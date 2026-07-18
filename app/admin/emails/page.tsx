@@ -44,6 +44,9 @@ export default function EmailsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
+  // Every type present, sourced from the (unfiltered) stats endpoint — so the
+  // dropdown never collapses to just the currently-selected type.
+  const [availableTypes, setAvailableTypes] = useState<string[]>([])
 
   const load = useCallback(async (type: string) => {
     setLoading(true)
@@ -58,6 +61,7 @@ export default function EmailsPage() {
       const s = await sRes.json()
       const e = await eRes.json()
       setStats(s)
+      setAvailableTypes(Array.isArray(s.types) ? s.types : [])
       setEmails(e.emails)
       setCapped(e.capped)
       setUpdatedAt(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
@@ -70,9 +74,6 @@ export default function EmailsPage() {
   }, [])
 
   useEffect(() => { load(typeFilter) }, [load, typeFilter])
-
-  // Distinct types present, for the filter dropdown.
-  const types = Array.from(new Set(emails.map((e) => e.emailType).filter(Boolean))) as string[]
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -104,6 +105,7 @@ export default function EmailsPage() {
           </div>
         ))}
       </div>
+      <p className="text-xs text-gray-400 -mt-4 mb-6">Totals across all emails — not affected by the filter below.</p>
 
       {/* Filter */}
       <div className="flex items-center gap-3 mb-3">
@@ -114,7 +116,7 @@ export default function EmailsPage() {
           className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
         >
           <option value="">All types</option>
-          {types.map((t) => <option key={t} value={t}>{emailTypeLabel(t)}</option>)}
+          {availableTypes.map((t) => <option key={t} value={t}>{emailTypeLabel(t)}</option>)}
         </select>
         {capped && <span className="text-xs text-gray-500">Showing the latest 500</span>}
       </div>
