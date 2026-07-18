@@ -150,6 +150,53 @@ export function generateWeddingIcs(d: WeddingDetails): string | null {
   ].join('\r\n')
 }
 
+export function generateRsvpYesEmail(firstName: string, details: WeddingDetails): Rendered {
+  const name = escapeHtml(firstName || 'there')
+  const venueName = escapeHtml(details.venueName || 'our venue')
+  const venueAddress = escapeHtml(details.venueAddress || '').replace(/\n/g, '<br>')
+  const body = `
+    <p>Hi ${name}! It's official—you're locked in! We received your RSVP and couldn't be happier.
+    We're counting down the days until we get to celebrate together!</p>
+    <p>Our venue is <strong>${venueName}</strong>.</p>
+    ${venueAddress ? `<p>The address is:<br>${venueAddress}</p>` : ''}`
+  const text = `Hi ${firstName || 'there'}! It's official—you're locked in! We received your RSVP and couldn't be happier. `
+    + `We're counting down the days until we get to celebrate together!\n\n`
+    + `Our venue is ${details.venueName || 'our venue'}.\n`
+    + (details.venueAddress ? `The address is:\n${details.venueAddress}\n` : '')
+  return { subject: "You're locked in — Emme & Connor", html: wrap('You’re locked in!', body), text }
+}
+
+export function generateRsvpNoEmail(firstName: string): Rendered {
+  const name = escapeHtml(firstName || 'there')
+  const body = `<p>Hi ${name}, thank you for updating your RSVP! We are so sorry to miss you on our
+    special day, but we truly appreciate you letting us know.</p>`
+  const text = `Hi ${firstName || 'there'}, thank you for updating your RSVP! We are so sorry to miss you on our special day, `
+    + `but we truly appreciate you letting us know.`
+  return { subject: 'Thank you for your RSVP — Emme & Connor', html: wrap('We’ll miss you', body), text }
+}
+
+export function generateRsvpOverCountEmail(
+  firstName: string,
+  rsvpdCount: number | null,
+  reservedSeats: number | null
+): Rendered {
+  const name = escapeHtml(firstName || 'there')
+  const submitted = rsvpdCount ?? 0
+  const seatsPhrase = reservedSeats != null
+    ? `the ${reservedSeats} spots listed on your invitation`
+    : `the number of spots listed on your invitation`
+  const body = `
+    <p>Hi ${name}! We are so looking forward to having you at our wedding. We noticed your
+    RSVP included ${submitted} guests, but due to our intimate guest count and venue space,
+    we are only able to host ${seatsPhrase}. Let us know if you can still celebrate with us
+    within that count—we'd love to have you!</p>`
+  const text = `Hi ${firstName || 'there'}! We are so looking forward to having you at our wedding. `
+    + `We noticed your RSVP included ${submitted} guests, but due to our intimate guest count `
+    + `and venue space, we are only able to host ${reservedSeats != null ? `the ${reservedSeats} spots` : 'the spots'} `
+    + `listed on your invitation. Let us know if you can still celebrate with us within that count—we'd love to have you!`
+  return { subject: 'A quick note about your RSVP — Emme & Connor', html: wrap('A quick note about your RSVP', body), text }
+}
+
 export function generateRegistryThankYouEmail(data: {
   name: string
   tierTitle: string

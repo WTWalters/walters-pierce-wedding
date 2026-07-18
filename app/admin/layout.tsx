@@ -2,12 +2,13 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 const NAV_LINKS = [
   { label: 'Dashboard', href: '/admin' },
   { label: 'Guest Management', href: '/admin/guests' },
+  { label: 'To Review', href: '/admin/review' },
 ]
 
 export default function AdminLayout({
@@ -18,6 +19,15 @@ export default function AdminLayout({
   const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
+
+  const [reviewCount, setReviewCount] = useState(0)
+  useEffect(() => {
+    if (status !== 'authenticated' || session?.user.role !== 'admin') return
+    fetch('/api/admin/review')
+      .then((r) => (r.ok ? r.json() : { count: 0 }))
+      .then((d) => setReviewCount(d.count ?? 0))
+      .catch(() => setReviewCount(0))
+  }, [status, session, pathname]) // re-fetch on route change so it updates after actions
 
   useEffect(() => {
     if (status === 'loading') return // Still loading
@@ -96,6 +106,11 @@ export default function AdminLayout({
                   }`}
                 >
                   {link.label}
+                  {link.href === '/admin/review' && reviewCount > 0 && (
+                    <span className="ml-2 inline-flex items-center justify-center rounded-full bg-amber-600 text-white text-xs px-2 py-0.5">
+                      {reviewCount}
+                    </span>
+                  )}
                 </Link>
               )
             })}

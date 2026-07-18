@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { NOT_AWAITING_REVIEW } from '@/lib/review'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch all guests with their plus ones
     const guests = await prisma.guest.findMany({
+      where: NOT_AWAITING_REVIEW,
       include: {
         plusOnes: true
       },

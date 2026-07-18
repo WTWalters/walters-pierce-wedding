@@ -50,6 +50,8 @@ model Guest {
   source              String     @default("imported")
   tableNumber         Int?       @map("table_number")
   notes               String?
+  reviewedAt          DateTime?  @map("reviewed_at")
+  reviewedBy          String?    @map("reviewed_by")
   createdAt           DateTime   @default(now()) @map("created_at")
   updatedAt           DateTime   @updatedAt @map("updated_at")
   emailLogs           EmailLog[]

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { NOT_AWAITING_REVIEW } from '@/lib/review'
 
 function generateInvitationCode(firstName: string, lastName: string): string {
   // Create a code using first letters of names + year
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
     const guestsWithoutCodes = await prisma.guest.findMany({
       where: {
         invitationCode: null,
-        email: { not: '' } // Only guests with email addresses
+        email: { not: '' }, // Only guests with email addresses
+        ...NOT_AWAITING_REVIEW
       },
       select: {
         id: true,
