@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { AWAITING_REVIEW } from '@/lib/review'
 
-const schema = z.object({ targetGuestId: z.string().min(1) })
+const schema = z.object({ targetGuestId: z.string().uuid() })
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

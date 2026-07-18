@@ -26,7 +26,7 @@ it('copies RSVP data onto the target, deletes the submission, never touches targ
     .mockResolvedValueOnce(target)     // target lookup
   ;(prisma.guest.update as jest.Mock).mockResolvedValue({})
   ;(prisma.guest.delete as jest.Mock).mockResolvedValue({})
-  const res = (await POST(req({ targetGuestId: 'tgt1' }), ctx)) as { status: number; body: Record<string, unknown> }
+  const res = (await POST(req({ targetGuestId: '22222222-2222-4222-8222-222222222222' }), ctx)) as { status: number; body: Record<string, unknown> }
   expect(res.status).toBe(200)
   const upd = (prisma.guest.update as jest.Mock).mock.calls[0][0]
   expect(upd.where).toEqual({ id: 'tgt1' })
@@ -46,13 +46,13 @@ it('flags overCap when submission headcount exceeds target reserved seats', asyn
     .mockResolvedValueOnce(target)
   ;(prisma.guest.update as jest.Mock).mockResolvedValue({})
   ;(prisma.guest.delete as jest.Mock).mockResolvedValue({})
-  const res = (await POST(req({ targetGuestId: 'tgt1' }), ctx)) as { body: Record<string, unknown> }
+  const res = (await POST(req({ targetGuestId: '22222222-2222-4222-8222-222222222222' }), ctx)) as { body: Record<string, unknown> }
   expect(res.body).toMatchObject({ ok: true, overCap: true })
 })
 
 it('404s when submission is not awaiting review', async () => {
   ;(prisma.guest.findFirst as jest.Mock).mockResolvedValueOnce(null)
-  const res = (await POST(req({ targetGuestId: 'tgt1' }), ctx)) as { status: number }
+  const res = (await POST(req({ targetGuestId: '22222222-2222-4222-8222-222222222222' }), ctx)) as { status: number }
   expect(res.status).toBe(404)
 })
 
@@ -60,7 +60,7 @@ it('422s when target is missing or not an official (imported) guest', async () =
   ;(prisma.guest.findFirst as jest.Mock)
     .mockResolvedValueOnce(submission)
     .mockResolvedValueOnce(null)
-  const res = (await POST(req({ targetGuestId: 'tgt1' }), ctx)) as { status: number }
+  const res = (await POST(req({ targetGuestId: '22222222-2222-4222-8222-222222222222' }), ctx)) as { status: number }
   expect(res.status).toBe(422)
   expect(prisma.guest.delete).not.toHaveBeenCalled()
 })
@@ -73,6 +73,6 @@ it('400s without a targetGuestId', async () => {
 
 it('401s non-admin', async () => {
   ;(getServerSession as jest.Mock).mockResolvedValue(null)
-  const res = (await POST(req({ targetGuestId: 'tgt1' }), ctx)) as { status: number }
+  const res = (await POST(req({ targetGuestId: '22222222-2222-4222-8222-222222222222' }), ctx)) as { status: number }
   expect(res.status).toBe(401)
 })
