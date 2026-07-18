@@ -41,8 +41,33 @@ it('accepts rsvp_yes and logs gated_rsvp_yes', async () => {
 it('rsvp_over_count renders with the guest counts', async () => {
   await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_over_count' }))
   const sent = (sendEmail as jest.Mock).mock.calls[0][0]
-  expect(sent.html).toContain('5')
-  expect(sent.html).toContain('4')
+  expect(sent.html).toContain('included 5 guests')
+  expect(sent.html).toContain('the 4 spots')
+})
+
+it('skips a guest with no email on file (no send fired for it)', async () => {
+  ;(prisma.guest.findMany as jest.Mock).mockResolvedValue([
+    { id: '11111111-1111-4111-8111-111111111111', firstName: 'Sam', email: null, rsvpdCount: 5, reservedSeats: 4 },
+  ])
+  const res = (await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_yes' }))) as { status: number; body: { results: { success: boolean; error?: string }[] } }
+  expect(res.status).toBe(200)
+  expect(sendEmail).not.toHaveBeenCalled()
+  expect(res.body.results[0]).toMatchObject({ success: false, error: 'No email on file' })
+})
+
+it('rsvp_yes attaches the .ics when the date parses; rsvp_no attaches nothing', async () => {
+  ;(prisma.setting.findUnique as jest.Mock).mockResolvedValue({
+    value: JSON.stringify({ date: 'September 20, 2026', time: '4:00 PM', venueName: 'Blackstone Rivers Ranch', venueAddress: '3673 Chicago Creek Rd' }),
+  })
+  await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_yes' }))
+  const yesOpts = (sendEmail as jest.Mock).mock.calls[0][1]
+  expect(yesOpts.attachments).toBeDefined()
+  expect(yesOpts.attachments[0].filename).toBe('Emme-Connor-Wedding.ics')
+
+  ;(sendEmail as jest.Mock).mockClear()
+  await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_no' }))
+  const noOpts = (sendEmail as jest.Mock).mock.calls[0][1]
+  expect(noOpts.attachments).toBeUndefined()
 })
 
 it('rsvp_no sends the acknowledgement', async () => {

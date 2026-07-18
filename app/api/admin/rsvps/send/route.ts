@@ -75,6 +75,12 @@ export async function POST(request: NextRequest) {
   const results = []
   for (const [i, guest] of guests.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, 600))
+    // Guest Management guests are email-optional; skip rather than fire a
+    // guaranteed-failed Resend send to an empty address.
+    if (!guest.email) {
+      results.push({ guestId: guest.id, email: null, success: false, error: 'No email on file' })
+      continue
+    }
     const tpl = render(guest)
     const res = await sendEmail(
       { ...tpl, to: guest.email },

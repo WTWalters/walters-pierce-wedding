@@ -19,12 +19,16 @@ it('RSVP No is the sorry-to-miss-you acknowledgement, with no venue', () => {
 it('Over-count is personalized with name, submitted count, and invited seats', () => {
   const m = generateRsvpOverCountEmail('Sam', 5, 4)
   expect(m.html).toContain('Sam')
-  expect(m.html).toContain('5')
-  expect(m.html).toContain('4')
+  expect(m.html).toContain('included 5 guests')
+  expect(m.html).toContain('the 4 spots')
   expect(m.html).not.toContain('Blackstone Rivers Ranch')
 })
 
 it('Over-count degrades gracefully when invited seats are unknown', () => {
   const m = generateRsvpOverCountEmail('Sam', 5, null)
   expect(m.html).not.toContain('null')
+})
+
+it('RSVP Yes escapes guest-supplied HTML in the name', () => {
+  expect(generateRsvpYesEmail('<script>x</script>', details).html).not.toContain('<script>')
 })
