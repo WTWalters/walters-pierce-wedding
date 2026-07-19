@@ -180,12 +180,23 @@ function venueAddressLines(raw: string): string[] {
   return parts.map((s) => s.trim()).filter(Boolean)
 }
 
+// Shared Honeymoon Fund call-to-action, appended to the guest-facing RSVP
+// confirmations (yes + no) so wording and styling stay identical. Absolute URL so
+// it never renders relative in an email client.
+function registryCta(): { html: string; text: string } {
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://walters-pierce-wedding.com'}/registry`
+  const html = `<p style="text-align:center; margin:24px 0 4px;"><a href="${url}" style="display:inline-block; background:#00330a; color:#D4AF37; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:bold;">Visit our Honeymoon Fund &#127873;</a></p>`
+  const text = `\n\nVisit our Honeymoon Fund: ${url}`
+  return { html, text }
+}
+
 export function generateRsvpYesEmail(
   firstName: string,
   details: WeddingDetails,
   guestCount?: number | null
 ): Rendered {
   const name = escapeHtml(firstName || 'there')
+  const cta = registryCta()
   const venueName = escapeHtml(details.venueName || 'our venue')
   const addrLines = venueAddressLines(details.venueAddress || '')
   const venueLinesHtml = addrLines.map((l) => escapeHtml(l)).join('<br>')
@@ -198,20 +209,25 @@ export function generateRsvpYesEmail(
     to share our special day with us. Get ready for an amazing night!</p>
     ${count ? `<p>We have you down for <strong>${count}</strong> ${count === 1 ? 'guest' : 'guests'}.</p>` : ''}
     <p style="margin-bottom:4px;">Our venue is</p>
-    <p style="margin-top:0;"><strong>${venueName}</strong>${venueLinesHtml ? `<br>${venueLinesHtml}` : ''}</p>`
+    <p style="margin-top:0;"><strong>${venueName}</strong>${venueLinesHtml ? `<br>${venueLinesHtml}` : ''}</p>
+    ${cta.html}`
   const text = `Hi ${firstName || 'there'}! Thank you so much for your RSVP! We are so happy to hear that `
     + `you'll be there to share our special day with us. Get ready for an amazing night!\n\n`
     + (countSentence ? `${countSentence}\n\n` : '')
     + `Our venue is\n${details.venueName || 'our venue'}${venueLinesText ? `\n${venueLinesText}` : ''}\n`
+    + cta.text
   return { subject: 'Thank you for your RSVP — Emme & Connor', html: wrap('We can’t wait to celebrate!', body), text }
 }
 
 export function generateRsvpNoEmail(firstName: string): Rendered {
   const name = escapeHtml(firstName || 'there')
+  const cta = registryCta()
   const body = `<p>Hi ${name}, thank you for updating your RSVP! We are so sorry to miss you on our
-    special day, but we truly appreciate you letting us know.</p>`
+    special day, but we truly appreciate you letting us know.</p>
+    ${cta.html}`
   const text = `Hi ${firstName || 'there'}, thank you for updating your RSVP! We are so sorry to miss you on our special day, `
     + `but we truly appreciate you letting us know.`
+    + cta.text
   return { subject: 'Thank you for your RSVP — Emme & Connor', html: wrap('We’ll miss you', body), text }
 }
 
