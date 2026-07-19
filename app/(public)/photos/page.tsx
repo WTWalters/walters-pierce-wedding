@@ -8,7 +8,7 @@ type Comment = { id: string; authorName: string; comment: string; createdAt: str
 type Photo = {
   id: string; uploadedByName: string | null; caption: string | null
   fileUrl: string; thumbnailUrl: string | null; createdAt: string
-  likeCount: number; likedByMe: boolean; comments: Comment[]
+  likeCount: number; likedByMe: boolean; mine: boolean; comments: Comment[]
 }
 type UploadItem = { key: string; fileName: string; status: 'uploading' | 'done' | 'error'; message?: string }
 
@@ -16,6 +16,7 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024 // Cloudinary free-tier image limit
 
 export default function PhotosPage() {
   const [photos, setPhotos] = useState<Photo[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [name, setName] = useState<string | null>(null)
@@ -50,6 +51,13 @@ export default function PhotosPage() {
     setName(getStoredName())
     refresh()
   }, [refresh])
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => setIsAdmin(s?.user?.role === 'admin'))
+      .catch(() => setIsAdmin(false))
+  }, [])
 
   async function uploadFiles(files: File[], uploaderName: string) {
     const fail = (key: string, message?: string) =>
@@ -102,7 +110,7 @@ export default function PhotosPage() {
         const recRes = await fetch('/api/photos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ publicId: uploaded.public_id, name: uploaderName }),
+          body: JSON.stringify({ publicId: uploaded.public_id, name: uploaderName, deviceId: getDeviceId() }),
         })
         if (!recRes.ok) throw new Error('record failed')
         setUploads((u) => u.map((x) => (x.key === key ? { ...x, status: 'done' } : x)))
@@ -190,6 +198,23 @@ export default function PhotosPage() {
     }
   }
 
+  const deletePhoto = async (photo: Photo) => {
+    if (!confirm('Delete this photo? This can’t be undone.')) return
+    const prev = photos
+    setPhotos((ps) => ps.filter((p) => p.id !== photo.id)) // optimistic
+    try {
+      const res = await fetch(`/api/photos/${photo.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: getDeviceId() }),
+      })
+      if (!res.ok) throw new Error('delete failed')
+    } catch {
+      setPhotos(prev) // revert
+      alert('Sorry — that photo could not be deleted. Please try again.')
+    }
+  }
+
   async function addComment(photo: Photo) {
     const text = (commentDrafts[photo.id] ?? '').trim()
     if (!text) return
@@ -263,9 +288,20 @@ export default function PhotosPage() {
                     <span className="text-sm text-gray-700">
                       {photo.uploadedByName ? `Shared by ${photo.uploadedByName}` : 'A wedding guest'}
                     </span>
-                    <button onClick={() => toggleLike(photo)} className="text-sm" aria-label={photo.likedByMe ? 'Unlike photo' : 'Like photo'}>
-                      {photo.likedByMe ? '❤️' : '🤍'} {photo.likeCount > 0 ? photo.likeCount : ''}
-                    </button>
+                    <span className="flex items-center gap-3">
+                      <button onClick={() => toggleLike(photo)} className="text-sm" aria-label={photo.likedByMe ? 'Unlike photo' : 'Like photo'}>
+                        {photo.likedByMe ? '❤️' : '🤍'} {photo.likeCount > 0 ? photo.likeCount : ''}
+                      </button>
+                      {(photo.mine || isAdmin) && (
+                        <button
+                          onClick={() => deletePhoto(photo)}
+                          className="text-xs text-red-600 hover:text-red-800"
+                          aria-label="Delete photo"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </span>
                   </div>
                   {photo.caption && <p className="mt-1 text-sm text-gray-600">{photo.caption}</p>}
                   <button

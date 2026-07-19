@@ -118,6 +118,7 @@ model Photo {
   fileUrl            String         @map("file_url")
   thumbnailUrl       String?        @map("thumbnail_url")
   cloudinaryPublicId String?        @unique @map("cloudinary_public_id")
+  deviceId           String?        @map("device_id")
   isApproved         Boolean        @default(false) @map("is_approved")
   approvedById       String?        @map("approved_by") @db.Uuid
   approvedAt         DateTime?      @map("approved_at")
