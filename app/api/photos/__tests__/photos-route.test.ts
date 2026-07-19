@@ -37,7 +37,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyGuestPhoto } from '@/lib/cloudinary'
 
 const dbPhoto = {
-  id: 'p1', uploadedByName: 'Ann', caption: null, fileUrl: 'F', thumbnailUrl: 'T',
+  id: 'p1', uploadedByName: 'Ann', caption: null, fileUrl: 'F', thumbnailUrl: 'T', deviceId: 'dev-1',
   createdAt: new Date('2026-09-20'),
   likes: [{ deviceId: 'dev-1' }],
   comments: [{ id: 'c1', authorName: 'Bo', comment: 'hi', createdAt: new Date('2026-09-20') }],
@@ -60,7 +60,7 @@ describe('GET', () => {
     expect(prisma.photo.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isHidden: false, category: 'guest' } })
     )
-    expect(res.body.photos[0]).toMatchObject({ id: 'p1', likeCount: 1, likedByMe: true })
+    expect(res.body.photos[0]).toMatchObject({ id: 'p1', likeCount: 1, likedByMe: true, mine: true })
   })
 
   it('likedByMe is false for other devices', async () => {
@@ -68,7 +68,15 @@ describe('GET', () => {
     const res = (await GET(makeGet('http://x/api/photos?deviceId=other'))) as {
       body: { photos: Array<Record<string, unknown>> }
     }
-    expect(res.body.photos[0]).toMatchObject({ likeCount: 1, likedByMe: false })
+    expect(res.body.photos[0]).toMatchObject({ likeCount: 1, likedByMe: false, mine: false })
+  })
+
+  it('never leaks the raw deviceId to the client', async () => {
+    ;(prisma.photo.findMany as jest.Mock).mockResolvedValue([dbPhoto])
+    const res = (await GET(makeGet('http://x/api/photos?deviceId=dev-1'))) as {
+      body: { photos: Array<Record<string, unknown>> }
+    }
+    expect(res.body.photos[0]).not.toHaveProperty('deviceId')
   })
 })
 
@@ -125,5 +133,15 @@ describe('POST', () => {
     const res = (await POST(badRequest)) as { status: number }
     expect(res.status).toBe(400)
     expect(prisma.photo.create).not.toHaveBeenCalled()
+  })
+
+  it('records the uploader deviceId when provided', async () => {
+    ;(verifyGuestPhoto as jest.Mock).mockResolvedValue({ secureUrl: 'S' })
+    ;(prisma.photo.findFirst as jest.Mock).mockResolvedValue(null)
+    ;(prisma.photo.create as jest.Mock).mockResolvedValue({ id: 'new' })
+    await POST(makePost({ ...valid, deviceId: 'dev-9' }))
+    expect(prisma.photo.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ deviceId: 'dev-9' }),
+    })
   })
 })

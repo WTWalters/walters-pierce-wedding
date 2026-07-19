@@ -8,6 +8,7 @@ const createSchema = z.object({
   publicId: z.string().min(1).max(300),
   name: z.string().trim().min(1).max(100),
   caption: z.string().trim().max(280).optional(),
+  deviceId: z.string().max(100).optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
         createdAt: p.createdAt,
         likeCount: p.likes.length,
         likedByMe: deviceId !== '' && p.likes.some((l) => l.deviceId === deviceId),
+        mine: deviceId !== '' && p.deviceId === deviceId,
         comments: p.comments,
       })),
     })
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid photo details' }, { status: 400 })
     }
-    const { publicId, name, caption } = parsed.data
+    const { publicId, name, caption, deviceId } = parsed.data
 
     const verified = await verifyGuestPhoto(publicId)
     if (!verified) {
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest) {
         category: 'guest',
         uploadedByName: name,
         caption: caption || null,
+        deviceId: deviceId || null,
         cloudinaryPublicId: publicId,
         fileUrl: urls.fileUrl,
         thumbnailUrl: urls.thumbnailUrl,
