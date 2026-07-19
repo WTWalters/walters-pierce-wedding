@@ -18,6 +18,26 @@ it('RSVP No is the sorry-to-miss-you acknowledgement, with no venue', () => {
   expect(m.html).not.toContain('Blackstone Rivers Ranch')
 })
 
+it('RSVP Yes includes a Honeymoon Fund registry link (html + text)', () => {
+  const m = generateRsvpYesEmail('Sam', details)
+  expect(m.html).toContain('/registry')
+  expect(m.html).toContain('Honeymoon Fund')
+  expect(m.text).toContain('/registry')
+})
+
+it('RSVP No includes a Honeymoon Fund registry link (html + text)', () => {
+  const m = generateRsvpNoEmail('Sam')
+  expect(m.html).toContain('/registry')
+  expect(m.html).toContain('Honeymoon Fund')
+  expect(m.text).toContain('/registry')
+})
+
+it('over-count email does NOT include the registry link (tonally excluded)', () => {
+  const m = generateRsvpOverCountEmail('Sam', 5, 4)
+  expect(m.html).not.toContain('/registry')
+  expect(m.text).not.toContain('/registry')
+})
+
 it('Over-count is personalized with name, submitted count, and the approved number', () => {
   const m = generateRsvpOverCountEmail('Sam', 5, 4)
   expect(m.html).toContain('Sam')

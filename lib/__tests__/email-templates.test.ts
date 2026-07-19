@@ -61,6 +61,10 @@ describe('generateRsvpNotificationEmail', () => {
     expect(t.html).not.toContain('<script>')
     expect(t.html).toContain('&lt;script&gt;')
   })
+  it('does not include the guest registry CTA (internal notification to the coordinator)', () => {
+    const t = generateRsvpNotificationEmail({ ...submission, status: 'matched' })
+    expect(t.html).not.toContain('/registry')
+  })
 })
 
 describe('generateRsvpYesEmail', () => {

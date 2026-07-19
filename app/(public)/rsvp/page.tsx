@@ -174,6 +174,16 @@ export default function RSVPPage() {
                   We&apos;re sending love your way, and we hope to celebrate with you
                   another time soon. 💛
                 </p>
+                <p className="mt-4 text-gray-700">
+                  If you&apos;d still like to send a gift, Emme &amp; Connor would be
+                  grateful for a little help toward their honeymoon in Ireland.
+                </p>
+                <a
+                  href="/registry"
+                  className="inline-block mt-4 rounded bg-[#00330a] px-6 py-2 text-white text-sm hover:bg-[#004d10] transition"
+                >
+                  Visit our Honeymoon Fund 🎁
+                </a>
                 <p className="mt-4 text-sm text-gray-500">
                   Taking you back to the website in a moment…
                 </p>
