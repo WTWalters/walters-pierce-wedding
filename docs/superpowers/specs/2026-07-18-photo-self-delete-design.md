@@ -17,7 +17,7 @@ The admin panel (`/admin/photos`, hide/delete + Cloudinary cleanup) already exis
 - **No guest login.** Guest ownership must be proven by the existing anonymous per-device token: `getDeviceId()` in `components/photos/identity.ts` mints a random UUID in localStorage; likes already scope by it.
 - **`Photo` has no device link today** (only `uploadedByName`/`uploadedByEmail`). There are **0 photos live** in prod now, so no backfill concern.
 - **Admin delete pattern** (`app/api/admin/photos/[id]/route.ts`): session guard → `findFirst({ category:'guest' })` → `destroyPhoto(cloudinaryPublicId)` → `prisma.photo.delete` (comments + likes cascade via `onDelete: Cascade`). The new endpoint mirrors this.
-- **"Delete any" must be session-gated** — on a public page we otherwise cannot distinguish an owner from a guest. Emme & Connor get their own admin `User` accounts (decision: their own logins, both of them).
+- **"Delete any" must be session-gated** — on a public page we otherwise cannot distinguish an owner from a guest. Emme, Connor, and Nicolle all use the **existing shared admin login** (`admin@walters-pierce-wedding.com`); anyone with that admin session sees delete-any. No new accounts are created as part of this work.
 
 ## Architecture
 
@@ -60,11 +60,9 @@ Rationale for a single endpoint: the page always calls the same URL and the serv
 - Render a small **Delete** control on a photo card when `photo.mine || isAdmin`.
 - Click → confirm dialog ("Delete this photo? This can't be undone.") → `DELETE /api/photos/${id}?deviceId=${getDeviceId()}` → on success remove the photo from the grid (optimistic, with revert + message on failure).
 
-### 6. Owner admin accounts — `scripts/create-admin-user.mjs` (new)
+### 6. Owner access — shared admin login (no code)
 
-- A script that upserts an admin `User` (`email`, bcrypt `passwordHash`, `role: 'admin'`) — the DB-user path `lib/auth.ts` already authenticates (`bcrypt.compare`, returns `role`).
-- Reads email + password from CLI args / env so **Whitney runs it and chooses the passwords — Claude never handles passwords or creates the accounts itself.** Run once for Emme and once for Connor against prod (same `DATABASE_URL=<public proxy URL>` pattern as the registry/venue seeds).
-- Idempotent (upsert by email); re-running updates the password.
+Emme, Connor, and Nicolle all sign in with the existing `admin@walters-pierce-wedding.com` credential; any admin session gets delete-any on the public page. No account-creation script and no schema/user changes are part of this work. (If per-person accounts are ever wanted later, that's a separate task.)
 
 ### 7. Admin panel — unchanged
 
@@ -78,7 +76,7 @@ List:    GET /api/photos?deviceId=X → each photo gets mine = (deviceId===X); r
 Delete:  page (mine || isAdmin) → DELETE /api/photos/[id]?deviceId=X
            → authorize: admin session OR deviceId match
            → destroyPhoto(cloudinary) + photo.delete (cascade) → grid removes card
-Owner access: Whitney runs scripts/create-admin-user.mjs for Emme + Connor → they log in → isAdmin true → delete-any
+Owner access: Emme/Connor/Nicolle log in with the shared admin credential → isAdmin true → delete-any
 ```
 
 ## Error handling
@@ -100,11 +98,10 @@ Owner access: Whitney runs scripts/create-admin-user.mjs for Emme + Connor → t
 - `app/api/photos/route.ts` — POST persists `deviceId`; GET returns `mine`.
 - `app/api/photos/[id]/route.ts` — **new** DELETE (dual auth) [+ `__tests__`].
 - `app/(public)/photos/page.tsx` — send deviceId on upload; admin detection; delete button + confirm + optimistic removal.
-- `scripts/create-admin-user.mjs` — **new** (Whitney runs for Emme + Connor).
 
 ## Out of scope (YAGNI)
 
 - Editing photos/captions after upload.
 - Bulk delete.
-- An in-app admin-user management UI (the script suffices for two accounts).
+- Per-person owner accounts / an admin-user management UI (Emme, Connor, Nicolle share the existing admin login).
 - Undo/trash (hard delete with a confirm dialog, matching admin behavior).
