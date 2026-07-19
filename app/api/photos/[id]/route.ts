@@ -9,7 +9,10 @@ import { destroyPhoto } from '@/lib/cloudinary'
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const deviceId = new URL(request.url).searchParams.get('deviceId') ?? ''
+    // deviceId travels in the body (not the query) so this delete-capability
+    // token stays out of access logs — matching the like endpoint's convention.
+    const body = await request.json().catch(() => null)
+    const deviceId = typeof body?.deviceId === 'string' ? body.deviceId : ''
 
     const photo = await prisma.photo.findFirst({ where: { id, category: 'guest' } })
     if (!photo) {

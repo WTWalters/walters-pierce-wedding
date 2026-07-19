@@ -203,7 +203,11 @@ export default function PhotosPage() {
     const prev = photos
     setPhotos((ps) => ps.filter((p) => p.id !== photo.id)) // optimistic
     try {
-      const res = await fetch(`/api/photos/${photo.id}?deviceId=${getDeviceId()}`, { method: 'DELETE' })
+      const res = await fetch(`/api/photos/${photo.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: getDeviceId() }),
+      })
       if (!res.ok) throw new Error('delete failed')
     } catch {
       setPhotos(prev) // revert

@@ -13,7 +13,7 @@ import { prisma } from '@/lib/prisma'
 import { destroyPhoto } from '@/lib/cloudinary'
 
 const req = (deviceId?: string) =>
-  ({ url: `http://x/api/photos/p1${deviceId ? `?deviceId=${deviceId}` : ''}` }) as never
+  ({ url: 'http://x/api/photos/p1', json: async () => (deviceId !== undefined ? { deviceId } : {}) }) as never
 const ctx = { params: Promise.resolve({ id: 'p1' }) }
 
 const guestPhoto = { id: 'p1', category: 'guest', cloudinaryPublicId: 'guest-photos/abc', deviceId: 'dev-1' }
@@ -28,6 +28,20 @@ it('404s when the photo does not exist', async () => {
   ;(prisma.photo.findFirst as jest.Mock).mockResolvedValue(null)
   const res = (await DELETE(req('dev-1'), ctx)) as { status: number }
   expect(res.status).toBe(404)
+  expect(prisma.photo.delete).not.toHaveBeenCalled()
+})
+
+it('scopes the lookup to guest photos', async () => {
+  ;(getServerSession as jest.Mock).mockResolvedValue({ user: { role: 'admin' } })
+  await DELETE(req(), ctx)
+  expect(prisma.photo.findFirst).toHaveBeenCalledWith({ where: { id: 'p1', category: 'guest' } })
+})
+
+it('403s a non-admin when the photo has no deviceId on file', async () => {
+  ;(getServerSession as jest.Mock).mockResolvedValue(null)
+  ;(prisma.photo.findFirst as jest.Mock).mockResolvedValue({ ...guestPhoto, deviceId: null })
+  const res = (await DELETE(req('dev-1'), ctx)) as { status: number }
+  expect(res.status).toBe(403)
   expect(prisma.photo.delete).not.toHaveBeenCalled()
 })
 
