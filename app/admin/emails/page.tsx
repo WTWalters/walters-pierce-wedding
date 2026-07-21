@@ -24,7 +24,6 @@ interface Stats {
 const TILES: Array<{ key: keyof Stats; label: string }> = [
   { key: 'sent', label: 'Sent' },
   { key: 'delivered', label: 'Delivered' },
-  { key: 'opened', label: 'Opened' },
   { key: 'bounced', label: 'Bounced' },
   { key: 'failed', label: 'Failed' },
   { key: 'complained', label: 'Spam' },
@@ -102,14 +101,11 @@ export default function EmailsPage() {
       {error && <div className="mb-4 text-sm text-red-700 bg-red-50 rounded px-3 py-2">{error}</div>}
 
       {/* Stat tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {TILES.map(({ key, label }) => (
           <div key={key} className="bg-white rounded-lg shadow p-4">
             <div className="text-2xl font-bold text-[#00330a]">{stats ? stats[key] : '—'}</div>
             <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
-            {key === 'opened' && stats && (
-              <div className="text-xs text-gray-500 mt-1">{stats.openRate}% open rate</div>
-            )}
           </div>
         ))}
       </div>
