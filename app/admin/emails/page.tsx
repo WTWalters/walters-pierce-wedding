@@ -41,6 +41,7 @@ export default function EmailsPage() {
   const [emails, setEmails] = useState<EmailRow[]>([])
   const [capped, setCapped] = useState(false)
   const [typeFilter, setTypeFilter] = useState('')
+  const [recipientQuery, setRecipientQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
@@ -74,6 +75,13 @@ export default function EmailsPage() {
   }, [])
 
   useEffect(() => { load(typeFilter) }, [load, typeFilter])
+
+  // Client-side recipient search over the loaded rows (name or email).
+  const q = recipientQuery.trim().toLowerCase()
+  const visibleEmails = q
+    ? emails.filter((e) =>
+        e.recipientEmail.toLowerCase().includes(q) || (e.guestName ?? '').toLowerCase().includes(q))
+    : emails
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -118,6 +126,13 @@ export default function EmailsPage() {
           <option value="">All types</option>
           {availableTypes.map((t) => <option key={t} value={t}>{emailTypeLabel(t)}</option>)}
         </select>
+        <input
+          type="search"
+          value={recipientQuery}
+          onChange={(e) => setRecipientQuery(e.target.value)}
+          placeholder="Search recipient (name or email)…"
+          className="px-3 py-2 border border-gray-300 rounded-md text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-600"
+        />
         {capped && <span className="text-xs text-gray-500">Showing the latest 500</span>}
       </div>
 
@@ -132,7 +147,7 @@ export default function EmailsPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {emails.map((e) => {
+            {visibleEmails.map((e) => {
               const st = deriveEmailStatus(e)
               const meta = EMAIL_STATUS_META[st]
               return (
@@ -150,8 +165,10 @@ export default function EmailsPage() {
                 </tr>
               )
             })}
-            {emails.length === 0 && !loading && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">No emails yet.</td></tr>
+            {visibleEmails.length === 0 && !loading && (
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                {emails.length === 0 ? 'No emails yet.' : 'No emails match that recipient.'}
+              </td></tr>
             )}
           </tbody>
         </table>

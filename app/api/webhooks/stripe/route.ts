@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
-import { sendEmail, logEmail, EMME_CONNOR_FROM } from '@/lib/email'
-import { generateRegistryThankYouEmail } from '@/lib/email-templates'
+import { sendEmail, logEmail, EMME_CONNOR_FROM, NOTIFY_EMAIL } from '@/lib/email'
+import { generateRegistryThankYouEmail, generateGiftNotificationEmail } from '@/lib/email-templates'
 
 export const runtime = 'nodejs'
 
@@ -59,8 +59,21 @@ export async function POST(request: NextRequest) {
           })
           await prisma.registryItem.update({ where: { id: registryItemId }, data: { amountRaised: { increment: amount } } })
 
+          const item = await prisma.registryItem.findUnique({ where: { id: registryItemId } })
+
+          // Heads-up to the coordinator for every gift (thank-you tracking), whether or
+          // not the giver left an email for a receipt.
+          const notif = generateGiftNotificationEmail({
+            name, amount, tierTitle: item?.title ?? 'the Honeymoon Fund',
+            message: s.metadata?.contributorMessage || null,
+          })
+          const notifRes = await sendEmail({ to: NOTIFY_EMAIL, ...notif }, { from: EMME_CONNOR_FROM })
+          await logEmail({
+            emailType: 'gift_notification', recipientEmail: NOTIFY_EMAIL, subject: notif.subject,
+            status: notifRes.success ? 'sent' : 'failed', resendMessageId: notifRes.success ? notifRes.messageId : null,
+          })
+
           if (email) {
-            const item = await prisma.registryItem.findUnique({ where: { id: registryItemId } })
             const tmpl = generateRegistryThankYouEmail({ name, tierTitle: item?.title ?? 'your gift', amount })
             const res = await sendEmail({ to: email, ...tmpl }, { from: EMME_CONNOR_FROM })
             await logEmail({

@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { label: 'Guest Management', href: '/admin/guests' },
   { label: 'To Review', href: '/admin/review' },
   { label: 'Emails', href: '/admin/emails' },
+  { label: 'Gifts', href: '/admin/registry' },
 ]
 
 export default function AdminLayout({

@@ -1,63 +1,10 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface DashboardStats {
-  totalGuests: number
-  rsvpResponses: number
-  attending: number
-  notAttending: number
-}
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
-  const [stats, setStats] = useState<DashboardStats>({
-    totalGuests: 0,
-    rsvpResponses: 0,
-    attending: 0,
-    notAttending: 0
-  })
-
-  useEffect(() => {
-    // Fetch dashboard stats
-    fetch('/api/admin/stats')
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error('Failed to fetch stats:', err))
-  }, [])
-
-  const dashboardCards = [
-    {
-      title: 'Total Guests',
-      value: stats.totalGuests,
-      icon: '👥',
-      color: 'bg-blue-50 border-blue-200',
-      textColor: 'text-blue-800'
-    },
-    {
-      title: 'RSVP Responses',
-      value: stats.rsvpResponses,
-      icon: '📝',
-      color: 'bg-green-50 border-green-200',
-      textColor: 'text-green-800'
-    },
-    {
-      title: 'Attending',
-      value: stats.attending,
-      icon: '✅',
-      color: 'bg-emerald-50 border-emerald-200',
-      textColor: 'text-emerald-800'
-    },
-    {
-      title: 'Not Attending',
-      value: stats.notAttending,
-      icon: '❌',
-      color: 'bg-red-50 border-red-200',
-      textColor: 'text-red-800'
-    }
-  ]
 
   const adminActions = [
     {
@@ -91,27 +38,6 @@ export default function AdminDashboard() {
         <p className="text-green-100">
           Manage all aspects of Emme & Connor's wedding planning in one place.
         </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {dashboardCards.map((card, index) => (
-          <div key={index} className={`p-6 rounded-lg border-2 ${card.color}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm font-medium ${card.textColor} opacity-80`}>
-                  {card.title}
-                </p>
-                <p className={`text-3xl font-bold ${card.textColor}`}>
-                  {card.value}
-                </p>
-              </div>
-              <div className="text-3xl opacity-60">
-                {card.icon}
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Quick Actions */}
