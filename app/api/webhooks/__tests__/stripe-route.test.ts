@@ -14,9 +14,11 @@ jest.mock('@/lib/email', () => ({
   sendEmail: jest.fn().mockResolvedValue({ success: true, messageId: 'm1' }),
   logEmail: jest.fn(),
   EMME_CONNOR_FROM: 'Emme & Connor <x@y.z>',
+  NOTIFY_EMAIL: 'notify@test',
 }))
 jest.mock('@/lib/email-templates', () => ({
   generateRegistryThankYouEmail: () => ({ subject: 's', html: 'h', text: 't' }),
+  generateGiftNotificationEmail: () => ({ subject: 'gift', html: 'gh', text: 'gt' }),
 }))
 
 import { POST } from '../stripe/route'
@@ -73,6 +75,10 @@ it('records the contribution, bumps the tier, and sends the receipt', async () =
     expect.objectContaining({ where: { id: 'c1' }, data: expect.objectContaining({ thankYouSent: true }) })
   )
   expect(sendEmail).toHaveBeenCalled()
+  // the coordinator gets a gift heads-up (in addition to the giver's receipt)
+  expect(sendEmail).toHaveBeenCalledWith(
+    expect.objectContaining({ to: 'notify@test' }), expect.anything()
+  )
 })
 
 it('is idempotent on a duplicate event (no second row)', async () => {

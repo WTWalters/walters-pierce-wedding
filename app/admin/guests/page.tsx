@@ -376,7 +376,7 @@ export default function GuestsPage() {
         </div>
         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-yellow-900">{stats.rsvpReceived}</div>
-          <div className="text-yellow-800 text-sm">RSVP Received</div>
+          <div className="text-yellow-800 text-sm">RSVPs Received</div>
         </div>
         <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-green-900">{stats.attending}</div>
@@ -579,7 +579,7 @@ export default function GuestsPage() {
             >
               <option value="all">All Guests</option>
               <option value="invited">Invited</option>
-              <option value="responded">RSVP Received</option>
+              <option value="responded">RSVPs Received</option>
               <option value="attending">Attending</option>
               <option value="not_attending">Not Attending</option>
               <option value="no_response">No Response</option>

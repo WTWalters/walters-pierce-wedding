@@ -1,6 +1,7 @@
 import {
   generateRsvpNotificationEmail,
   generateRsvpYesEmail,
+  generateGiftNotificationEmail,
   generateBlockedAttemptEmail,
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
@@ -101,6 +102,24 @@ describe('generateRsvpYesEmail', () => {
     const t = generateRsvpYesEmail('Jill', details, 1)
     expect(t.html).toContain('We have you down for <strong>1</strong> guest.')
     expect(t.html).not.toContain('1</strong> guests')
+  })
+})
+
+describe('generateGiftNotificationEmail', () => {
+  it('summarizes the gift for the coordinator (name, amount, tier, message)', () => {
+    const t = generateGiftNotificationEmail({ name: 'Aunt Sue', amount: 100, tierTitle: 'Flight', message: 'Enjoy!' })
+    expect(t.subject).toContain('$100')
+    expect(t.subject).toContain('Aunt Sue')
+    expect(t.html).toContain('Aunt Sue')
+    expect(t.html).toContain('$100')
+    expect(t.html).toContain('Flight')
+    expect(t.html).toContain('Enjoy!')
+    expect(t.text).toContain('$100')
+  })
+  it('handles a missing message without printing null', () => {
+    const t = generateGiftNotificationEmail({ name: 'Bob', amount: 50, tierTitle: 'Coffee', message: null })
+    expect(t.html).not.toContain('null')
+    expect(t.html).toContain('$50')
   })
 })
 

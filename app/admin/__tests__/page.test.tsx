@@ -7,26 +7,19 @@ jest.mock('next-auth/react', () => ({
   })),
 }));
 
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    json: () => Promise.resolve({
-      totalGuests: 100,
-      rsvpResponses: 50,
-      attending: 40,
-      notAttending: 10,
-    }),
-  })
-) as jest.Mock;
-
 describe('AdminDashboard', () => {
-  it('renders the main heading and stats', async () => {
+  it('renders the welcome heading and the quick-action cards', () => {
     render(<AdminDashboard />);
-    
-    expect(screen.getByRole('heading', { name: /Welcome to your Wedding Dashboard/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Welcome to your Wedding Dashboard/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Guest Management')).toBeInTheDocument();
+    expect(screen.getByText('Registry & Gifts')).toBeInTheDocument();
+  });
 
-    expect(await screen.findByText('100')).toBeInTheDocument();
-    expect(await screen.findByText('50')).toBeInTheDocument();
-    expect(await screen.findByText('40')).toBeInTheDocument();
-    expect(await screen.findByText('10')).toBeInTheDocument();
+  it('no longer shows the guest-count stat boxes (Nicolle uses Guest Management for counts)', () => {
+    render(<AdminDashboard />);
+    expect(screen.queryByText('Total Guests')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not Attending')).not.toBeInTheDocument();
   });
 });

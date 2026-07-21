@@ -258,6 +258,32 @@ export function generateRsvpOverCountEmail(
   return { subject: 'A quick note about your RSVP — Emme & Connor', html: wrap('A quick note about your RSVP', body), text }
 }
 
+// Internal heads-up to the coordinator (Nicolle) when a Honeymoon Fund gift lands,
+// so she has who/how-much/message on hand for Emme's thank-you notes.
+export function generateGiftNotificationEmail(data: {
+  name: string
+  amount: number
+  tierTitle: string
+  message?: string | null
+}): Rendered {
+  const donor = data.name || 'A guest'
+  const amount = `$${data.amount.toLocaleString('en-US')}`
+  const rows: Array<[string, string]> = [
+    ['From', donor],
+    ['Amount', amount],
+    ['Toward', data.tierTitle || 'the Honeymoon Fund'],
+    ['Message', data.message?.trim() || '—'],
+    ['Received', new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })],
+  ]
+  const subject = `New Honeymoon Fund gift: ${amount} from ${donor}`
+  const html = wrap('New Honeymoon Fund gift', `
+    <table style="width:100%; border-collapse: collapse;">${rows
+      .map(([k, v]) => `<tr><td style="padding:6px 8px; color:#00330a; font-weight:bold; vertical-align:top;">${k}</td><td style="padding:6px 8px;">${escapeHtml(v)}</td></tr>`)
+      .join('')}</table>`)
+  const text = rows.map(([k, v]) => `${k}: ${v}`).join('\n')
+  return { subject, html, text }
+}
+
 export function generateRegistryThankYouEmail(data: {
   name: string
   tierTitle: string
