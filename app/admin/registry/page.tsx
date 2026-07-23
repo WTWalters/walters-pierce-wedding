@@ -45,12 +45,15 @@ export default function AdminRegistryPage() {
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-3">By tier</h3>
         <div className="space-y-2">
-          {tiers.map((t) => (
-            <div key={t.id} className="flex justify-between text-sm border-b border-gray-100 py-2">
-              <span>{t.title}{!t.isActive && <span className="text-gray-400"> (inactive)</span>}</span>
-              <span className="text-gray-700">${t.amountRaised.toLocaleString('en-US')} raised · target ${t.targetAmount.toLocaleString('en-US')}</span>
-            </div>
-          ))}
+          {tiers.map((t) => {
+            const gifts = contributions.filter((c) => c.tierTitle === t.title).length
+            return (
+              <div key={t.id} className="flex justify-between text-sm border-b border-gray-100 py-2">
+                <span>{t.title}{!t.isActive && <span className="text-gray-400"> (inactive)</span>}</span>
+                <span className="text-gray-700">${t.amountRaised.toLocaleString('en-US')} Raised · {gifts} guest{gifts === 1 ? '' : 's'}</span>
+              </div>
+            )
+          })}
         </div>
       </div>
 
