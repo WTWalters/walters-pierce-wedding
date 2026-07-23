@@ -291,9 +291,9 @@ export default function GuestsPage() {
     }
   }
 
-  // How this guest reached the list — "Matched" if they were on your imported
-  // list, or "Added <date>" if you approved them from the To Review queue. The
-  // grid never shows pending self-RSVPs, so those two are the only cases here.
+  // Only surface the informative case: "Added <date>" for guests approved from the
+  // To Review queue. Plain imported ("Matched") guests get no badge — it was on
+  // every row and just cluttered the grid (Nicolle's call).
   const getListBadge = (guest: Guest) => {
     const s = guestListStatus({ source: guest.source ?? null, reviewedAt: guest.reviewedAt ?? null })
     if (s.kind === 'added') {
@@ -303,11 +303,7 @@ export default function GuestsPage() {
         </span>
       )
     }
-    return (
-      <span className="inline-block mt-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs">
-        Matched
-      </span>
-    )
+    return null
   }
 
   const getStatusBadge = (guest: Guest) => {
@@ -610,13 +606,10 @@ export default function GuestsPage() {
 
       {/* Guest List Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold">Guest List</h3>
-          <div className="text-sm text-gray-500">
-            {filteredGuests.length} guest{filteredGuests.length !== 1 ? 's' : ''}
-          </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -633,7 +626,7 @@ export default function GuestsPage() {
                 <tr key={guest.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{formatPartyName(guest)}</div>
-                    <div>{getListBadge(guest)}</div>
+                    {getListBadge(guest)}
                     {guest.invitationCode && (
                       <div className="text-sm text-gray-500 font-mono">Code: {guest.invitationCode}</div>
                     )}
