@@ -9,6 +9,7 @@ jest.mock('@/lib/prisma', () => ({ prisma: { emailLog: { findMany: jest.fn(), co
 import { getServerSession } from 'next-auth'
 import { GET } from '../route'
 import { prisma } from '@/lib/prisma'
+import { EMAILS_TAB_EXCLUDED_TYPES } from '@/lib/email-status'
 
 const req = (url = 'http://x/api/admin/emails') => ({ url }) as never
 
@@ -31,11 +32,19 @@ it('401s non-admin', async () => {
   expect(res.status).toBe(401)
 })
 
-it('returns rows newest-first with guestName, total, and capped flag', async () => {
+it('returns rows newest-first with guestName, total, and capped flag; hides non-guest-facing types', async () => {
   const res = (await GET(req())) as { body: { emails: any[]; total: number; capped: boolean } }
   expect(prisma.emailLog.findMany).toHaveBeenCalledWith(
-    expect.objectContaining({ orderBy: { sentAt: 'desc' }, take: 500, where: {} })
+    expect.objectContaining({
+      orderBy: { sentAt: 'desc' },
+      take: 500,
+      where: { emailType: { notIn: EMAILS_TAB_EXCLUDED_TYPES } },
+    })
   )
+  // the count is scoped to the same (excluded-types) filter
+  expect(prisma.emailLog.count).toHaveBeenCalledWith({
+    where: { emailType: { notIn: EMAILS_TAB_EXCLUDED_TYPES } },
+  })
   expect(res.body.total).toBe(2)
   expect(res.body.capped).toBe(false)
   expect(res.body.emails[0].guestName).toBe('Ann Lee')

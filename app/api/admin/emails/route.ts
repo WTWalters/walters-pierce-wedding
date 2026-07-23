@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { EMAILS_TAB_EXCLUDED_TYPES } from '@/lib/email-status'
 
 const CAP = 500
 
@@ -12,8 +13,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Hide the non-guest-facing noise (STD + internal coordinator notifications). A
+    // specific ?type= is always one of the allowed guest-facing types (the dropdown
+    // only offers those), so it needs no extra guard.
     const type = new URL(request.url).searchParams.get('type')
-    const where = type ? { emailType: type } : {}
+    const where = type
+      ? { emailType: type }
+      : { emailType: { notIn: EMAILS_TAB_EXCLUDED_TYPES } }
 
     const [rows, total] = await Promise.all([
       prisma.emailLog.findMany({

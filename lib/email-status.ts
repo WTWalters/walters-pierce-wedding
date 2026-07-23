@@ -1,5 +1,16 @@
 export type EmailRowStatus = 'failed' | 'bounced' | 'complained' | 'opened' | 'delivered' | 'sent'
 
+// Email types the admin Emails tab hides — they're not guest-facing gated sends and
+// just clutter the grid: the (past) save-the-dates and the internal notifications
+// that go to the coordinator. Applied to the list, the stats tiles, and the filter
+// options so all three stay consistent.
+export const EMAILS_TAB_EXCLUDED_TYPES = [
+  'save_the_date',
+  'save_the_date_confirmation',
+  'rsvp_notification',
+  'blocked_attempt_notification',
+]
+
 export interface EmailStatusInput {
   status: string | null
   openedAt: Date | string | null
