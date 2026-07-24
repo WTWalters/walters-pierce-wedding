@@ -15,6 +15,7 @@ jest.mock('@/lib/email', () => ({
   logEmail: jest.fn(),
   EMME_CONNOR_FROM: 'Emme & Connor <x@y.z>',
   NOTIFY_EMAIL: 'notify@test',
+  GIFT_NOTIFY_EMAILS: ['notify@test', 'emme@test'],
 }))
 jest.mock('@/lib/email-templates', () => ({
   generateRegistryThankYouEmail: () => ({ subject: 's', html: 'h', text: 't' }),
@@ -75,9 +76,9 @@ it('records the contribution, bumps the tier, and sends the receipt', async () =
     expect.objectContaining({ where: { id: 'c1' }, data: expect.objectContaining({ thankYouSent: true }) })
   )
   expect(sendEmail).toHaveBeenCalled()
-  // the coordinator gets a gift heads-up (in addition to the giver's receipt)
+  // the coordinator + couple get the gift heads-up (in addition to the giver's receipt)
   expect(sendEmail).toHaveBeenCalledWith(
-    expect.objectContaining({ to: 'notify@test' }), expect.anything()
+    expect.objectContaining({ to: ['notify@test', 'emme@test'] }), expect.anything()
   )
 })
 

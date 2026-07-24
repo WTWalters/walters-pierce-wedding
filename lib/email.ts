@@ -5,6 +5,13 @@ export const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'lnawalters@protonmail.c
 export const COORDINATOR_FROM = 'Wedding Coordinator <coordinator@walters-pierce-wedding.com>'
 export const EMME_CONNOR_FROM = 'Emme & Connor <coordinator@walters-pierce-wedding.com>'
 
+// Who gets the "new Honeymoon Fund gift" heads-up: the coordinator (Nicolle) plus
+// the couple. Override via GIFT_NOTIFY_EMAILS (comma-separated) — e.g. to add
+// Connor once we have his address, without a code change.
+export const GIFT_NOTIFY_EMAILS: string[] = process.env.GIFT_NOTIFY_EMAILS
+  ? process.env.GIFT_NOTIFY_EMAILS.split(',').map((s) => s.trim()).filter(Boolean)
+  : [NOTIFY_EMAIL, 'murielle.walters@gmail.com']
+
 function htmlToText(html: string): string {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -15,7 +22,7 @@ function htmlToText(html: string): string {
 }
 
 export interface EmailTemplate {
-  to: string
+  to: string | string[]
   subject: string
   html: string
   text?: string
