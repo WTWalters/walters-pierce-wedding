@@ -105,7 +105,7 @@ export default function WeddingPartyPage() {
       name: 'Zach Johnson',
       role: 'Groomsman',
       side: 'groom',
-      bio: "I'm Zach!",
+      bio: "I met Zach about four years ago, and he's been a great friend ever since. He's active, spontaneous, funny, and always brings positive energy wherever he goes. Even though we don't talk all the time, I know I can always count on him. I'm also lucky to say I introduced him to his now-wife, Grayson, and it's been amazing to watch their relationship grow. I'm grateful to have Zach on the Groomsman team.",
       photoUrl: '/images/wedding-party/Zach.jpeg',
       sortOrder: 4,
       isFeatured: false
