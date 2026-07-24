@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
-import { sendEmail, logEmail, EMME_CONNOR_FROM, NOTIFY_EMAIL } from '@/lib/email'
+import { sendEmail, logEmail, EMME_CONNOR_FROM, GIFT_NOTIFY_EMAILS } from '@/lib/email'
 import { generateRegistryThankYouEmail, generateGiftNotificationEmail } from '@/lib/email-templates'
 
 export const runtime = 'nodejs'
@@ -67,9 +67,9 @@ export async function POST(request: NextRequest) {
             name, amount, tierTitle: item?.title ?? 'the Honeymoon Fund',
             message: s.metadata?.contributorMessage || null,
           })
-          const notifRes = await sendEmail({ to: NOTIFY_EMAIL, ...notif }, { from: EMME_CONNOR_FROM })
+          const notifRes = await sendEmail({ to: GIFT_NOTIFY_EMAILS, ...notif }, { from: EMME_CONNOR_FROM })
           await logEmail({
-            emailType: 'gift_notification', recipientEmail: NOTIFY_EMAIL, subject: notif.subject,
+            emailType: 'gift_notification', recipientEmail: GIFT_NOTIFY_EMAILS.join(', '), subject: notif.subject,
             status: notifRes.success ? 'sent' : 'failed', resendMessageId: notifRes.success ? notifRes.messageId : null,
           })
 
