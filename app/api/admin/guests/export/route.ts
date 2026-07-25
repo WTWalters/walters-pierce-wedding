@@ -13,26 +13,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch all guests with their plus ones
     const guests = await prisma.guest.findMany({
       where: NOT_AWAITING_REVIEW,
-      include: {
-        plusOnes: true
-      },
       orderBy: [
         { lastName: 'asc' },
         { firstName: 'asc' }
       ]
     })
 
-    // Generate CSV content
+    // Columns Nicolle asked to drop (2026-07-25) because they were empty in every
+    // row of her export: Partner Email, Invitation Code, Invitation Sent, Plus Ones
+    // Count, Plus Ones Names, Special Requests, Notes. The underlying fields still
+    // exist — only the export stopped carrying them.
+    // Preferred Name sits after the partner names to match the Edit modal's layout.
     const headers = [
       'First Name',
       'Last Name',
       'Email',
       'Partner First Name',
       'Partner Last Name',
-      'Partner Email',
+      'Preferred Name',
       'Phone',
       'Address Line 1',
       'Address Line 2',
@@ -40,33 +40,23 @@ export async function GET(request: NextRequest) {
       'State',
       'Zip Code',
       'Country',
-      'Invitation Code',
-      'Invitation Sent',
       'RSVP Received',
       'Attending',
-      'Plus Ones Count',
-      'Plus Ones Names',
       'Dietary Restrictions',
-      'Special Requests',
       'Table Number',
-      'Notes',
       'Created Date'
     ]
 
     const csvRows = [headers.join(',')]
 
     guests.forEach(guest => {
-      const plusOnesNames = guest.plusOnes
-        .map(po => `${po.firstName} ${po.lastName}`)
-        .join('; ')
-
       const row = [
         escapeCSV(guest.firstName),
         escapeCSV(guest.lastName),
-        escapeCSV(guest.email),
+        escapeCSV(guest.email || ''),
         escapeCSV(guest.partnerFirstName || ''),
         escapeCSV(guest.partnerLastName || ''),
-        escapeCSV(guest.partnerEmail || ''),
+        escapeCSV(guest.preferredName || ''),
         escapeCSV(guest.phone || ''),
         escapeCSV(guest.addressLine1 || ''),
         escapeCSV(guest.addressLine2 || ''),
@@ -74,16 +64,10 @@ export async function GET(request: NextRequest) {
         escapeCSV(guest.state || ''),
         escapeCSV(guest.zipCode || ''),
         escapeCSV(guest.country || ''),
-        escapeCSV(guest.invitationCode || ''),
-        guest.invitationSentAt ? new Date(guest.invitationSentAt).toLocaleDateString() : '',
         guest.rsvpReceivedAt ? new Date(guest.rsvpReceivedAt).toLocaleDateString() : '',
         guest.attending === null ? '' : (guest.attending ? 'Yes' : 'No'),
-        guest.plusOnes.length.toString(),
-        escapeCSV(plusOnesNames),
         escapeCSV(guest.dietaryRestrictions || ''),
-        escapeCSV(guest.specialRequests || ''),
         guest.tableNumber?.toString() || '',
-        escapeCSV(guest.notes || ''),
         new Date(guest.createdAt).toLocaleDateString()
       ]
 
