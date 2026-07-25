@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, generateSaveTheDateEmail } from '@/lib/email'
+import { greetingName } from '@/lib/names'
 import { NOT_AWAITING_REVIEW } from '@/lib/review'
 
 export async function POST(request: NextRequest) {
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
         id: true,
         email: true,
         firstName: true,
+        preferredName: true,
         lastName: true,
         invitationCode: true
       }
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
     for (const guest of guests) {
       try {
         const emailTemplate = generateSaveTheDateEmail(
-          `${guest.firstName} ${guest.lastName}`,
+          greetingName(guest),
           guest.invitationCode!
         )
 
