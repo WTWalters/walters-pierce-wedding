@@ -86,7 +86,8 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
   let status: 'matched' | 'added' | 'unmatched'
   let addedAt: Date | undefined
   let matchedBy: 'email' | 'name' | undefined
-  let emailOnFile: string | undefined
+  let emailOnFile: string | null | undefined
+  let emailUpdated: boolean | undefined
   if (existing) {
     const emailCap = assertSeatCap({ reservedSeats: existing.reservedSeats, rsvpdCount: responseData.partySize })
     if (!emailCap.ok) return { outcome: 'over_cap', reservedSeats: existing.reservedSeats as number }
@@ -104,9 +105,17 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
     guestId = updated.id
   } else {
     // No email match — correlate by name. Only an unambiguous (single) match
-    // counts. The email ON FILE is never overwritten here: doing so would let
-    // anyone who knows a guest's name capture that guest's gated emails.
-    // Nicolle's notification flags the differing address for human review.
+    // counts.
+    //
+    // A name match DOES adopt the submitted email (Nicolle, 2026-07-25). Because
+    // "Email" is a required, unique field on her intake, many records carry
+    // placeholders she invented to get a guest saved at all
+    // ("please-correct@your.emailaddy.com"). An address the guest just typed is
+    // strictly better information than a placeholder, and nothing auto-sends to
+    // it: every venue-bearing email goes out only when she picks a guest and a
+    // template in the admin (POST /api/admin/rsvps/send), and the blocklist gates
+    // on NAME, so an adopted address can't sneak anyone in. The previous value is
+    // kept in the audit log and reported in her notification.
     const submittedName = normalizeName(`${input.firstName} ${input.lastName}`)
     const named = await prisma.guest.findMany({
       where: { NOT: [{ firstName: '' }, { lastName: '' }] },
@@ -130,12 +139,48 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
       ;({ status, addedAt } = toNotifyStatus(guestListStatus(byName)))
       matched = status === 'matched'
       matchedBy = 'name'
-      emailOnFile = byName.email
-      const updated = await prisma.guest.update({
-        where: { id: byName.id },
-        data: responseData,
-      })
-      guestId = updated.id
+      guestId = byName.id
+      // Same address in different casing isn't a change worth reporting — the only
+      // reason we reached the name branch is that findUnique is case-sensitive.
+      // Leaving emailOnFile unset keeps that row out of Nicolle's notification.
+      const isSameAddress = (byName.email ?? '').trim().toLowerCase() === email
+      if (isSameAddress) {
+        await prisma.guest.update({ where: { id: byName.id }, data: responseData })
+      } else {
+        emailOnFile = byName.email
+        // This try guards the adoption and nothing else. `email` is unique, so
+        // another record can already hold the submitted address — losing the whole
+        // RSVP over that would be far worse than keeping a stale address, so save
+        // the response alone and let the notification say the adoption was refused.
+        try {
+          await prisma.guest.update({
+            where: { id: byName.id },
+            data: { ...responseData, email },
+          })
+          emailUpdated = true
+        } catch {
+          await prisma.guest.update({ where: { id: byName.id }, data: responseData })
+          emailUpdated = false
+        }
+        if (emailUpdated) {
+          // Keep the replaced address recoverable — once the row is overwritten
+          // this is the only copy. Kept outside the try above so that a failing
+          // audit can never be reported to Nicolle as an address collision.
+          try {
+            await prisma.auditLog.create({
+              data: {
+                action: 'rsvp_email_adopted',
+                entityType: 'guest',
+                entityId: byName.id,
+                oldValues: { email: byName.email },
+                newValues: { email },
+              },
+            })
+          } catch (err) {
+            console.error('Audit of the adopted email failed:', err)
+          }
+        }
+      }
     } else {
       matched = false
       status = 'unmatched'
@@ -153,7 +198,7 @@ export async function processRsvpSubmission(input: RsvpInput): Promise<RsvpResul
   }
 
   await notify(
-    generateRsvpNotificationEmail({ ...input, status, addedAt, matchedBy, emailOnFile }),
+    generateRsvpNotificationEmail({ ...input, status, addedAt, matchedBy, emailOnFile, emailUpdated }),
     'rsvp_notification',
     guestId
   )

@@ -29,7 +29,6 @@ interface Guest {
   notes?: string
   partnerFirstName?: string
   partnerLastName?: string
-  partnerEmail?: string
   reservedSeats?: number | null
   rsvpdCount?: number | null
   songRequest?: string
@@ -84,7 +83,6 @@ export default function GuestsPage() {
     notes: '',
     partnerFirstName: '',
     partnerLastName: '',
-    partnerEmail: '',
     reservedSeats: ''
   })
 
@@ -183,7 +181,6 @@ export default function GuestsPage() {
           notes: '',
           partnerFirstName: '',
           partnerLastName: '',
-          partnerEmail: '',
           reservedSeats: ''
         })
         setShowAddForm(false)
@@ -502,13 +499,6 @@ export default function GuestsPage() {
               onChange={(e) => setNewGuest({...newGuest, partnerLastName: e.target.value})}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
             />
-            <input
-              type="email"
-              placeholder="Partner Email (optional)"
-              value={newGuest.partnerEmail}
-              onChange={(e) => setNewGuest({...newGuest, partnerEmail: e.target.value})}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-            />
 
             <div className="md:col-span-2 lg:col-span-3 border-t border-gray-100 pt-4">
               <p className="text-sm font-medium text-gray-700">Places reserved for this invite</p>
@@ -810,17 +800,6 @@ export default function GuestsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred name (emails)</label>
-                  <input
-                    type="text"
-                    value={editingGuest.preferredName ?? ''}
-                    onChange={(e) => setEditingGuest({...editingGuest, preferredName: e.target.value})}
-                    placeholder="e.g. Grandma — blank uses their first name"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Partner First Name</label>
                   <input
                     type="text"
@@ -840,12 +819,15 @@ export default function GuestsPage() {
                   />
                 </div>
 
+                {/* Sits to the right of the two partner fields by Nicolle's request —
+                    it finishes the second row instead of leading it. */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Partner Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Name (emails)</label>
                   <input
-                    type="email"
-                    value={editingGuest.partnerEmail || ''}
-                    onChange={(e) => setEditingGuest({...editingGuest, partnerEmail: e.target.value})}
+                    type="text"
+                    value={editingGuest.preferredName ?? ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, preferredName: e.target.value})}
+                    placeholder="e.g. Grandma — blank uses their first name"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>

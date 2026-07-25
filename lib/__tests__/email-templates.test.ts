@@ -43,13 +43,35 @@ describe('generateRsvpNotificationEmail', () => {
     const t = generateRsvpNotificationEmail({ ...submission, attending: false, status: 'matched' })
     expect(t.subject).toContain('declined')
   })
-  it('flags name-only matches with the email on file', () => {
+  it('reports the address a name-match replaced', () => {
     const t = generateRsvpNotificationEmail({
-      ...submission, status: 'matched', matchedBy: 'name', emailOnFile: 'old-address@x.com',
+      ...submission, status: 'matched', matchedBy: 'name',
+      emailOnFile: 'old-address@x.com', emailUpdated: true,
     })
     expect(t.subject).toContain('matched by NAME')
+    expect(t.text).toContain('Email updated')
     expect(t.html).toContain('old-address@x.com')
-    expect(t.text).toContain('email on file')
+  })
+  it('says so when the submitted address could not be adopted', () => {
+    const t = generateRsvpNotificationEmail({
+      ...submission, status: 'matched', matchedBy: 'name',
+      emailOnFile: 'old-address@x.com', emailUpdated: false,
+    })
+    expect(t.text).toContain('could not adopt')
+    expect(t.text).toContain('old-address@x.com')
+  })
+  it('reports an adoption even when the record had no address at all', () => {
+    const t = generateRsvpNotificationEmail({
+      ...submission, status: 'matched', matchedBy: 'name',
+      emailOnFile: null, emailUpdated: true,
+    })
+    expect(t.text).toContain('Email updated')
+    expect(t.text).toContain('(no email)')
+  })
+  it('stays quiet about email when the match was by email', () => {
+    const t = generateRsvpNotificationEmail({ ...submission, status: 'matched', matchedBy: 'email' })
+    expect(t.text).not.toContain('Email updated')
+    expect(t.text).not.toContain('could not adopt')
   })
   it('escapes guest-supplied HTML', () => {
     const t = generateRsvpNotificationEmail({

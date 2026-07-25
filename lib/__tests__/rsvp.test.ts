@@ -30,6 +30,9 @@ beforeEach(() => {
     value: JSON.stringify(['tom walters']),
   })
   mockPrisma.guest.findMany.mockResolvedValue([])
+  // Prisma's create returns a promise; a bare jest.fn() returning undefined would
+  // let awaited-write bugs pass unnoticed.
+  mockPrisma.auditLog.create.mockResolvedValue({ id: 'audit-1' })
 })
 
 describe('rsvpSchema', () => {
@@ -105,7 +108,7 @@ describe('processRsvpSubmission', () => {
     expect(result.outcome).toBe('saved')
   })
 
-  it('falls back to unambiguous name matching when email is unknown, without touching the email on file', async () => {
+  it('falls back to unambiguous name matching when email is unknown', async () => {
     mockPrisma.guest.findUnique.mockResolvedValue(null)
     mockPrisma.guest.findMany.mockResolvedValue([
       { id: 'g5', email: 'old-address@x.com', firstName: 'Jane', lastName: 'Smith', source: 'imported' },
@@ -117,7 +120,6 @@ describe('processRsvpSubmission', () => {
     expect(mockPrisma.guest.create).not.toHaveBeenCalled()
     const updateArg = mockPrisma.guest.update.mock.calls[0][0]
     expect(updateArg.where).toEqual({ id: 'g5' })
-    expect(updateArg.data.email).toBeUndefined() // email on file is never overwritten
     expect(updateArg.data.firstName).toBeUndefined() // name on file kept as-is
   })
 
@@ -152,7 +154,7 @@ describe('processRsvpSubmission', () => {
     expect(mockPrisma.guest.create.mock.calls[0][0].data.rsvpdCount).toBeNull()
   })
 
-  it('matches a submission against a party partner name without overwriting email on file', async () => {
+  it('matches a submission against a party partner name', async () => {
     mockPrisma.guest.findUnique.mockResolvedValue(null) // no email match
     mockPrisma.guest.findMany.mockResolvedValue([
       { id: 'g1', email: 'andre@x.com', firstName: 'Andre', lastName: 'Justen-Pratt',
@@ -168,7 +170,92 @@ describe('processRsvpSubmission', () => {
     expect(res).toEqual({ outcome: 'saved', matched: true })
     const updateArg = mockPrisma.guest.update.mock.calls[0][0]
     expect(updateArg.where).toEqual({ id: 'g1' })
-    expect(updateArg.data.email).toBeUndefined() // email on file not overwritten by a name match
+    expect(updateArg.data.email).toBe('chloe-new@x.com')
+  })
+
+  // Nicolle, 2026-07-25: many records carry placeholders she invented to satisfy
+  // the required+unique Email field ("please-correct@your.emailaddy.com"), so an
+  // address the guest just typed is better data. Safe because nothing auto-sends
+  // to it and the blocklist gates on name.
+  describe('adopting the submitted email on a name match', () => {
+    const nameMatch = (email: string | null) => {
+      mockPrisma.guest.findUnique.mockResolvedValue(null)
+      mockPrisma.guest.findMany.mockResolvedValue([
+        { id: 'g5', email, firstName: 'Jane', lastName: 'Smith', source: 'imported' },
+      ])
+      mockPrisma.guest.update.mockResolvedValue({ id: 'g5' })
+    }
+
+    it('replaces a placeholder address with the one the guest typed', async () => {
+      nameMatch('please-correct@your.emailaddy.com')
+      await processRsvpSubmission(input)
+      expect(mockPrisma.guest.update.mock.calls[0][0].data.email).toBe('jane@x.com')
+    })
+
+    it('fills in an address when the record had none', async () => {
+      nameMatch(null)
+      await processRsvpSubmission(input)
+      expect(mockPrisma.guest.update.mock.calls[0][0].data.email).toBe('jane@x.com')
+    })
+
+    it('keeps the replaced address in the audit log', async () => {
+      nameMatch('please-correct@your.emailaddy.com')
+      await processRsvpSubmission(input)
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'rsvp_email_adopted',
+          entityId: 'g5',
+          oldValues: { email: 'please-correct@your.emailaddy.com' },
+          newValues: { email: 'jane@x.com' },
+        }),
+      })
+    })
+
+    it('tells Nicolle which address was replaced', async () => {
+      nameMatch('please-correct@your.emailaddy.com')
+      await processRsvpSubmission(input)
+      const sent = (sendEmail as jest.Mock).mock.calls[0][0]
+      expect(sent.text).toContain('Email updated')
+      expect(sent.text).toContain('please-correct@your.emailaddy.com')
+    })
+
+    it('still saves the RSVP if the audit write fails', async () => {
+      nameMatch('please-correct@your.emailaddy.com')
+      mockPrisma.auditLog.create.mockRejectedValueOnce(new Error('audit table gone'))
+      await expect(processRsvpSubmission(input)).resolves.toEqual({ outcome: 'saved', matched: true })
+    })
+
+    // Email is unique. Another record holding the submitted address must not cost
+    // us the RSVP — save the response, keep the old address, and say so.
+    it('keeps the RSVP when the submitted address belongs to another guest', async () => {
+      nameMatch('please-correct@your.emailaddy.com')
+      mockPrisma.guest.update
+        .mockRejectedValueOnce(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }))
+        .mockResolvedValueOnce({ id: 'g5' })
+
+      const res = await processRsvpSubmission(input)
+
+      expect(res).toEqual({ outcome: 'saved', matched: true })
+      // second attempt saves the response without touching the address
+      const retry = mockPrisma.guest.update.mock.calls[1][0]
+      expect(retry.where).toEqual({ id: 'g5' })
+      expect(retry.data.email).toBeUndefined()
+      expect(retry.data.attending).toBe(true)
+      const sent = (sendEmail as jest.Mock).mock.calls[0][0]
+      expect(sent.text).toContain('could not adopt')
+      expect(mockPrisma.auditLog.create).not.toHaveBeenCalled()
+    })
+
+    // Reaching the name branch with the same address only differing in case means
+    // there is nothing to report — don't cry "updated" over a casing difference.
+    it('says nothing when the addresses differ only by case', async () => {
+      nameMatch('JANE@x.com')
+      await processRsvpSubmission(input)
+      const sent = (sendEmail as jest.Mock).mock.calls[0][0]
+      expect(sent.text).not.toContain('Email updated')
+      expect(sent.text).not.toContain('could not adopt')
+      expect(mockPrisma.guest.update.mock.calls[0][0].data.email).toBeUndefined()
+    })
   })
 
   it('rejects a matched submission whose party size exceeds reserved seats (no write)', async () => {
