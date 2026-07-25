@@ -8,6 +8,7 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     contribution: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     registryItem: { update: jest.fn(), findUnique: jest.fn() },
+    guest: { findUnique: jest.fn() },
   },
 }))
 jest.mock('@/lib/email', () => ({
@@ -18,8 +19,10 @@ jest.mock('@/lib/email', () => ({
   GIFT_NOTIFY_EMAILS: ['notify@test', 'emme@test'],
 }))
 jest.mock('@/lib/email-templates', () => ({
-  generateRegistryThankYouEmail: () => ({ subject: 's', html: 'h', text: 't' }),
-  generateGiftNotificationEmail: () => ({ subject: 'gift', html: 'gh', text: 'gt' }),
+  generateRegistryThankYouEmail: ({ name }: { name: string }) =>
+    ({ subject: `thanks ${name}`, html: 'h', text: 't' }),
+  generateGiftNotificationEmail: ({ name }: { name: string }) =>
+    ({ subject: `gift ${name}`, html: 'gh', text: 'gt' }),
 }))
 
 import { POST } from '../stripe/route'
@@ -32,6 +35,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   process.env = { ...OLD_ENV, STRIPE_WEBHOOK_SECRET: 'whsec_test' }
   mockPrisma.registryItem.findUnique.mockResolvedValue({ id: 'a', title: 'Buy us Dinner' })
+  mockPrisma.guest.findUnique.mockResolvedValue(null)
 })
 afterAll(() => { process.env = OLD_ENV })
 
@@ -89,4 +93,36 @@ it('is idempotent on a duplicate event (no second row)', async () => {
   expect(res.status).toBe(200)
   expect(mockPrisma.contribution.create).not.toHaveBeenCalled()
   expect(mockPrisma.registryItem.update).not.toHaveBeenCalled()
+})
+
+it('greets an unmatched giver with their shortened typed name', async () => {
+  mockConstructEvent.mockReturnValue(completedEvent)
+  mockPrisma.contribution.findUnique.mockResolvedValue(null)
+  mockPrisma.contribution.create.mockResolvedValue({ id: 'c1' })
+  mockPrisma.contribution.update.mockResolvedValue({})
+  mockPrisma.registryItem.update.mockResolvedValue({})
+
+  await POST(req())
+
+  // "Aunt Sue" -> first word of the single name part
+  const thankYou = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('thanks'))
+  expect(thankYou[0].subject).toBe('thanks Aunt')
+  // the coordinator heads-up keeps the REAL typed name
+  const notif = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('gift'))
+  expect(notif[0].subject).toBe('gift Aunt Sue')
+})
+
+it('greets a matched guest with their preferred name', async () => {
+  mockConstructEvent.mockReturnValue(completedEvent)
+  mockPrisma.contribution.findUnique.mockResolvedValue(null)
+  mockPrisma.contribution.create.mockResolvedValue({ id: 'c1' })
+  mockPrisma.contribution.update.mockResolvedValue({})
+  mockPrisma.registryItem.update.mockResolvedValue({})
+  mockPrisma.guest.findUnique.mockResolvedValue({ firstName: 'Muriel', preferredName: 'Grandma' })
+
+  await POST(req())
+
+  expect(mockPrisma.guest.findUnique).toHaveBeenCalledWith({ where: { email: 'sue@example.com' } })
+  const thankYou = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('thanks'))
+  expect(thankYou[0].subject).toBe('thanks Grandma')
 })

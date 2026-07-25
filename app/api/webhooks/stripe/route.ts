@@ -3,6 +3,7 @@ import { getStripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, logEmail, EMME_CONNOR_FROM, GIFT_NOTIFY_EMAILS } from '@/lib/email'
 import { generateRegistryThankYouEmail, generateGiftNotificationEmail } from '@/lib/email-templates'
+import { greetingName, shortenTypedName } from '@/lib/names'
 
 export const runtime = 'nodejs'
 
@@ -61,6 +62,14 @@ export async function POST(request: NextRequest) {
 
           const item = await prisma.registryItem.findUnique({ where: { id: registryItemId } })
 
+          // Greet the giver the way Nicolle asked: a matched guest's preferred name
+          // (or first name), else shorten the free text they typed at checkout.
+          // Guest.email is unique and stored lowercased by the RSVP intake.
+          const guestRecord = email
+            ? await prisma.guest.findUnique({ where: { email: email.toLowerCase() } })
+            : null
+          const greeting = guestRecord ? greetingName(guestRecord) : shortenTypedName(name)
+
           // Heads-up to the coordinator for every gift (thank-you tracking), whether or
           // not the giver left an email for a receipt.
           const notif = generateGiftNotificationEmail({
@@ -74,7 +83,7 @@ export async function POST(request: NextRequest) {
           })
 
           if (email) {
-            const tmpl = generateRegistryThankYouEmail({ name, tierTitle: item?.title ?? 'your gift', amount })
+            const tmpl = generateRegistryThankYouEmail({ name: greeting, tierTitle: item?.title ?? 'your gift', amount })
             const res = await sendEmail({ to: email, ...tmpl }, { from: EMME_CONNOR_FROM })
             await logEmail({
               emailType: 'registry_thank_you', recipientEmail: email, subject: tmpl.subject,
