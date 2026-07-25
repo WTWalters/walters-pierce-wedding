@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { isVariable } from '@/lib/registry'
 
 interface Tier {
@@ -58,7 +59,13 @@ export default function RegistryPage() {
           Emme &amp; Connor are honeymooning in Ireland. If you&apos;d like to help them celebrate,
           a gift toward the trip would mean the world.
         </p>
-        <p className="text-sm text-gray-500 mb-12">These are gifts toward the honeymoon, not tax-deductible donations.</p>
+        <p className="text-sm text-gray-500 mb-4">These are gifts toward the honeymoon, not tax-deductible donations.</p>
+
+        <div className="mb-12">
+          <Link href="/" className="text-green-600 hover:text-green-800 underline">
+            Back to Wedding Website
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
           {tiers.map((t) => {
@@ -79,6 +86,14 @@ export default function RegistryPage() {
               </div>
             )
           })}
+        </div>
+
+        {/* Repeated at the bottom so guests who scroll the full list don't have to
+            scroll back up (or hit the browser back button) to return to the site. */}
+        <div className="mt-12">
+          <Link href="/" className="text-green-600 hover:text-green-800 underline">
+            Back to Wedding Website
+          </Link>
         </div>
       </div>
 

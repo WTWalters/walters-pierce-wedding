@@ -86,3 +86,20 @@ it('401s non-admin', async () => {
   const res = (await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_yes' }))) as { status: number }
   expect(res.status).toBe(401)
 })
+
+it('greets with the preferred name when one is set', async () => {
+  ;(prisma.guest.findMany as jest.Mock).mockResolvedValue([
+    { id: '11111111-1111-4111-8111-111111111111', firstName: 'Muriel', preferredName: 'Grandma',
+      email: 'm@x.com', rsvpdCount: 2, reservedSeats: 2 },
+  ])
+  await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_yes' }))
+  const sent = (sendEmail as jest.Mock).mock.calls[0][0]
+  expect(sent.html).toContain('Hi Grandma!')
+  expect(sent.html).not.toContain('Muriel')
+})
+
+it('falls back to the first name when no preferred name is set', async () => {
+  await POST(req({ guestIds: ['11111111-1111-4111-8111-111111111111'], template: 'rsvp_no' }))
+  const sent = (sendEmail as jest.Mock).mock.calls[0][0]
+  expect(sent.html).toContain('Hi Sam,')
+})

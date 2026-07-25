@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: {
         firstName: body.firstName,
         lastName: body.lastName,
+        preferredName: body.preferredName || null,
         email: body.email,
         phone: body.phone || null,
         addressLine1: body.addressLine1 || null,

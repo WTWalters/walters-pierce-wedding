@@ -9,6 +9,7 @@ interface Guest {
   id: string
   firstName: string
   lastName: string
+  preferredName?: string | null
   email?: string | null
   phone?: string
   addressLine1?: string
@@ -799,6 +800,17 @@ export default function GuestsPage() {
                     required
                     value={editingGuest.email}
                     onChange={(e) => setEditingGuest({...editingGuest, email: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred name (emails)</label>
+                  <input
+                    type="text"
+                    value={editingGuest.preferredName ?? ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, preferredName: e.target.value})}
+                    placeholder="e.g. Grandma — blank uses their first name"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>

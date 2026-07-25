@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, logEmail, COORDINATOR_FROM, NOTIFY_EMAIL } from '@/lib/email'
+import { greetingName } from '@/lib/names'
 import {
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
@@ -43,15 +44,22 @@ export async function POST(request: NextRequest) {
   const guests = await prisma.guest.findMany({ where: { id: { in: guestIds } } })
   const details = await loadDetails()
 
-  type GuestRow = { firstName: string; rsvpdCount: number | null; reservedSeats: number | null }
+  type GuestRow = {
+    firstName: string
+    preferredName?: string | null
+    rsvpdCount: number | null
+    reservedSeats: number | null
+  }
   const render = (g: GuestRow) => {
+    // One resolved greeting for every template — honors the per-guest override.
+    const who = greetingName(g)
     switch (template) {
-      case 'rsvp_yes': return generateRsvpYesEmail(g.firstName, details, g.rsvpdCount)
-      case 'rsvp_no': return generateRsvpNoEmail(g.firstName)
-      case 'rsvp_over_count': return generateRsvpOverCountEmail(g.firstName, g.rsvpdCount, g.reservedSeats)
-      case 'gracious_regrets': return generateGraciousRegretsEmail(g.firstName)
+      case 'rsvp_yes': return generateRsvpYesEmail(who, details, g.rsvpdCount)
+      case 'rsvp_no': return generateRsvpNoEmail(who)
+      case 'rsvp_over_count': return generateRsvpOverCountEmail(who, g.rsvpdCount, g.reservedSeats)
+      case 'gracious_regrets': return generateGraciousRegretsEmail(who)
       case 'venue_details':
-      default: return generateVenueDetailsEmail(g.firstName, details)
+      default: return generateVenueDetailsEmail(who, details)
     }
   }
 
