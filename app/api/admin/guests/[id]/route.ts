@@ -72,7 +72,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         country: body.country || null,
         partnerFirstName: body.partnerFirstName || null,
         partnerLastName: body.partnerLastName || null,
-        partnerEmail: body.partnerEmail || null,
+        // partnerEmail is intentionally not written. The field was retired from the
+        // Edit form (unused), and the form no longer sends it — writing `|| null`
+        // here would silently blank any value still on an older record.
         reservedSeats,
         rsvpdCount,
         songRequest: body.songRequest || null,
