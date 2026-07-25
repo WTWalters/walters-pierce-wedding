@@ -34,7 +34,12 @@ export async function POST(request: NextRequest) {
       const already = await prisma.contribution.findUnique({ where: { stripePaymentIntentId: paymentIntentId } })
       if (!already) {
         const amount = (s.amount_total ?? 0) / 100
-        const name = s.metadata?.contributorName ?? 'A friend'
+        // `typedName` is what the giver actually wrote; `name` adds our sentinel for
+        // sessions created outside our own checkout (which requires a name). Keep them
+        // separate so the sentinel is never fed through shortenTypedName ("A friend"
+        // would become a bare "A").
+        const typedName = s.metadata?.contributorName
+        const name = typedName ?? 'A friend'
         const email = s.customer_details?.email ?? ''
         try {
           // Capture the charge id for reconciliation/refunds (best-effort; the
@@ -62,14 +67,6 @@ export async function POST(request: NextRequest) {
 
           const item = await prisma.registryItem.findUnique({ where: { id: registryItemId } })
 
-          // Greet the giver the way Nicolle asked: a matched guest's preferred name
-          // (or first name), else shorten the free text they typed at checkout.
-          // Guest.email is unique and stored lowercased by the RSVP intake.
-          const guestRecord = email
-            ? await prisma.guest.findUnique({ where: { email: email.toLowerCase() } })
-            : null
-          const greeting = guestRecord ? greetingName(guestRecord) : shortenTypedName(name)
-
           // Heads-up to the coordinator for every gift (thank-you tracking), whether or
           // not the giver left an email for a receipt.
           const notif = generateGiftNotificationEmail({
@@ -83,6 +80,24 @@ export async function POST(request: NextRequest) {
           })
 
           if (email) {
+            // Greet the giver the way Nicolle asked: a matched guest's preferred name
+            // (or first name), else shorten the free text they typed at checkout.
+            // Guest emails are NOT consistently lowercased — only the RSVP intake
+            // lowercases; the admin add/edit/CSV-import paths store them as typed — so
+            // match case-insensitively or Nicolle's hand-entered guests never match.
+            // Resolved here (not earlier) and guarded so a lookup blip can neither
+            // cost the coordinator her heads-up above nor the giver their thank-you.
+            let guestRecord: { firstName: string; preferredName: string | null } | null = null
+            try {
+              guestRecord = await prisma.guest.findFirst({
+                where: { email: { equals: email, mode: 'insensitive' } },
+                select: { firstName: true, preferredName: true },
+              })
+            } catch (lookupErr) {
+              console.error('Guest lookup for the gift greeting failed:', lookupErr)
+            }
+            const greeting = guestRecord ? greetingName(guestRecord) : (typedName ? shortenTypedName(typedName) : name)
+
             const tmpl = generateRegistryThankYouEmail({ name: greeting, tierTitle: item?.title ?? 'your gift', amount })
             const res = await sendEmail({ to: email, ...tmpl }, { from: EMME_CONNOR_FROM })
             await logEmail({

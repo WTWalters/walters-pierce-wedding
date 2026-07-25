@@ -34,4 +34,32 @@ describe('shortenTypedName', () => {
     expect(shortenTypedName('')).toBe('')
     expect(shortenTypedName('   ')).toBe('')
   })
+
+  // A bare title is a worse greeting than the full name it replaced, and relational
+  // naming is exactly how these givers type (the real data includes "Dad").
+  it('keeps the name after a title or relation', () => {
+    expect(shortenTypedName('Aunt Sue')).toBe('Aunt Sue')
+    expect(shortenTypedName('Grandma Jean')).toBe('Grandma Jean')
+    expect(shortenTypedName('Uncle Bob Smith')).toBe('Uncle Bob')
+    expect(shortenTypedName('Dr. Jane Smith')).toBe('Dr. Jane')
+    expect(shortenTypedName('Mr. and Mrs. Smith')).toBe('Mr. and Mrs. Smith')
+  })
+
+  it('treats a comma as a couple separator', () => {
+    expect(shortenTypedName('Jill, Jose')).toBe('Jill, Jose')
+    expect(shortenTypedName('Mom, Dad')).toBe('Mom, Dad')
+    expect(shortenTypedName('Eleanor Cordi, Bob Jones')).toBe('Eleanor, Bob')
+  })
+
+  it('leaves names with punctuation, hyphens, and accents intact', () => {
+    expect(shortenTypedName('Renée Dubois')).toBe('Renée')
+    expect(shortenTypedName('Jean-Luc Picard')).toBe('Jean-Luc')
+    expect(shortenTypedName("O'Brien Family")).toBe("O'Brien")
+    expect(shortenTypedName('J. Murdock')).toBe('J.')
+  })
+
+  it('falls back to the input rather than emitting a dangling connector', () => {
+    expect(shortenTypedName('and Bob')).toBe('and Bob')
+    expect(shortenTypedName('&')).toBe('&')
+  })
 })

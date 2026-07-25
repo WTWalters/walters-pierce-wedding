@@ -8,7 +8,7 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     contribution: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     registryItem: { update: jest.fn(), findUnique: jest.fn() },
-    guest: { findUnique: jest.fn() },
+    guest: { findFirst: jest.fn() },
   },
 }))
 jest.mock('@/lib/email', () => ({
@@ -35,7 +35,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   process.env = { ...OLD_ENV, STRIPE_WEBHOOK_SECRET: 'whsec_test' }
   mockPrisma.registryItem.findUnique.mockResolvedValue({ id: 'a', title: 'Buy us Dinner' })
-  mockPrisma.guest.findUnique.mockResolvedValue(null)
+  mockPrisma.guest.findFirst.mockResolvedValue(null)
 })
 afterAll(() => { process.env = OLD_ENV })
 
@@ -104,9 +104,10 @@ it('greets an unmatched giver with their shortened typed name', async () => {
 
   await POST(req())
 
-  // "Aunt Sue" -> first word of the single name part
+  // "Aunt Sue" keeps the name after the relation — a bare "Aunt" would be worse
+  // than the full name this shortening replaced.
   const thankYou = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('thanks'))
-  expect(thankYou[0].subject).toBe('thanks Aunt')
+  expect(thankYou[0].subject).toBe('thanks Aunt Sue')
   // the coordinator heads-up keeps the REAL typed name
   const notif = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('gift'))
   expect(notif[0].subject).toBe('gift Aunt Sue')
@@ -118,11 +119,66 @@ it('greets a matched guest with their preferred name', async () => {
   mockPrisma.contribution.create.mockResolvedValue({ id: 'c1' })
   mockPrisma.contribution.update.mockResolvedValue({})
   mockPrisma.registryItem.update.mockResolvedValue({})
-  mockPrisma.guest.findUnique.mockResolvedValue({ firstName: 'Muriel', preferredName: 'Grandma' })
+  mockPrisma.guest.findFirst.mockResolvedValue({ firstName: 'Muriel', preferredName: 'Grandma' })
 
   await POST(req())
 
-  expect(mockPrisma.guest.findUnique).toHaveBeenCalledWith({ where: { email: 'sue@example.com' } })
   const thankYou = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('thanks'))
   expect(thankYou[0].subject).toBe('thanks Grandma')
+})
+
+// Only the RSVP intake lowercases emails — admin add/edit/CSV-import store them as
+// typed — so the match MUST be case-insensitive or Nicolle's hand-entered guests
+// (exactly who this feature is for) would silently never match.
+it('matches a guest case-insensitively when the stored email differs in case', async () => {
+  mockConstructEvent.mockReturnValue({
+    ...completedEvent,
+    data: { object: { ...completedEvent.data.object, customer_details: { email: 'Sue@Example.COM' } } },
+  })
+  mockPrisma.contribution.findUnique.mockResolvedValue(null)
+  mockPrisma.contribution.create.mockResolvedValue({ id: 'c1' })
+  mockPrisma.contribution.update.mockResolvedValue({})
+  mockPrisma.registryItem.update.mockResolvedValue({})
+  mockPrisma.guest.findFirst.mockResolvedValue({ firstName: 'Muriel', preferredName: 'Grandma' })
+
+  await POST(req())
+
+  expect(mockPrisma.guest.findFirst).toHaveBeenCalledWith(
+    expect.objectContaining({ where: { email: { equals: 'Sue@Example.COM', mode: 'insensitive' } } })
+  )
+  const thankYou = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('thanks'))
+  expect(thankYou[0].subject).toBe('thanks Grandma')
+})
+
+it('skips the lookup and the thank-you when the giver left no email', async () => {
+  mockConstructEvent.mockReturnValue({
+    ...completedEvent,
+    data: { object: { ...completedEvent.data.object, customer_details: null } },
+  })
+  mockPrisma.contribution.findUnique.mockResolvedValue(null)
+  mockPrisma.contribution.create.mockResolvedValue({ id: 'c1' })
+  mockPrisma.registryItem.update.mockResolvedValue({})
+
+  await POST(req())
+
+  expect(mockPrisma.guest.findFirst).not.toHaveBeenCalled()
+  expect((sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('thanks'))).toBeUndefined()
+  // the coordinator is still told about the gift
+  expect((sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('gift'))).toBeDefined()
+})
+
+it('still notifies the coordinator when the guest lookup throws', async () => {
+  mockConstructEvent.mockReturnValue(completedEvent)
+  mockPrisma.contribution.findUnique.mockResolvedValue(null)
+  mockPrisma.contribution.create.mockResolvedValue({ id: 'c1' })
+  mockPrisma.contribution.update.mockResolvedValue({})
+  mockPrisma.registryItem.update.mockResolvedValue({})
+  mockPrisma.guest.findFirst.mockRejectedValue(new Error('db blip'))
+
+  await POST(req())
+
+  expect((sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('gift'))).toBeDefined()
+  // falls back to the shortened typed name rather than losing the thank-you
+  const thankYou = (sendEmail as jest.Mock).mock.calls.find((c) => c[0].subject?.startsWith('thanks'))
+  expect(thankYou[0].subject).toBe('thanks Aunt Sue')
 })
