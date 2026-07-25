@@ -21,6 +21,18 @@ export default function ReviewPage() {
   const [viewFor, setViewFor] = useState<Submission | null>(null)
   const [guests, setGuests] = useState<InvitedGuest[]>([])
 
+  // The match list reads "First Last", but /api/admin/guests returns rows ordered by
+  // last name — so to Nicolle the popup looked unsorted. Sort it the way the names
+  // read: first name, then last. (filter() already returns a new array, so sorting it
+  // doesn't mutate the `guests` state.)
+  const invitedGuests = guests
+    .filter((g) => g.source === 'imported')
+    .sort(
+      (a, b) =>
+        a.firstName.localeCompare(b.firstName, 'en', { sensitivity: 'base' }) ||
+        a.lastName.localeCompare(b.lastName, 'en', { sensitivity: 'base' })
+    )
+
   const refresh = useCallback(async () => {
     const res = await fetch('/api/admin/review')
     if (res.ok) { setSubs((await res.json()).submissions); setError('') }
@@ -162,14 +174,14 @@ export default function ReviewPage() {
               Link <span className="font-medium">{matchFor.firstName} {matchFor.lastName}</span>’s RSVP to the right person on the invite list.
             </p>
             <div className="space-y-1">
-              {guests.filter((g) => g.source === 'imported').map((g) => (
+              {invitedGuests.map((g) => (
                 <button key={g.id} onClick={() => confirmMatch(g.id)}
                   className="w-full text-left px-3 py-2 rounded border hover:border-[#00330a] text-sm">
                   {g.firstName} {g.lastName} <span className="text-gray-400">{g.email}</span>
                 </button>
               ))}
               {guests.length === 0 && <p className="text-gray-500 text-sm">Loading guests…</p>}
-              {guests.length > 0 && guests.filter((g) => g.source === 'imported').length === 0 && (
+              {guests.length > 0 && invitedGuests.length === 0 && (
                 <p className="text-gray-500 text-sm">No invited guests to match to.</p>
               )}
             </div>
