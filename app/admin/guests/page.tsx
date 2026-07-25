@@ -310,18 +310,19 @@ export default function GuestsPage() {
     return null
   }
 
+  // Reads off `attending` alone, exactly like the status filter — so the badge and
+  // the "No Response" filter can never disagree about the same guest. The old
+  // "Response Received" and "Invited" badges keyed on rsvpReceivedAt and
+  // invitationSentAt, which meant a guest with no answer could show something
+  // other than "No Response" (Nicolle's ask: those two words, everywhere).
   const getStatusBadge = (guest: Guest) => {
     if (guest.attending === true) {
       return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">✅ Attending</span>
-    } else if (guest.attending === false) {
-      return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">❌ Not Attending</span>
-    } else if (guest.rsvpReceivedAt) {
-      return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">📝 Response Received</span>
-    } else if (guest.invitationSentAt) {
-      return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">📧 Invited</span>
-    } else {
-      return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">⏳ Pending</span>
     }
+    if (guest.attending === false) {
+      return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">❌ Not Attending</span>
+    }
+    return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">⏳ No Response</span>
   }
 
   if (isLoading) {
