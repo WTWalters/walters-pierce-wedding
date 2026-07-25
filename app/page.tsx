@@ -148,16 +148,24 @@ export default function Home() {
         </div>
 
         {/* Carousel Controls */}
+        {/* These arrows used to be centered with `top-1/2 -translate-y-1/2` and animated
+            with `transition-all`. In Safari (desktop AND iOS) that made the button DROP
+            ~24px on hover: `transition-all` animates `transform`, Tailwind builds that
+            transform from CSS custom properties (--tw-translate-y), and WebKit loses the
+            -50% while interpolating — so the button slid out from under the cursor.
+            Fixed two ways so it cannot come back: centered with auto margins (no
+            transform at all), and only colors transition. Don't reintroduce
+            `transition-all` on a positioned element. */}
         <button
           onClick={prevPhoto}
-          className="absolute left-6 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-all duration-200"
+          className="absolute left-6 inset-y-0 my-auto h-fit z-20 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors duration-200"
           aria-label="Previous photo"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
         <button
           onClick={nextPhoto}
-          className="absolute right-6 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-all duration-200"
+          className="absolute right-6 inset-y-0 my-auto h-fit z-20 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors duration-200"
           aria-label="Next photo"
         >
           <ChevronRight className="w-6 h-6" />
