@@ -597,10 +597,15 @@ export default function GuestsPage() {
             </select>
           </div>
           
+          {/* Only worth saying when a search or filter is narrowing the list — an
+              unfiltered "Showing 66 of 66" is noise (Nicolle: "doesn't give info
+              that I need"). */}
           <div className="flex items-end">
-            <div className="text-sm text-gray-600">
-              Showing {filteredGuests.length} of {guests.length} guests
-            </div>
+            {filteredGuests.length !== guests.length && (
+              <div className="text-sm text-gray-600">
+                Showing {filteredGuests.length} of {guests.length} guests
+              </div>
+            )}
           </div>
         </div>
       </div>
