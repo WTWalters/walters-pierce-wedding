@@ -5,16 +5,23 @@ import Link from "next/link"
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from 'lucide-react'
 
 // Engagement photos — displayed in filename order.
-// fit: 'contain' shows the FULL photo (letterboxed over a blurred backdrop)
-// instead of cropping to fill — used where the wide composition matters.
-const engagementPhotos: { src: string; alt: string; fit?: 'contain' }[] = [
-  { src: '/images/engagement/DSC01845-100.jpg', alt: 'Emme and Connor engagement photo 1' },
+// fit: 'contain' shows the FULL photo (letterboxed over a blurred backdrop) instead
+//   of cropping to fill. Every PORTRAIT photo must use this: forced into the wide
+//   full-screen hero, a ~0.66 portrait can only ever show ~35% of its height, so
+//   heads get cut no matter how the crop is positioned.
+// position: object-position for the cover photos. A 3:2 landscape in a ~16:9 hero
+//   loses ~16% of its height, and the default 'center' takes half of that off the
+//   TOP — enough to clip a head. Nudge upward so the trim comes off the bottom.
+const engagementPhotos: { src: string; alt: string; fit?: 'contain'; position?: string }[] = [
+  { src: '/images/engagement/DSC01845-100.jpg', alt: 'Emme and Connor engagement photo 1', position: 'center 25%' },
   { src: '/images/engagement/DSC01845-103.jpg', alt: 'Emme and Connor engagement photo 4' },
   { src: '/images/engagement/DSC01845-104.jpg', alt: 'Emme and Connor engagement photo 5' },
   { src: '/images/engagement/DSC01845-105.jpg', alt: 'Emme and Connor engagement photo 6' },
   { src: '/images/engagement/DSC01845-106.jpg', alt: 'Emme and Connor engagement photo 7', fit: 'contain' },
   { src: '/images/engagement/DSC01845-107.jpg', alt: 'Emme and Connor engagement photo 8' },
-  { src: '/images/engagement/DSC01845-108A.jpg', alt: 'Emme and Connor engagement photo 9' },
+  // Portrait (1312x2000) — the only portrait that was still cropping to fill, which
+  // is why Emme's head kept getting cut. Now matches the other portraits.
+  { src: '/images/engagement/DSC01845-108A.jpg', alt: 'Emme and Connor engagement photo 9', fit: 'contain' },
   { src: '/images/engagement/DSC01845-109.jpg', alt: 'Emme and Connor engagement photo 10', fit: 'contain' },
   { src: '/images/engagement/DSC01767-100.jpg', alt: 'Emme and Connor engagement — seated with the ring', fit: 'contain' },
   { src: '/images/engagement/DSC01767-101.jpg', alt: 'Emme and Connor engagement — on the rocks at sunset', fit: 'contain' },
@@ -84,7 +91,8 @@ export default function Home() {
                 <img
                   src={photo.src}
                   alt={photo.alt}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover"
+                  style={{ objectPosition: photo.position ?? 'center' }}
                   loading={index === 0 ? 'eager' : 'lazy'}
                 />
               )}
