@@ -92,6 +92,35 @@ it('agrees with the RSVPs Received stat card', async () => {
   expect(caption?.parentElement?.textContent).toContain('3')
 })
 
+// Whitney: "she filled in some of these and they don't show up in the list with
+// attending — did we address that?" The Attending filter reads `attending`, so a
+// response she entered by hand has always qualified; this pins it.
+it('includes hand-entered responses under the Attending filter', async () => {
+  await filterBy('attending')
+  await waitFor(() => expect(shown('Marilyn Hinrichs')).toBe(false))
+  expect(shown('Ben Bright')).toBe(true) // she answered for them, no rsvpReceivedAt
+  expect(shown('Gabi Cain')).toBe(true)
+  expect(shown('Trenton Burton')).toBe(false)
+})
+
+it('badges a hand-entered response as Attending, not No Response', async () => {
+  render(<GuestsPage />)
+  await waitFor(() => expect(screen.getByText('Ben Bright')).toBeInTheDocument())
+  const row = screen.getByText('Ben Bright').closest('tr')
+  expect(row?.textContent).toContain('Attending')
+  expect(row?.textContent).not.toContain('No Response')
+})
+
+// Nicolle: "Pending and No Response should be the same" — one wording, and the
+// badge must agree with the filter that selects the same guests.
+it('badges a guest with no answer as No Response, never Pending', async () => {
+  render(<GuestsPage />)
+  await waitFor(() => expect(screen.getByText('Trenton Burton')).toBeInTheDocument())
+  const row = screen.getByText('Trenton Burton').closest('tr')
+  expect(row?.textContent).toContain('No Response')
+  expect(screen.queryByText(/Pending/)).not.toBeInTheDocument()
+})
+
 // Nicolle: 'Get rid of "Invited" (doesn't return any results anyway)'.
 it('no longer offers the Invited filter', async () => {
   render(<GuestsPage />)
