@@ -16,14 +16,23 @@ export default function RSVPPage() {
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState<null | { attending: boolean }>(null)
 
-  // After the thank-you shows, attending guests are ushered to the honeymoon
-  // fund; decliners drift back to the homepage.
+  // After the thank-you shows, attending guests are ushered to the honeymoon fund;
+  // decliners drift back to the homepage. The old 4s (attending) fired well before
+  // the message could be read — it's ~38 words, which takes 8-11s at normal reading
+  // speed, and the sentence being cut off ("watch your inbox... the date, time and
+  // venue are on their way") is the most important instruction on the site, since the
+  // venue is never shown publicly. Now a readable delay, with a visible countdown so
+  // the jump is never a surprise.
+  const REDIRECT_SECONDS = 12
+  const [secondsLeft, setSecondsLeft] = useState(REDIRECT_SECONDS)
+
   useEffect(() => {
     if (!submitted) return
+    setSecondsLeft(REDIRECT_SECONDS)
     const dest = submitted.attending ? '/registry' : '/'
-    const delay = submitted.attending ? 4000 : 7000
-    const timer = setTimeout(() => router.push(dest), delay)
-    return () => clearTimeout(timer)
+    const tick = setInterval(() => setSecondsLeft((s) => (s > 1 ? s - 1 : 1)), 1000)
+    const timer = setTimeout(() => router.push(dest), REDIRECT_SECONDS * 1000)
+    return () => { clearInterval(tick); clearTimeout(timer) }
   }, [submitted, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,8 +166,8 @@ export default function RSVPPage() {
                   information — the date, time, and venue are on their way.
                 </p>
                 <p className="mt-4 text-gray-700">
-                  Emme &amp; Connor are honeymooning in Ireland — taking you to
-                  our Honeymoon Fund now&hellip;
+                  Emme &amp; Connor are honeymooning in Ireland — if you&apos;d like to
+                  help them celebrate, a gift toward the trip would mean the world.
                 </p>
                 <a
                   href="/registry"
@@ -166,6 +175,9 @@ export default function RSVPPage() {
                 >
                   Go to the Honeymoon Fund now
                 </a>
+                <p className="mt-4 text-sm text-gray-500">
+                  Taking you to the Honeymoon Fund in {secondsLeft} second{secondsLeft === 1 ? '' : 's'}&hellip;
+                </p>
               </>
             ) : (
               <>
@@ -185,7 +197,7 @@ export default function RSVPPage() {
                   Visit our Honeymoon Fund 🎁
                 </a>
                 <p className="mt-4 text-sm text-gray-500">
-                  Taking you back to the website in a moment…
+                  Taking you back to the website in {secondsLeft} second{secondsLeft === 1 ? '' : 's'}&hellip;
                 </p>
               </>
             )}
