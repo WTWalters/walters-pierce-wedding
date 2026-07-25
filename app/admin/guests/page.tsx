@@ -124,12 +124,18 @@ export default function GuestsPage() {
         (guest.partnerLastName && guest.partnerLastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (guest.invitationCode && guest.invitationCode.toLowerCase().includes(searchTerm.toLowerCase()))
 
+      // A guest has responded when we have an answer either way, no matter how it
+      // arrived. rsvpReceivedAt is NOT the test: only the public form stamps it, so
+      // keying off it hid every guest Nicolle answered for by editing the record —
+      // and disagreed with the "RSVPs Received" stat card, which has always counted
+      // attending true + false. These two must give the same number.
+      const hasResponse = guest.attending === true || guest.attending === false
+
       const matchesStatus = statusFilter === 'all' ||
-        (statusFilter === 'invited' && guest.invitationSentAt) ||
-        (statusFilter === 'responded' && guest.rsvpReceivedAt) ||
+        (statusFilter === 'responded' && hasResponse) ||
         (statusFilter === 'attending' && guest.attending === true) ||
         (statusFilter === 'not_attending' && guest.attending === false) ||
-        (statusFilter === 'no_response' && !guest.rsvpReceivedAt && guest.invitationSentAt)
+        (statusFilter === 'no_response' && !hasResponse)
 
       return matchesSearch && matchesStatus
     })
@@ -558,14 +564,14 @@ export default function GuestsPage() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status Filter</label>
+            <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">Status Filter</label>
             <select
+              id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
             >
               <option value="all">All Guests</option>
-              <option value="invited">Invited</option>
               <option value="responded">RSVPs Received</option>
               <option value="attending">Attending</option>
               <option value="not_attending">Not Attending</option>
