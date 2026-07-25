@@ -44,7 +44,11 @@ export function generateRsvpNotificationEmail(
     status: 'matched' | 'added' | 'unmatched'
     addedAt?: Date | string | null
     matchedBy?: 'email' | 'name'
-    emailOnFile?: string
+    // The address the record held before this RSVP, and whether it was replaced
+    // by the submitted one. Not replaced means another guest already holds the
+    // submitted address, so the unique index refused it.
+    emailOnFile?: string | null
+    emailUpdated?: boolean
   }
 ): Rendered {
   const name = `${data.firstName} ${data.lastName}`
@@ -73,10 +77,15 @@ export function generateRsvpNotificationEmail(
     ['Guest status', guestStatus],
     ['Received', new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })],
   ]
-  if (data.matchedBy === 'name' && data.emailOnFile) {
+  if (data.matchedBy === 'name' && data.emailUpdated) {
+    rows.splice(2, 0, [
+      '✎ Email updated',
+      `Matched by name. We had ${data.emailOnFile || '(no email)'} on file and replaced it with the address above, which is where their emails will go from now on. Change it in Guest Management if that's wrong.`,
+    ])
+  } else if (data.matchedBy === 'name' && data.emailUpdated === false && data.emailOnFile) {
     rows.splice(2, 0, [
       '⚠ Email check',
-      `Matched by name only — submitted email differs from the email on file (${data.emailOnFile}). Gated emails still go to the address on file; verify which is correct before sending details.`,
+      `Matched by name, but we could not adopt the address above — another guest already has it. ${data.emailOnFile} is still on file and is where their emails will go. Sort out which address belongs to whom before sending details.`,
     ])
   }
   const html = wrap('New RSVP received', `

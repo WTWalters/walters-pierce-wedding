@@ -35,12 +35,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const overCap = target.reservedSeats != null && (submission.rsvpdCount ?? 0) > target.reservedSeats
 
+    // The address the guest typed wins, same as name-matching in lib/rsvp.ts —
+    // matching here is Nicolle confirming their identity by hand, and the target's
+    // address is often a placeholder she invented to satisfy the required+unique
+    // Email field. Without this the real address would be destroyed along with the
+    // submission row. Identity and reservedSeats on the target are still left
+    // untouched: the official record stays authoritative about who was invited.
+    const adoptEmail = Boolean(submission.email) && submission.email !== target.email
+    const emailReplaced = adoptEmail ? target.email : null
+
     // Copy the RSVP answer onto the official record and remove the duplicate
     // submission atomically — so a failure can't leave the guest updated but the
-    // submission still sitting in the review queue. Identity + email + reservedSeats
-    // on the target are left untouched (the official record stays authoritative —
-    // same invariant as name-matching in lib/rsvp.ts).
+    // submission still sitting in the review queue. The delete comes first: email is
+    // unique, and the submission row holds the address the target is about to adopt.
     await prisma.$transaction([
+      prisma.guest.delete({ where: { id: submission.id } }),
       prisma.guest.update({
         where: { id: target.id },
         data: {
@@ -50,12 +59,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           dietaryRestrictions: submission.dietaryRestrictions,
           songRequest: submission.songRequest,
           rsvpReceivedAt: submission.rsvpReceivedAt,
+          ...(adoptEmail ? { email: submission.email } : {}),
         },
       }),
-      prisma.guest.delete({ where: { id: submission.id } }),
     ])
 
-    return NextResponse.json({ ok: true, overCap })
+    if (adoptEmail) {
+      // Best-effort record of the replaced address; never fail a completed match
+      // over the audit trail.
+      try {
+        await prisma.auditLog.create({
+          data: {
+            action: 'match_email_adopted',
+            entityType: 'guest',
+            entityId: target.id,
+            oldValues: { email: emailReplaced },
+            newValues: { email: submission.email },
+          },
+        })
+      } catch (err) {
+        console.error('Audit of the matched email failed:', err)
+      }
+    }
+
+    return NextResponse.json({ ok: true, overCap, emailReplaced })
   } catch (error) {
     console.error('Error matching submission:', error)
     return NextResponse.json({ error: 'Failed to match' }, { status: 500 })
