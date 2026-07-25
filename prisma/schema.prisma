@@ -26,6 +26,7 @@ model Guest {
   email               String?    @unique
   firstName           String     @map("first_name")
   lastName            String     @map("last_name")
+  preferredName       String?    @map("preferred_name")
   phone               String?
   addressLine1        String?    @map("address_line1")
   addressLine2        String?    @map("address_line2")
