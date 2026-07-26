@@ -293,23 +293,43 @@ export function generateGiftNotificationEmail(data: {
   return { subject, html, text }
 }
 
+/**
+ * amount and tierTitle are optional so a gift Nicolle records by hand still reads
+ * well. A cheque has no tier; a physical present has no meaningful amount — and
+ * "your generous gift of $0 toward crystal bowl" is not a note you send your
+ * grandmother. A Stripe contribution always has both, so its wording is unchanged.
+ */
 export function generateRegistryThankYouEmail(data: {
   name: string
-  tierTitle: string
-  amount: number
+  tierTitle?: string | null
+  amount?: number | null
 }): Rendered {
   const name = escapeHtml(data.name)
-  const tier = escapeHtml(data.tierTitle)
-  const amount = `$${data.amount.toLocaleString('en-US')}`
+  const hasAmount = typeof data.amount === 'number' && data.amount > 0
+  const amount = hasAmount ? `$${(data.amount as number).toLocaleString('en-US')}` : ''
+  const tier = (data.tierTitle ?? '').trim()
+
+  // "gift of $50 toward Buy us Coffee" / "gift of $50" / "gift of the crystal bowl" / "gift"
+  const giftPhrase = hasAmount
+    ? `gift of <strong>${amount}</strong>${tier ? ` toward <strong>${escapeHtml(tier)}</strong>` : ''}`
+    : tier
+      ? `gift of <strong>${escapeHtml(tier)}</strong>`
+      : 'gift'
+  const giftPhraseText = hasAmount
+    ? `gift of ${amount}${tier ? ` toward ${tier}` : ''}`
+    : tier
+      ? `gift of ${tier}`
+      : 'gift'
+
   const subject = `Thank you for your honeymoon gift, ${data.name}!`
   const body = `
     <p>Dear ${name},</p>
-    <p>Thank you so much for your generous gift of <strong>${amount}</strong> toward
-    <strong>${tier}</strong>. It means the world to us as we get ready for our honeymoon in Ireland.</p>
+    <p>Thank you so much for your generous ${giftPhrase}. It means the world to us as we
+    get ready for our honeymoon in Ireland.</p>
     <p>We can't wait to celebrate with you — and we'll be sure to share a photo of us enjoying it!</p>
     <p style="margin-top: 24px;">With love and gratitude,<br><strong>Emme &amp; Connor</strong></p>`
   const html = wrap('A heartfelt thank you', body)
-  const text = `Dear ${data.name},\n\nThank you so much for your generous gift of ${amount} toward ${data.tierTitle}. `
+  const text = `Dear ${data.name},\n\nThank you so much for your generous ${giftPhraseText}. `
     + `It means the world to us as we get ready for our honeymoon in Ireland. We can't wait to celebrate with you.\n\n`
     + `With love and gratitude,\nEmme & Connor\nwalters-pierce-wedding.com`
   return { subject, html, text }

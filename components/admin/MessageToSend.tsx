@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 
-type Template = 'rsvp_yes' | 'rsvp_no' | 'rsvp_over_count'
+type Template = 'rsvp_yes' | 'rsvp_no' | 'rsvp_over_count' | 'registry_thank_you'
 const OPTIONS: { value: Template; label: string; confirm: string }[] = [
   { value: 'rsvp_yes', label: 'RSVP Yes', confirm: 'the “you’re locked in” confirmation (with venue)' },
   { value: 'rsvp_no', label: 'RSVP No', confirm: 'the “sorry to miss you” note' },
   { value: 'rsvp_over_count', label: 'Incorrect RSVP', confirm: 'the “too many guests” note' },
+  // Names the gift on record, so it needs one — see the Gifts tab.
+  { value: 'registry_thank_you', label: 'Thank You', confirm: 'the honeymoon-gift thank-you note' },
 ]
 
 export function MessageToSend({ guestId, email, onSent }: { guestId: string; email: string | null; onSent?: () => void }) {
@@ -26,6 +28,11 @@ export function MessageToSend({ guestId, email, onSent }: { guestId: string; ema
         body: JSON.stringify({ guestIds: [guestId], template }),
       })
       if (!res.ok) throw new Error()
+      // A 200 can still carry a per-guest refusal — e.g. the thank-you when no gift
+      // is on record. Saying "Sent ✓" there would be a lie she'd only catch later.
+      const data = await res.json().catch(() => null)
+      const failure = data?.results?.find((r: { success: boolean }) => !r.success)
+      if (failure) { setMsg(failure.error ?? 'Not sent'); return }
       setMsg('Sent ✓'); setTemplate(''); onSent?.()
     } catch { setMsg('Failed') } finally { setBusy(false) }
   }

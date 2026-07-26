@@ -18,11 +18,13 @@ export async function GET(request: NextRequest) {
     id: c.id,
     contributorName: c.contributorName,
     contributorEmail: c.contributorEmail,
-    tierTitle: c.registryItem?.title ?? '—',
+    // A Stripe gift names its tier; one Nicolle recorded names what it was.
+    tierTitle: c.registryItem?.title ?? c.giftDescription ?? '—',
     amount: Number(c.amount),
     message: c.message,
     paymentStatus: c.paymentStatus,
     thankYouSent: c.thankYouSent,
+    source: c.source,
     createdAt: c.createdAt,
   }))
   const tierSummary = tiers.map((t) => ({

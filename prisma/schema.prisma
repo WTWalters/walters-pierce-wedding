@@ -99,6 +99,11 @@ model Contribution {
   contributorEmail      String        @map("contributor_email")
   amount                Decimal
   message               String?
+  /// What the gift was, for anything that isn't a Honeymoon Fund tier — a cheque,
+  /// cash, or a physical present Nicolle records by hand.
+  giftDescription       String?       @map("gift_description")
+  /// 'manual' when Nicolle entered it; null for a Stripe contribution.
+  source                String?
   stripePaymentIntentId String?       @unique @map("stripe_payment_intent_id")
   stripeChargeId        String?       @map("stripe_charge_id")
   paymentStatus         String?       @map("payment_status")
