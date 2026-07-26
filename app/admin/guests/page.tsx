@@ -719,6 +719,13 @@ export default function GuestsPage() {
                     <strong>Attending:</strong> {selectedGuest.attending ? 'Yes' : 'No'}
                   </div>
                 )}
+                {/* Labelled "Favorite Song" to match the Edit modal and the CSV —
+                    the field is songRequest under the hood. */}
+                {selectedGuest.songRequest && (
+                  <div className="md:col-span-2">
+                    <strong>Favorite Song:</strong> {selectedGuest.songRequest}
+                  </div>
+                )}
                 {selectedGuest.dietaryRestrictions && (
                   <div className="md:col-span-2">
                     <strong>Dietary Restrictions:</strong> {selectedGuest.dietaryRestrictions}

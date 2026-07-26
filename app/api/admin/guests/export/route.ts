@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       'RSVP Received',
       'Attending',
       'Dietary Restrictions',
+      'Favorite Song',
       'Table Number',
       'Created Date'
     ]
@@ -67,6 +68,7 @@ export async function GET(request: NextRequest) {
         guest.rsvpReceivedAt ? new Date(guest.rsvpReceivedAt).toLocaleDateString() : '',
         guest.attending === null ? '' : (guest.attending ? 'Yes' : 'No'),
         escapeCSV(guest.dietaryRestrictions || ''),
+        escapeCSV(guest.songRequest || ''),
         guest.tableNumber?.toString() || '',
         new Date(guest.createdAt).toLocaleDateString()
       ]
