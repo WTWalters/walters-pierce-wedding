@@ -39,6 +39,7 @@ const GUEST = {
   rsvpReceivedAt: new Date('2026-07-20T00:00:00.000Z'),
   attending: true,
   dietaryRestrictions: 'None',
+  songRequest: 'Perfect by Ed Sheeran',
   tableNumber: 4,
   createdAt: new Date('2026-07-01T00:00:00.000Z'),
   // Retired columns — still on the record, must not reach the CSV.
@@ -80,9 +81,17 @@ it('exports exactly the columns Nicolle asked for, in order', async () => {
     'RSVP Received',
     'Attending',
     'Dietary Restrictions',
+    'Favorite Song',
     'Table Number',
     'Created Date',
   ])
+})
+
+// Nicolle: "I would love to be able to see Favorite Song on ... *.csv file download".
+it('writes the song request into the Favorite Song column', async () => {
+  const [header, row] = (await exportCsv()).split('\n')
+  const columns = header.split(',')
+  expect(row.split(',')[columns.indexOf('Favorite Song')]).toBe('Perfect by Ed Sheeran')
 })
 
 it.each([
