@@ -3,7 +3,15 @@
 import { useState, useEffect } from 'react'
 import { assertSeatCap, formatPartyName } from '@/lib/guests'
 import { guestListStatus, formatAddedDate } from '@/lib/review'
+import {
+  GUEST_CSV_COLUMNS,
+  DEFAULT_GUEST_CSV_KEYS,
+  buildGuestCsv,
+  guestCsvFilename,
+} from '@/lib/guest-csv'
 import { MessageToSend } from '@/components/admin/MessageToSend'
+
+const CSV_COLUMNS_STORAGE_KEY = 'wpw.guestCsvColumns'
 
 interface Guest {
   id: string
@@ -70,6 +78,8 @@ export default function GuestsPage() {
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [showCsvColumns, setShowCsvColumns] = useState(false)
+  const [csvColumns, setCsvColumns] = useState<string[]>(DEFAULT_GUEST_CSV_KEYS)
 
   const [newGuest, setNewGuest] = useState({
     firstName: '',
@@ -89,6 +99,33 @@ export default function GuestsPage() {
   useEffect(() => {
     fetchGuests()
   }, [])
+
+  // Restore the saved column choice. Read once on mount rather than in useState, so
+  // the server and first client render agree (localStorage doesn't exist on the
+  // server). Anything unrecognised is dropped — column keys can be renamed later
+  // without a stale selection producing a blank file.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(CSV_COLUMNS_STORAGE_KEY)
+      if (!saved) return
+      const parsed: unknown = JSON.parse(saved)
+      if (!Array.isArray(parsed)) return
+      const known = parsed.filter((k): k is string =>
+        typeof k === 'string' && GUEST_CSV_COLUMNS.some((c) => c.key === k)
+      )
+      if (known.length > 0) setCsvColumns(known)
+    } catch {
+      // Corrupt or unavailable storage just means the defaults stand.
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CSV_COLUMNS_STORAGE_KEY, JSON.stringify(csvColumns))
+    } catch {
+      // Private browsing or a full quota — the choice just won't persist.
+    }
+  }, [csvColumns])
 
   useEffect(() => {
     filterAndSortGuests()
@@ -228,8 +265,26 @@ export default function GuestsPage() {
     }
   }
 
+  // Built from filteredGuests — the exact array the table renders — so the file always
+  // matches what's on screen: current search, status filter and sort order. Deriving
+  // it again server-side would be a second definition of "what's on screen" to keep
+  // in step, which is how the filters and the stat card drifted apart.
   const downloadCSV = () => {
-    window.open('/api/admin/guests/export', '_blank')
+    if (csvColumns.length === 0) return
+    const csv = buildGuestCsv(filteredGuests, csvColumns)
+    const scope = statusFilter === 'all' ? (searchTerm.trim() ? 'search' : null) : statusFilter
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    link.download = guestCsvFilename(scope, new Date())
+    link.click()
+    URL.revokeObjectURL(link.href)
+    setMessage(`✅ Downloaded ${filteredGuests.length} guest${filteredGuests.length === 1 ? '' : 's'}`)
+  }
+
+  const toggleCsvColumn = (key: string) => {
+    setCsvColumns((current) =>
+      current.includes(key) ? current.filter((k) => k !== key) : [...current, key]
+    )
   }
 
   const connectGoogleSheets = async () => {
@@ -350,9 +405,18 @@ export default function GuestsPage() {
           </button>
           <button
             onClick={downloadCSV}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+            disabled={csvColumns.length === 0}
+            title="Downloads exactly the guests shown below, in the order shown"
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             📥 Download CSV
+          </button>
+          <button
+            onClick={() => setShowCsvColumns((open) => !open)}
+            aria-expanded={showCsvColumns}
+            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            ⚙️ Columns ({csvColumns.length})
           </button>
           <button
             onClick={connectGoogleSheets}
@@ -368,6 +432,43 @@ export default function GuestsPage() {
           </button>
         </div>
       </div>
+
+      {/* CSV column picker */}
+      {showCsvColumns && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <h3 className="font-medium text-gray-900">Columns in the CSV download</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Your choice is remembered on this computer. The download always contains the
+                guests listed below — so a search or filter narrows the file too.
+              </p>
+            </div>
+            <button
+              onClick={() => setCsvColumns(DEFAULT_GUEST_CSV_KEYS)}
+              className="text-sm text-[#00330a] underline"
+            >
+              Reset to default
+            </button>
+          </div>
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
+            {GUEST_CSV_COLUMNS.map((column) => (
+              <label key={column.key} className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={csvColumns.includes(column.key)}
+                  onChange={() => toggleCsvColumn(column.key)}
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-600"
+                />
+                {column.header}
+              </label>
+            ))}
+          </div>
+          {csvColumns.length === 0 && (
+            <p className="mt-3 text-sm text-red-600">Pick at least one column to download.</p>
+          )}
+        </div>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
