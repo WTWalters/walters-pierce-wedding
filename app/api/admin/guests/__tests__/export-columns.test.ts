@@ -127,6 +127,14 @@ it('writes the preferred name into the Preferred Name column', async () => {
   expect(row.split(',')[columns.indexOf('Preferred Name')]).toBe('Grandma')
 })
 
+// Nicolle: "sort on first name instead of last?" — the file leads with First Name,
+// so surname order read as no order at all.
+it('sorts rows by first name, then last name', async () => {
+  await exportCsv()
+  const args = (prisma.guest.findMany as jest.Mock).mock.calls[0][0]
+  expect(args.orderBy).toEqual([{ firstName: 'asc' }, { lastName: 'asc' }])
+})
+
 // plusOnes was only included for the two Plus Ones columns.
 it('stops joining the plusOnes relation it no longer needs', async () => {
   await exportCsv()

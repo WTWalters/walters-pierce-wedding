@@ -13,11 +13,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // First name, then last — the file's leading column is First Name, so sorting by
+    // surname read as unsorted (same reason the Match popup was re-sorted).
     const guests = await prisma.guest.findMany({
       where: NOT_AWAITING_REVIEW,
       orderBy: [
-        { lastName: 'asc' },
-        { firstName: 'asc' }
+        { firstName: 'asc' },
+        { lastName: 'asc' }
       ]
     })
 
