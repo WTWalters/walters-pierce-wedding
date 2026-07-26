@@ -178,21 +178,28 @@ export default function GuestsPage() {
     })
 
     // Sort guests
+    const byName = (a: Guest, b: Guest) =>
+      `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case 'rsvp': {
+          // Newest response first, then everything without a date. Only the public
+          // form stamps rsvpReceivedAt, so responses Nicolle entered herself have
+          // none — they fall into the undated group and sort by name there rather
+          // than in an arbitrary order. The old version returned 1 when *neither*
+          // had a date, claiming a > b for two equal rows, which left the undated
+          // tail shuffling around.
+          const aTime = a.rsvpReceivedAt ? new Date(a.rsvpReceivedAt).getTime() : null
+          const bTime = b.rsvpReceivedAt ? new Date(b.rsvpReceivedAt).getTime() : null
+          if (aTime === null && bTime === null) return byName(a, b)
+          if (aTime === null) return 1
+          if (bTime === null) return -1
+          return bTime - aTime || byName(a, b)
+        }
         case 'name':
-          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
-        case 'email':
-          return (a.email ?? '').localeCompare(b.email ?? '')
-        case 'rsvp':
-          if (a.rsvpReceivedAt && b.rsvpReceivedAt) {
-            return new Date(b.rsvpReceivedAt).getTime() - new Date(a.rsvpReceivedAt).getTime()
-          }
-          return a.rsvpReceivedAt ? -1 : 1
-        case 'created':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         default:
-          return 0
+          return byName(a, b)
       }
     })
 
@@ -682,26 +689,29 @@ export default function GuestsPage() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+            <label htmlFor="sort-by" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
             <select
+              id="sort-by"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
             >
+              {/* Email and Date Added dropped — Nicolle: "none of it means anything". */}
               <option value="name">Name</option>
-              <option value="email">Email</option>
               <option value="rsvp">RSVP Date</option>
-              <option value="created">Date Added</option>
             </select>
           </div>
           
           {/* Only worth saying when a search or filter is narrowing the list — an
               unfiltered "Showing 66 of 66" is noise (Nicolle: "doesn't give info
-              that I need"). */}
+              that I need").
+              "parties", not "guests": a row is one invitation, and "Ethan & Amber
+              Walters" is a single row holding four seats. The people count lives in
+              the "Total Guests Invited" card, which sums reserved seats. */}
           <div className="flex items-end">
             {filteredGuests.length !== guests.length && (
               <div className="text-sm text-gray-600">
-                Showing {filteredGuests.length} of {guests.length} guests
+                Showing {filteredGuests.length} of {guests.length} parties
               </div>
             )}
           </div>

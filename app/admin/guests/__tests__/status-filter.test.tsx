@@ -76,16 +76,16 @@ it('shows the guests with no answer under No Response', async () => {
 // neither, which is what a stale invitationSentAt test broke.
 it('splits the whole list between Responded and No Response', async () => {
   await filterBy('responded')
-  await waitFor(() => expect(screen.getByText(/Showing 3 of 4 guests/)).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByText(/Showing 3 of 4 parties/)).toBeInTheDocument())
   await userEvent.selectOptions(screen.getByLabelText('Status Filter'), 'no_response')
-  await waitFor(() => expect(screen.getByText(/Showing 1 of 4 guests/)).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByText(/Showing 1 of 4 parties/)).toBeInTheDocument())
 })
 
 // The filter must agree with the "RSVPs Received" stat card, which counts
 // attending true + false. Them disagreeing is what caught Nicolle's eye.
 it('agrees with the RSVPs Received stat card', async () => {
   await filterBy('responded')
-  await waitFor(() => expect(screen.getByText(/Showing 3 of 4 guests/)).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByText(/Showing 3 of 4 parties/)).toBeInTheDocument())
   // "RSVPs Received" is both the stat-card caption and a filter option — take the
   // caption, then read the number sitting beside it in the card.
   const caption = screen.getAllByText('RSVPs Received').find((el) => el.tagName !== 'OPTION')

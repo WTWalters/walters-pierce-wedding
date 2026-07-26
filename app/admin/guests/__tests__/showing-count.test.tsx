@@ -25,12 +25,12 @@ beforeEach(() => {
   }) as jest.Mock
 })
 
-// Nicolle: an unfiltered "Showing 66 of 66 guests" "doesn't give info that I need".
+// Nicolle: an unfiltered "Showing 66 of 66 parties" "doesn't give info that I need".
 // It should only appear when a search or filter is actually narrowing the list.
 it('hides the "Showing X of Y" count when nothing is filtered', async () => {
   render(<GuestsPage />)
   await waitFor(() => expect(screen.getByText('Muriel Walters')).toBeInTheDocument())
-  expect(screen.queryByText(/Showing \d+ of \d+ guests/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/Showing \d+ of \d+ parties/)).not.toBeInTheDocument()
 })
 
 it('shows the count once a search narrows the list', async () => {
@@ -42,6 +42,6 @@ it('shows the count once a search narrows the list', async () => {
     'Muriel'
   )
 
-  await waitFor(() => expect(screen.getByText('Showing 1 of 2 guests')).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByText('Showing 1 of 2 parties')).toBeInTheDocument())
   expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument()
 })
