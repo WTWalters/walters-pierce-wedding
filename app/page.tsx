@@ -242,6 +242,38 @@ export default function Home() {
                       Colorado Mountains
                     </p>
                   </div>
+
+                  {/* The photo album, in the space this short column leaves under
+                      "The Wedding" (Nicolle marked the spot). Nothing else in this
+                      section is clickable, so an icon alone would read as decoration —
+                      hence the spelled-out invitation and a real button. Inline styles
+                      match the Quick Links cards: Tailwind's shadow/transform utilities
+                      mis-paint card backgrounds on mobile WebKit here. */}
+                  <Link
+                    href="/photos"
+                    className="group"
+                    style={{
+                      display: 'block',
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      padding: '24px',
+                      textAlign: 'center',
+                      border: '1px solid rgba(212,175,55,0.25)',
+                    }}
+                  >
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-amber-200 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                      <div className="text-2xl">📸</div>
+                    </div>
+                    <h5 className="text-lg font-semibold text-gray-900 mb-2" style={{ hyphens: 'none', wordBreak: 'keep-all' }}>
+                      Photo Album
+                    </h5>
+                    <p className="text-sm text-gray-600 leading-relaxed" style={{ hyphens: 'none', wordBreak: 'normal' }}>
+                      Share your photos from the celebration and see everyone else&rsquo;s.
+                    </p>
+                    <span className="inline-block mt-4 px-5 py-2 rounded-full bg-[#00330a] text-[#D4AF37] text-sm font-medium">
+                      Open the album &rarr;
+                    </span>
+                  </Link>
                 </div>
               </div>
             </div>
