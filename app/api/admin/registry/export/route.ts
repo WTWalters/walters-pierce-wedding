@@ -19,12 +19,15 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
     include: { registryItem: { select: { title: true } } },
   })
-  const header = ['Name', 'Email', 'Gift', 'Amount', 'Message', 'Thank-you sent', 'Date']
+  const header = ['Name', 'Email', 'Gift', 'Amount', 'Message', 'Thank-you sent', 'Recorded by hand', 'Date']
   const lines = [header.join(',')]
   for (const c of rows) {
     lines.push([
-      esc(c.contributorName), esc(c.contributorEmail), esc(c.registryItem?.title ?? '—'),
+      esc(c.contributorName), esc(c.contributorEmail),
+      // A Stripe gift names its tier; one Nicolle recorded names what it was.
+      esc(c.registryItem?.title ?? c.giftDescription ?? '—'),
       Number(c.amount).toFixed(2), esc(c.message ?? ''), c.thankYouSent ? 'Yes' : 'No',
+      c.source === 'manual' ? 'Yes' : 'No',
       new Date(c.createdAt).toLocaleDateString('en-US'),
     ].join(','))
   }
