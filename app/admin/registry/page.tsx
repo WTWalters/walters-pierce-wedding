@@ -184,38 +184,44 @@ export default function AdminRegistryPage() {
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200"><h3 className="text-lg font-semibold">Contributions</h3></div>
+        {/* Nicolle: "needs to have a wider viewing field" — the Date column was
+            clipped off the right edge. Beyond widening the admin container, this
+            table gives back its own width: tighter cell padding, a one-line
+            "Thanked" header instead of "THANK-/YOU" wrapping, and the two long text
+            columns allowed to wrap rather than forcing the table wider than the
+            screen. overflow-x-auto stays as the fallback at narrow widths. */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Name', 'Gift', 'Amount', 'Message', 'Thank-you', 'Date'].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                {['Name', 'Gift', 'Amount', 'Message', 'Thanked', 'Date'].map((h) => (
+                  <th key={h} className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {contributions.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-3 py-4 text-sm">
                     <div className="font-medium text-gray-900">{c.contributorName}</div>
-                    <div className="text-gray-500">{c.contributorEmail || '— no email —'}</div>
+                    <div className="text-gray-500 break-all">{c.contributorEmail || '— no email —'}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-3 py-4 text-sm text-gray-900">
                     {c.tierTitle}
                     {c.source === 'manual' && (
-                      <span className="ml-2 bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs">
+                      <span className="ml-2 inline-block bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
                         Added by you
                       </span>
                     )}
                   </td>
                   {/* A present has no amount — showing "$0" for a cake serving set is
                       exactly what Nicolle objected to. */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                     {c.amount > 0 ? `$${c.amount.toLocaleString('en-US')}` : '—'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{c.message || '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{c.thankYouSent ? '✅' : '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(c.createdAt).toLocaleDateString('en-US')}</td>
+                  <td className="px-3 py-4 text-sm text-gray-600 max-w-[18rem]">{c.message || '—'}</td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-center">{c.thankYouSent ? '✅' : '—'}</td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(c.createdAt).toLocaleDateString('en-US')}</td>
                 </tr>
               ))}
             </tbody>
