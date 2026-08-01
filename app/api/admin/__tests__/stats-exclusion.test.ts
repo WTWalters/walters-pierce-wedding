@@ -24,8 +24,9 @@ beforeEach(() => {
 
 it('guests/stats excludes awaiting-review from attending and notAttending', async () => {
   await guestStats(req())
+  // Declining parties are now fetched (for their reserved seats) rather than counted.
   expect(prisma.guest.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { attending: true, ...EXCLUDE } }))
-  expect(prisma.guest.count).toHaveBeenCalledWith({ where: { attending: false, ...EXCLUDE } })
+  expect(prisma.guest.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { attending: false, ...EXCLUDE } }))
   expect(prisma.guest.aggregate).toHaveBeenCalledWith(expect.objectContaining({ where: EXCLUDE }))
 })
 
