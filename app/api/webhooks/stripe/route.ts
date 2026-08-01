@@ -98,7 +98,10 @@ export async function POST(request: NextRequest) {
             }
             const greeting = guestRecord ? greetingName(guestRecord) : (typedName ? shortenTypedName(typedName) : name)
 
-            const tmpl = generateRegistryThankYouEmail({ name: greeting, tierTitle: item?.title ?? 'your gift', amount })
+            const tmpl = generateRegistryThankYouEmail({
+              name: greeting,
+              gifts: [{ amount, label: item?.title ?? 'your gift' }],
+            })
             const res = await sendEmail({ to: email, ...tmpl }, { from: EMME_CONNOR_FROM })
             await logEmail({
               emailType: 'registry_thank_you', recipientEmail: email, subject: tmpl.subject,

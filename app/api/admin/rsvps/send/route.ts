@@ -52,26 +52,34 @@ export async function POST(request: NextRequest) {
   const guests = await prisma.guest.findMany({ where: { id: { in: guestIds } } })
   const details = await loadDetails()
 
-  // The thank-you names the actual gift, so it needs the gift on record. Looked up
-  // by email, case-insensitively: only the RSVP intake lowercases addresses, while
-  // admin-entered guests keep whatever casing was typed.
+  // The thank-you names the actual gifts, so it needs them on record. ALL of them:
+  // Aunt Marilyn gave a cake serving set and cash, and Nicolle wants one note
+  // acknowledging both. Recording each gift separately keeps the ledger honest and
+  // lets the note scale past two without a "second gift" field.
+  //
+  // Looked up by email, case-insensitively: only the RSVP intake lowercases
+  // addresses, while admin-entered guests keep whatever casing was typed.
   type GiftOnFile = { id: string; amount: number; label: string | null }
-  const giftsByEmail = new Map<string, GiftOnFile>()
+  const giftsByEmail = new Map<string, GiftOnFile[]>()
   if (template === 'registry_thank_you') {
     const emails = guests.map((g) => g.email).filter((e): e is string => Boolean(e))
     for (const email of emails) {
-      const gift = await prisma.contribution.findFirst({
+      const gifts = await prisma.contribution.findMany({
         where: { contributorEmail: { equals: email, mode: 'insensitive' } },
-        orderBy: { createdAt: 'desc' },
+        // Oldest first, so the sentence lists them in the order they arrived.
+        orderBy: { createdAt: 'asc' },
         include: { registryItem: { select: { title: true } } },
       })
-      if (gift) {
-        giftsByEmail.set(email.toLowerCase(), {
-          id: gift.id,
-          amount: Number(gift.amount),
-          // A Stripe gift names its tier; one Nicolle recorded names what it was.
-          label: gift.registryItem?.title ?? gift.giftDescription ?? null,
-        })
+      if (gifts.length > 0) {
+        giftsByEmail.set(
+          email.toLowerCase(),
+          gifts.map((gift) => ({
+            id: gift.id,
+            amount: Number(gift.amount),
+            // A Stripe gift names its tier; one Nicolle recorded names what it was.
+            label: gift.registryItem?.title ?? gift.giftDescription ?? null,
+          }))
+        )
       }
     }
   }
@@ -92,8 +100,11 @@ export async function POST(request: NextRequest) {
       case 'rsvp_over_count': return generateRsvpOverCountEmail(who, g.rsvpdCount, g.reservedSeats)
       case 'gracious_regrets': return generateGraciousRegretsEmail(who)
       case 'registry_thank_you': {
-        const gift = g.email ? giftsByEmail.get(g.email.toLowerCase()) : undefined
-        return generateRegistryThankYouEmail({ name: who, amount: gift?.amount, tierTitle: gift?.label })
+        const gifts = (g.email ? giftsByEmail.get(g.email.toLowerCase()) : undefined) ?? []
+        return generateRegistryThankYouEmail({
+          name: who,
+          gifts: gifts.map((gift) => ({ amount: gift.amount, label: gift.label })),
+        })
       }
       case 'venue_details':
       default: return generateVenueDetailsEmail(who, details)
@@ -129,8 +140,8 @@ export async function POST(request: NextRequest) {
     // Refuse rather than send a thank-you that can't name the gift. Recording the
     // gift on the Gifts tab first is the intended order, and a vague note to
     // someone who gave generously is worse than no note.
-    const giftOnFile = giftsByEmail.get(guest.email.toLowerCase())
-    if (template === 'registry_thank_you' && !giftOnFile) {
+    const giftsOnFile = giftsByEmail.get(guest.email.toLowerCase())
+    if (template === 'registry_thank_you' && !giftsOnFile) {
       results.push({
         guestId: guest.id,
         email: guest.email,
@@ -152,12 +163,13 @@ export async function POST(request: NextRequest) {
       status: res.success ? 'sent' : 'failed',
       resendMessageId: res.success ? res.messageId : null,
     })
-    // Record that the gift has been thanked so the Gifts tab shows it — best effort,
-    // since the note has already gone out and failing the call would misreport that.
-    if (res.success && giftOnFile) {
+    // Mark every gift the note acknowledged, not just one, or the Gifts tab would
+    // show a thanked serving set beside an unthanked cheque from the same note.
+    // Best effort: the note has already gone out, so failing here would misreport it.
+    if (res.success && giftsOnFile) {
       try {
-        await prisma.contribution.update({
-          where: { id: giftOnFile.id },
+        await prisma.contribution.updateMany({
+          where: { id: { in: giftsOnFile.map((g) => g.id) } },
           data: { thankYouSent: true, thankYouSentAt: new Date() },
         })
       } catch (err) {

@@ -91,7 +91,23 @@ describe('email', () => {
 })
 
 describe('amount', () => {
-  // A present with no cash value. The thank-you wording handles 0 separately.
+  // Nicolle: "I tried to add Aunt Marilyn's gift of a cake serving set and it's
+  // requiring an amount... If someone has given a physical gift there should never
+  // be an amount shown (obviously)."
+  it('may be left blank for a physical present', async () => {
+    const res = (await POST(req({ ...VALID, amount: '', giftDescription: 'Cake Serving Set' }))) as unknown as { status: number }
+    expect(res.status).toBe(200)
+    expect(created().amount).toBe(0)
+  })
+
+  it('may be omitted entirely', async () => {
+    const body = { ...VALID, giftDescription: 'Cake Serving Set' }
+    delete (body as Record<string, unknown>).amount
+    const res = (await POST(req(body))) as unknown as { status: number }
+    expect(res.status).toBe(200)
+    expect(created().amount).toBe(0)
+  })
+
   it('accepts 0', async () => {
     const res = (await POST(req({ ...VALID, amount: '0' }))) as unknown as { status: number }
     expect(res.status).toBe(200)
@@ -102,6 +118,23 @@ describe('amount', () => {
     const res = (await POST(req({ ...VALID, amount: '-50' }))) as unknown as { status: number }
     expect(res.status).toBe(400)
   })
+})
+
+// Neither an amount nor a description is a row that says nothing, and a thank-you
+// that can only manage "your generous gift".
+it('requires either an amount or a description', async () => {
+  const res = (await POST(req({ ...VALID, amount: '', giftDescription: '' }))) as unknown as { status: number; body: { error: string } }
+  expect(res.status).toBe(400)
+  expect(res.body.error).toMatch(/amount|describe/i)
+  expect(prisma.contribution.create).not.toHaveBeenCalled()
+})
+
+it('accepts a description with no amount, and an amount with no description', async () => {
+  const present = (await POST(req({ ...VALID, amount: '', giftDescription: 'Cake Serving Set' }))) as unknown as { status: number }
+  expect(present.status).toBe(200)
+  ;(prisma.contribution.create as jest.Mock).mockClear()
+  const cash = (await POST(req({ ...VALID, amount: '100', giftDescription: '' }))) as unknown as { status: number }
+  expect(cash.status).toBe(200)
 })
 
 it('requires a name', async () => {

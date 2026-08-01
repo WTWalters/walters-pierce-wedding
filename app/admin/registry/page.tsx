@@ -75,9 +75,15 @@ export default function AdminRegistryPage() {
           <div>
             <h3 className="text-lg font-semibold">Record a gift</h3>
             <p className="text-sm text-gray-600 mt-1">
-              For anything that didn&rsquo;t come through the Honeymoon Fund page. Leave the
-              amount at 0 for a present with no cash value — the thank-you note will just
-              say &ldquo;your generous gift&rdquo; instead of naming a figure.
+              For anything that didn&rsquo;t come through the Honeymoon Fund page. Leave
+              the amount blank for a present &mdash; no figure is shown anywhere for it.
+              Describe the gift how you&rsquo;d like it thanked (&ldquo;beautiful cake
+              serving set&rdquo;, &ldquo;helping with our AirBNB&rdquo;).
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Gave more than one thing? <strong>Add each gift separately.</strong> One
+              Thank You note acknowledges all of them together &mdash; &ldquo;thank you for
+              the beautiful cake serving set, as well as $100 toward our AirBNB&rdquo;.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -110,12 +116,12 @@ export default function AdminRegistryPage() {
               />
             </label>
             <label className="text-sm">
-              <span className="block text-gray-700 mb-1">Amount *</span>
+              <span className="block text-gray-700 mb-1">Amount</span>
               <input
-                required
                 type="number"
                 min="0"
                 step="0.01"
+                placeholder="blank for a present"
                 value={newGift.amount}
                 onChange={(e) => setNewGift({ ...newGift, amount: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
@@ -202,7 +208,11 @@ export default function AdminRegistryPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${c.amount.toLocaleString('en-US')}</td>
+                  {/* A present has no amount — showing "$0" for a cake serving set is
+                      exactly what Nicolle objected to. */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {c.amount > 0 ? `$${c.amount.toLocaleString('en-US')}` : '—'}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{c.message || '—'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{c.thankYouSent ? '✅' : '—'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(c.createdAt).toLocaleDateString('en-US')}</td>

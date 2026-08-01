@@ -26,7 +26,9 @@ export async function GET(request: NextRequest) {
       esc(c.contributorName), esc(c.contributorEmail),
       // A Stripe gift names its tier; one Nicolle recorded names what it was.
       esc(c.registryItem?.title ?? c.giftDescription ?? '—'),
-      Number(c.amount).toFixed(2), esc(c.message ?? ''), c.thankYouSent ? 'Yes' : 'No',
+      // Blank, not 0.00, for a present with no cash value.
+      Number(c.amount) > 0 ? Number(c.amount).toFixed(2) : '',
+      esc(c.message ?? ''), c.thankYouSent ? 'Yes' : 'No',
       c.source === 'manual' ? 'Yes' : 'No',
       new Date(c.createdAt).toLocaleDateString('en-US'),
     ].join(','))

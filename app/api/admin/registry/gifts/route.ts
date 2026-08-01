@@ -18,7 +18,10 @@ const giftSchema = z.object({
   contributorName: z.string().trim().min(1, 'A name is required').max(200),
   contributorEmail: z.string().trim().max(200).optional().default(''),
   giftDescription: z.string().trim().max(500).optional().default(''),
-  amount: z.coerce.number().min(0).max(1_000_000),
+  // Optional: a physical present has no amount, and Nicolle is right that one
+  // should never be shown for it. Stored as 0 (the column is NOT NULL) and treated
+  // as "no cash value" everywhere it's displayed or put in a thank-you.
+  amount: z.coerce.number().min(0).max(1_000_000).optional().default(0),
   // Date only (yyyy-mm-dd) from a date input, or omitted for today.
   givenOn: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 })
@@ -38,6 +41,15 @@ export async function POST(request: NextRequest) {
       )
     }
     const { contributorName, contributorEmail, giftDescription, amount, givenOn } = parsed.data
+
+    // Neither an amount nor a description leaves a row that says nothing and a
+    // thank-you that can only manage "your generous gift".
+    if (amount === 0 && !giftDescription) {
+      return NextResponse.json(
+        { error: 'Add an amount, or describe the gift' },
+        { status: 400 }
+      )
+    }
 
     const email = contributorEmail.toLowerCase()
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
