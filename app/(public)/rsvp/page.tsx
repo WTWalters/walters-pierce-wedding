@@ -161,9 +161,13 @@ export default function RSVPPage() {
             <h2 className="font-serif text-2xl text-[#00330a] mb-3">Thank you!</h2>
             {submitted.attending ? (
               <>
-                <p className="text-gray-700">
-                  We look forward to celebrating with you. Watch your inbox for further
-                  information — the date, time, and venue are on their way.
+                {/* No pleasantry ahead of this. Nicolle: "People have a tendency to
+                    glance at a message and if they think they know what it's going to
+                    say, they don't read it." The heading already thanks them, and this
+                    is the only place the venue is promised — the site never shows it. */}
+                <p className="text-gray-800 font-semibold">
+                  Watch your inbox for further information — the date, time, and venue
+                  are on their way.
                 </p>
                 <p className="mt-4 text-gray-700">
                   Emme &amp; Connor are honeymooning in Ireland — if you&apos;d like to

@@ -63,12 +63,16 @@ it('counts parties, not guests', async () => {
   expect(screen.queryByText(/of 5 guests/)).not.toBeInTheDocument()
 })
 
-// Nicolle: "KEEP THE SORT BY field! Get rid of all options except Name and RSVP Date"
-it('offers only Name and RSVP Date', async () => {
+// Nicolle: "Get rid of all options except Name and RSVP Date", then later "on the
+// Sort By field, can you add Table Number?" — the durable part of the first ask is
+// that Email and Date Added stay gone.
+it('offers Name, RSVP Date and Table Number, and nothing else', async () => {
   await loadPage()
   const options = Array.from(screen.getByLabelText('Sort By').querySelectorAll('option'))
     .map((o) => o.textContent)
-  expect(options).toEqual(['Name', 'RSVP Date'])
+  expect(options).toEqual(['Name', 'RSVP Date', 'Table Number'])
+  expect(options).not.toContain('Email')
+  expect(options).not.toContain('Date Added')
 })
 
 describe('sorting by RSVP date', () => {
