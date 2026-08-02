@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { assertSeatCap, formatPartyName } from '@/lib/guests'
 import { guestListStatus, formatAddedDate } from '@/lib/review'
 import {
@@ -12,6 +12,11 @@ import {
 import { MessageToSend } from '@/components/admin/MessageToSend'
 
 const CSV_COLUMNS_STORAGE_KEY = 'wpw.guestCsvColumns'
+
+// A rendered row is either a guest or the table sub-header that introduces a group.
+type GuestRow =
+  | { kind: 'table-header'; label: string; seats: number; parties: number }
+  | { kind: 'guest'; guest: Guest }
 
 interface Guest {
   id: string
@@ -197,6 +202,16 @@ export default function GuestsPage() {
           if (bTime === null) return -1
           return bTime - aTime || byName(a, b)
         }
+        case 'table': {
+          // Unassigned parties collect at the end — she's working through them, so
+          // they belong together rather than salted between the seated tables.
+          const at = a.tableNumber ?? null
+          const bt = b.tableNumber ?? null
+          if (at === null && bt === null) return byName(a, b)
+          if (at === null) return 1
+          if (bt === null) return -1
+          return at - bt || byName(a, b)
+        }
         case 'name':
         default:
           return byName(a, b)
@@ -377,6 +392,34 @@ export default function GuestsPage() {
   // "Response Received" and "Invited" badges keyed on rsvpReceivedAt and
   // invitationSentAt, which meant a guest with no answer could show something
   // other than "No Response" (Nicolle's ask: those two words, everywhere).
+  // Sorting by table turns the list into a seating chart: each table announced once,
+  // then its parties, then a gap (Nicolle: "a sub-header giving the table number
+  // followed by the names with a bit of a space at the end"). Every other sort is a
+  // plain list. filteredGuests is already ordered, so this only has to walk it.
+  const guestRows = useMemo<GuestRow[]>(() => {
+    if (sortBy !== 'table') return filteredGuests.map((guest) => ({ kind: 'guest' as const, guest }))
+
+    const rows: GuestRow[] = []
+    let i = 0
+    while (i < filteredGuests.length) {
+      const table = filteredGuests[i].tableNumber ?? null
+      const group: Guest[] = []
+      while (i < filteredGuests.length && (filteredGuests[i].tableNumber ?? null) === table) {
+        group.push(filteredGuests[i])
+        i++
+      }
+      rows.push({
+        kind: 'table-header',
+        label: table == null ? 'No table assigned yet' : `Table ${table}`,
+        // Headcount actually coming, which is what she's balancing per table.
+        seats: group.reduce((sum, g) => sum + (g.rsvpdCount ?? g.reservedSeats ?? 0), 0),
+        parties: group.length,
+      })
+      for (const guest of group) rows.push({ kind: 'guest', guest })
+    }
+    return rows
+  }, [filteredGuests, sortBy])
+
   const getStatusBadge = (guest: Guest) => {
     if (guest.attending === true) {
       return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">✅ Attending</span>
@@ -699,6 +742,7 @@ export default function GuestsPage() {
               {/* Email and Date Added dropped — Nicolle: "none of it means anything". */}
               <option value="name">Name</option>
               <option value="rsvp">RSVP Date</option>
+              <option value="table">Table Number</option>
             </select>
           </div>
           
@@ -726,38 +770,52 @@ export default function GuestsPage() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
+            {/* Headers wrap onto two lines so the columns stay narrow — that's what
+                made room for Table without pushing Actions off the edge. */}
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number in Party</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number RSVP&apos;d</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                {['Name', 'Status', 'Table', 'Number in Party', 'Number RSVP’d', 'Actions'].map((h) => (
+                  <th key={h} className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider align-bottom max-w-[7rem]">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredGuests.map((guest) => (
-                <tr key={guest.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{formatPartyName(guest)}</div>
-                    {getListBadge(guest)}
-                    {guest.invitationCode && (
-                      <div className="text-sm text-gray-500 font-mono">Code: {guest.invitationCode}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(guest)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{guest.reservedSeats ?? ''}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{guest.rsvpdCount ?? ''}</td>
-                  <td className="px-6 py-4 text-sm font-medium">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <button onClick={() => setSelectedGuest(guest)} className="text-blue-600 hover:text-blue-900">View</button>
-                      <button className="text-green-600 hover:text-green-900" onClick={() => startEditGuest(guest)}>Edit</button>
-                      <button className="text-red-600 hover:text-red-900" onClick={() => deleteGuest(guest.id, formatPartyName(guest))}>Delete</button>
-                      <MessageToSend guestId={guest.id} email={guest.email ?? null} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {guestRows.map((row) =>
+                row.kind === 'table-header' ? (
+                  // Nicolle's seating view: each table announced once, with space
+                  // before the next one, so the list reads as a seating chart.
+                  <tr key={`table-${row.label}`} className="bg-green-50 border-t-8 border-gray-100">
+                    <td colSpan={6} className="px-3 py-2 text-sm font-semibold text-[#00330a]">
+                      {row.label}
+                      <span className="ml-2 font-normal text-gray-600">
+                        {row.seats} {row.seats === 1 ? 'person' : 'people'} · {row.parties} {row.parties === 1 ? 'party' : 'parties'}
+                      </span>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={row.guest.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-4">
+                      <div className="text-sm font-medium text-gray-900">{formatPartyName(row.guest)}</div>
+                      {getListBadge(row.guest)}
+                      {row.guest.invitationCode && (
+                        <div className="text-sm text-gray-500 font-mono">Code: {row.guest.invitationCode}</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-4">{getStatusBadge(row.guest)}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{row.guest.tableNumber ?? '—'}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{row.guest.reservedSeats ?? ''}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{row.guest.rsvpdCount ?? ''}</td>
+                    <td className="px-3 py-4 text-sm font-medium">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <button onClick={() => setSelectedGuest(row.guest)} className="text-blue-600 hover:text-blue-900">View</button>
+                        <button className="text-green-600 hover:text-green-900" onClick={() => startEditGuest(row.guest)}>Edit</button>
+                        <button className="text-red-600 hover:text-red-900" onClick={() => deleteGuest(row.guest.id, formatPartyName(row.guest))}>Delete</button>
+                        <MessageToSend guestId={row.guest.id} email={row.guest.email ?? null} />
+                      </div>
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
           
@@ -830,6 +888,11 @@ export default function GuestsPage() {
                     <strong>Attending:</strong> {selectedGuest.attending ? 'Yes' : 'No'}
                   </div>
                 )}
+                {/* Shown even when unset — while she's seating people, "not yet" is
+                    the answer she's looking for as often as a number. */}
+                <div>
+                  <strong>Table:</strong> {selectedGuest.tableNumber ?? 'Not assigned yet'}
+                </div>
                 {/* Labelled "Favorite Song" to match the Edit modal and the CSV —
                     the field is songRequest under the hood. */}
                 {selectedGuest.songRequest && (
