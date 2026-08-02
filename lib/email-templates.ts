@@ -293,43 +293,66 @@ export function generateGiftNotificationEmail(data: {
   return { subject, html, text }
 }
 
+export type ThankYouGift = {
+  /** Blank/0 means a present with no cash value — no figure is ever printed. */
+  amount?: number | null
+  /** A Honeymoon Fund tier, or what Nicolle typed ("beautiful cake serving set"). */
+  label?: string | null
+}
+
+// "$50 toward Buy us Coffee" / "$50" / "beautiful cake serving set" / ""
+function giftPhrase(gift: ThankYouGift, bold: (s: string) => string): string {
+  const hasAmount = typeof gift.amount === 'number' && gift.amount > 0
+  const label = (gift.label ?? '').trim()
+  if (hasAmount) {
+    const amount = bold(`$${(gift.amount as number).toLocaleString('en-US')}`)
+    return label ? `${amount} toward ${bold(label)}` : amount
+  }
+  return label ? bold(label) : ''
+}
+
+// "A" / "A, as well as B" / "A, B, as well as C"
+function joinGifts(phrases: string[]): string {
+  if (phrases.length <= 1) return phrases[0] ?? ''
+  return `${phrases.slice(0, -1).join(', ')}, as well as ${phrases[phrases.length - 1]}`
+}
+
 /**
- * amount and tierTitle are optional so a gift Nicolle records by hand still reads
- * well. A cheque has no tier; a physical present has no meaningful amount — and
- * "your generous gift of $0 toward crystal bowl" is not a note you send your
- * grandmother. A Stripe contribution always has both, so its wording is unchanged.
+ * Takes a list so one note can acknowledge everything a person gave (Nicolle:
+ * "it should be a combined thank you note" — Aunt Marilyn gave a cake serving set
+ * AND cash). One gift keeps the original single-gift wording, so the note Stripe
+ * sends automatically is unchanged.
+ *
+ * Amounts are optional throughout: a present has no meaningful figure, and "your
+ * generous gift of $0 toward crystal bowl" is not a note you send your grandmother.
  */
 export function generateRegistryThankYouEmail(data: {
   name: string
-  tierTitle?: string | null
-  amount?: number | null
+  gifts: ThankYouGift[]
 }): Rendered {
   const name = escapeHtml(data.name)
-  const hasAmount = typeof data.amount === 'number' && data.amount > 0
-  const amount = hasAmount ? `$${(data.amount as number).toLocaleString('en-US')}` : ''
-  const tier = (data.tierTitle ?? '').trim()
+  const htmlPhrases = data.gifts
+    .map((g) => giftPhrase(g, (s) => `<strong>${escapeHtml(s)}</strong>`))
+    .filter(Boolean)
+  const textPhrases = data.gifts.map((g) => giftPhrase(g, (s) => s)).filter(Boolean)
 
-  // "gift of $50 toward Buy us Coffee" / "gift of $50" / "gift of the crystal bowl" / "gift"
-  const giftPhrase = hasAmount
-    ? `gift of <strong>${amount}</strong>${tier ? ` toward <strong>${escapeHtml(tier)}</strong>` : ''}`
-    : tier
-      ? `gift of <strong>${escapeHtml(tier)}</strong>`
-      : 'gift'
-  const giftPhraseText = hasAmount
-    ? `gift of ${amount}${tier ? ` toward ${tier}` : ''}`
-    : tier
-      ? `gift of ${tier}`
-      : 'gift'
+  // With several gifts the list carries the sentence; with one, keep the original
+  // "your generous gift of X" phrasing. Nothing identifiable falls back to "gift".
+  const sentence = (phrases: string[]) => {
+    if (phrases.length === 0) return 'your generous gift'
+    if (phrases.length === 1) return `your generous gift of ${phrases[0]}`
+    return `your generous gifts — ${joinGifts(phrases)}`
+  }
 
   const subject = `Thank you for your honeymoon gift, ${data.name}!`
   const body = `
     <p>Dear ${name},</p>
-    <p>Thank you so much for your generous ${giftPhrase}. It means the world to us as we
+    <p>Thank you so much for ${sentence(htmlPhrases)}. It means the world to us as we
     get ready for our honeymoon in Ireland.</p>
     <p>We can't wait to celebrate with you — and we'll be sure to share a photo of us enjoying it!</p>
     <p style="margin-top: 24px;">With love and gratitude,<br><strong>Emme &amp; Connor</strong></p>`
   const html = wrap('A heartfelt thank you', body)
-  const text = `Dear ${data.name},\n\nThank you so much for your generous ${giftPhraseText}. `
+  const text = `Dear ${data.name},\n\nThank you so much for ${sentence(textPhrases)}. `
     + `It means the world to us as we get ready for our honeymoon in Ireland. We can't wait to celebrate with you.\n\n`
     + `With love and gratitude,\nEmme & Connor\nwalters-pierce-wedding.com`
   return { subject, html, text }

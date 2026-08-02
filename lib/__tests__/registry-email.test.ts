@@ -1,7 +1,7 @@
 import { generateRegistryThankYouEmail } from '@/lib/email-templates'
 
 it('renders a warm receipt with tier + amount and no tax language', () => {
-  const r = generateRegistryThankYouEmail({ name: 'Aunt Sue', tierTitle: 'Buy us Dinner', amount: 100 })
+  const r = generateRegistryThankYouEmail({ name: 'Aunt Sue', gifts: [{ label: 'Buy us Dinner', amount: 100 }] })
   expect(r.subject).toMatch(/thank you/i)
   expect(r.html).toContain('Buy us Dinner')
   expect(r.html).toContain('$100')

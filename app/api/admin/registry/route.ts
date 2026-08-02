@@ -20,6 +20,9 @@ export async function GET(request: NextRequest) {
     contributorEmail: c.contributorEmail,
     // A Stripe gift names its tier; one Nicolle recorded names what it was.
     tierTitle: c.registryItem?.title ?? c.giftDescription ?? '—',
+    // Sent separately from tierTitle so the edit form prefills the raw field she
+    // typed rather than the display fallback.
+    giftDescription: c.giftDescription,
     amount: Number(c.amount),
     message: c.message,
     paymentStatus: c.paymentStatus,
