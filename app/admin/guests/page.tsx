@@ -15,7 +15,9 @@ const CSV_COLUMNS_STORAGE_KEY = 'wpw.guestCsvColumns'
 
 // A rendered row is either a guest or the table sub-header that introduces a group.
 type GuestRow =
-  | { kind: 'table-header'; label: string; seats: number; parties: number }
+  // `key` is derived from the table number, not the label — a stable unique id for
+  // React, so two groups can never collide and silently drop each other's rows.
+  | { kind: 'table-header'; key: string; label: string; seats: number; parties: number }
   | { kind: 'guest'; guest: Guest }
 
 interface Guest {
@@ -67,7 +69,10 @@ interface GuestStats {
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<Guest[]>([])
-  const [filteredGuests, setFilteredGuests] = useState<Guest[]>([])
+  // NOTE: filteredGuests is derived below with useMemo, deliberately not state. As
+  // state written by an effect it lagged one render behind sortBy — the render where
+  // sortBy became "table" still held the name-ordered list, and the seating grouping
+  // ran against it. Nicolle: "It needs to refresh when a new sort criteria is added."
   const [stats, setStats] = useState<GuestStats>({
     totalInvited: 0,
     rsvpReceived: 0,
@@ -132,10 +137,6 @@ export default function GuestsPage() {
     }
   }, [csvColumns])
 
-  useEffect(() => {
-    filterAndSortGuests()
-  }, [guests, searchTerm, statusFilter, sortBy])
-
   const fetchGuests = async () => {
     try {
       const [guestsResponse, statsResponse] = await Promise.all([
@@ -156,7 +157,7 @@ export default function GuestsPage() {
     }
   }
 
-  const filterAndSortGuests = () => {
+  const filteredGuests = useMemo(() => {
     const filtered = guests.filter(guest => {
       const matchesSearch = searchTerm === '' || 
         guest.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -218,8 +219,8 @@ export default function GuestsPage() {
       }
     })
 
-    setFilteredGuests(filtered)
-  }
+    return filtered
+  }, [guests, searchTerm, statusFilter, sortBy])
 
   const addGuest = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -395,21 +396,37 @@ export default function GuestsPage() {
   // Sorting by table turns the list into a seating chart: each table announced once,
   // then its parties, then a gap (Nicolle: "a sub-header giving the table number
   // followed by the names with a bit of a space at the end"). Every other sort is a
-  // plain list. filteredGuests is already ordered, so this only has to walk it.
+  // plain list.
+  //
+  // Grouped into a Map rather than by walking adjacent rows. The walk assumed the
+  // list arrived table-ordered, and when it didn't it emitted a header every time the
+  // number changed — "Table 2" three times, groups of one, headers with no rows under
+  // them. Worse, repeated labels meant repeated React keys, so React discarded the
+  // sibling rows: that's why most parties vanished. A Map gives one entry per table by
+  // construction, so neither can happen again whatever order the input is in.
   const guestRows = useMemo<GuestRow[]>(() => {
     if (sortBy !== 'table') return filteredGuests.map((guest) => ({ kind: 'guest' as const, guest }))
 
+    const groups = new Map<number | null, Guest[]>()
+    for (const guest of filteredGuests) {
+      const table = guest.tableNumber ?? null
+      const group = groups.get(table)
+      if (group) group.push(guest)
+      else groups.set(table, [guest])
+    }
+
+    const tables = Array.from(groups.keys()).sort((a, b) => {
+      if (a === null) return 1 // unassigned collects at the end
+      if (b === null) return -1
+      return a - b
+    })
+
     const rows: GuestRow[] = []
-    let i = 0
-    while (i < filteredGuests.length) {
-      const table = filteredGuests[i].tableNumber ?? null
-      const group: Guest[] = []
-      while (i < filteredGuests.length && (filteredGuests[i].tableNumber ?? null) === table) {
-        group.push(filteredGuests[i])
-        i++
-      }
+    for (const table of tables) {
+      const group = groups.get(table)!
       rows.push({
         kind: 'table-header',
+        key: table == null ? 'unassigned' : `t${table}`,
         label: table == null ? 'No table assigned yet' : `Table ${table}`,
         // Headcount actually coming, which is what she's balancing per table.
         seats: group.reduce((sum, g) => sum + (g.rsvpdCount ?? g.reservedSeats ?? 0), 0),
@@ -784,7 +801,7 @@ export default function GuestsPage() {
                 row.kind === 'table-header' ? (
                   // Nicolle's seating view: each table announced once, with space
                   // before the next one, so the list reads as a seating chart.
-                  <tr key={`table-${row.label}`} className="bg-green-50 border-t-8 border-gray-100">
+                  <tr key={`table-${row.key}`} className="bg-green-50 border-t-8 border-gray-100">
                     <td colSpan={6} className="px-3 py-2 text-sm font-semibold text-[#00330a]">
                       {row.label}
                       <span className="ml-2 font-normal text-gray-600">
