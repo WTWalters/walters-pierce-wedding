@@ -51,3 +51,51 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Failed to update the gift' }, { status: 500 })
   }
 }
+
+// Same boundary as PUT: only gifts recorded by hand. Deleting a Stripe contribution
+// would erase the record of a payment that actually happened and leave its tier's
+// raised total counting money with nothing behind it.
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { id } = await params
+
+    const existing = await prisma.contribution.findFirst({ where: { id, source: 'manual' } })
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Only gifts you recorded by hand can be deleted' },
+        { status: 404 }
+      )
+    }
+
+    // Keep a copy: this is the only record of the gift once the row is gone, and a
+    // mis-click here is otherwise unrecoverable.
+    await prisma.contribution.delete({ where: { id } })
+    try {
+      await prisma.auditLog.create({
+        data: {
+          action: 'gift_deleted',
+          entityType: 'contribution',
+          entityId: id,
+          oldValues: {
+            contributorName: existing.contributorName,
+            contributorEmail: existing.contributorEmail,
+            giftDescription: existing.giftDescription,
+            amount: Number(existing.amount),
+            createdAt: existing.createdAt.toISOString(),
+          },
+        },
+      })
+    } catch (err) {
+      console.error('Audit of the deleted gift failed:', err)
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Error deleting a gift:', error)
+    return NextResponse.json({ error: 'Failed to delete the gift' }, { status: 500 })
+  }
+}

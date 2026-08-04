@@ -44,7 +44,84 @@ export default function AdminRegistryPage() {
     setShowAdd(false); setEditingId(null); setNewGift(EMPTY_GIFT)
   }
 
+  // Called, not rendered as <GiftFields/> — a nested component would be a new type
+  // on every render, remounting the inputs and dropping focus mid-keystroke.
+  const giftFields = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <label className="text-sm">
+        <span className="block text-gray-700 mb-1">Name *</span>
+        <input
+          required
+          value={newGift.contributorName}
+          onChange={(e) => setNewGift({ ...newGift, contributorName: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+        />
+      </label>
+      <label className="text-sm">
+        <span className="block text-gray-700 mb-1">Email</span>
+        <input
+          type="email"
+          placeholder="optional — needed to send a thank-you"
+          value={newGift.contributorEmail}
+          onChange={(e) => setNewGift({ ...newGift, contributorEmail: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+        />
+      </label>
+      <label className="text-sm">
+        <span className="block text-gray-700 mb-1">Gift</span>
+        <input
+          placeholder="e.g. cheque, cash, crystal bowl"
+          value={newGift.giftDescription}
+          onChange={(e) => setNewGift({ ...newGift, giftDescription: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+        />
+      </label>
+      <label className="text-sm">
+        <span className="block text-gray-700 mb-1">Amount</span>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="blank for a present"
+          value={newGift.amount}
+          onChange={(e) => setNewGift({ ...newGift, amount: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+        />
+      </label>
+      <label className="text-sm">
+        <span className="block text-gray-700 mb-1">Date</span>
+        <input
+          type="date"
+          value={newGift.givenOn}
+          onChange={(e) => setNewGift({ ...newGift, givenOn: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+        />
+      </label>
+    </div>
+  )
+
+  const deleteGift = async () => {
+    if (!editingId) return
+    // Destructive and there's no undo, so name who it's from rather than "this gift".
+    if (!confirm(`Delete the gift from ${newGift.contributorName || 'this person'}? This cannot be undone.`)) return
+    setSaving(true); setMessage('')
+    try {
+      const res = await fetch(`/api/admin/registry/gifts/${editingId}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) { setMessage(`❌ ${data?.error ?? 'Could not delete the gift'}`); return }
+      setMessage('✅ Gift deleted')
+      closeForm()
+      await load()
+    } catch {
+      setMessage('❌ Could not delete the gift')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const startEdit = (c: Contribution) => {
+    // Close the add form — the edit popup is the only thing that should be open.
+    setShowAdd(false)
     setEditingId(c.id)
     setNewGift({
       contributorName: c.contributorName,
@@ -54,7 +131,6 @@ export default function AdminRegistryPage() {
       amount: c.amount > 0 ? String(c.amount) : '',
       givenOn: dateInputValue(c.createdAt),
     })
-    setShowAdd(true)
     setMessage('')
   }
 
@@ -106,79 +182,27 @@ export default function AdminRegistryPage() {
       {showAdd && (
         <form onSubmit={saveGift} className="bg-white rounded-lg shadow p-6 space-y-4">
           <div>
-            <h3 className="text-lg font-semibold">{editingId ? 'Edit this gift' : 'Record a gift'}</h3>
+            <h3 className="text-lg font-semibold">Record a gift</h3>
             <p className="text-sm text-gray-600 mt-1">
               For anything that didn&rsquo;t come through the Honeymoon Fund page. Leave
               the amount blank for a present &mdash; no figure is shown anywhere for it.
               Describe the gift how you&rsquo;d like it thanked (&ldquo;beautiful cake
               serving set&rdquo;, &ldquo;helping with our AirBNB&rdquo;).
             </p>
-            {!editingId && (
-              <p className="text-sm text-gray-600 mt-2">
-                Gave more than one thing? <strong>Add each gift separately.</strong> One
-                Thank You note acknowledges all of them together &mdash; &ldquo;thank you for
-                the beautiful cake serving set, as well as $100 toward our AirBNB&rdquo;.
-              </p>
-            )}
+            <p className="text-sm text-gray-600 mt-2">
+              Gave more than one thing? <strong>Add each gift separately.</strong> One
+              Thank You note acknowledges all of them together &mdash; &ldquo;thank you for
+              the beautiful cake serving set, as well as $100 toward our AirBNB&rdquo;.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <label className="text-sm">
-              <span className="block text-gray-700 mb-1">Name *</span>
-              <input
-                required
-                value={newGift.contributorName}
-                onChange={(e) => setNewGift({ ...newGift, contributorName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="block text-gray-700 mb-1">Email</span>
-              <input
-                type="email"
-                placeholder="optional — needed to send a thank-you"
-                value={newGift.contributorEmail}
-                onChange={(e) => setNewGift({ ...newGift, contributorEmail: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="block text-gray-700 mb-1">Gift</span>
-              <input
-                placeholder="e.g. cheque, cash, crystal bowl"
-                value={newGift.giftDescription}
-                onChange={(e) => setNewGift({ ...newGift, giftDescription: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="block text-gray-700 mb-1">Amount</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="blank for a present"
-                value={newGift.amount}
-                onChange={(e) => setNewGift({ ...newGift, amount: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="block text-gray-700 mb-1">Date</span>
-              <input
-                type="date"
-                value={newGift.givenOn}
-                onChange={(e) => setNewGift({ ...newGift, givenOn: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-              />
-            </label>
-          </div>
+          {giftFields()}
           <div className="flex gap-3">
             <button
               type="submit"
               disabled={saving}
               className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
             >
-              {saving ? 'Saving…' : editingId ? 'Save changes' : 'Save gift'}
+              {saving ? 'Saving…' : 'Save gift'}
             </button>
             <button
               type="button"
@@ -276,6 +300,64 @@ export default function AdminRegistryPage() {
           {contributions.length === 0 && <div className="text-center py-12 text-gray-500">No gifts yet.</div>}
         </div>
       </div>
+
+      {/* Editing happens in a popup, not inline at the top of the page. Nicolle:
+          "it appears to do nothing... You're far enough down the page that you can't
+          see the fields to edit." A popup also hides Add a gift and Download CSV,
+          which she pointed out make no sense while editing one record. */}
+      {editingId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[85vh] overflow-y-auto">
+            <form onSubmit={saveGift} className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold">Edit this gift</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Leave the amount blank for a present &mdash; no figure is shown
+                    anywhere for it.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  aria-label="Close"
+                  className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {giftFields()}
+
+              <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-100">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Save changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="bg-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                {/* Pushed away from Save so a destructive click isn't a near miss. */}
+                <button
+                  type="button"
+                  onClick={deleteGift}
+                  disabled={saving}
+                  className="ml-auto bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 disabled:opacity-50"
+                >
+                  Delete gift
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
