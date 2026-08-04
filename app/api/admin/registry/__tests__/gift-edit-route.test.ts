@@ -5,11 +5,14 @@ jest.mock('next/server', () => ({
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
 jest.mock('@/lib/prisma', () => ({
-  prisma: { contribution: { findFirst: jest.fn(), update: jest.fn() } },
+  prisma: {
+    contribution: { findFirst: jest.fn(), update: jest.fn(), delete: jest.fn() },
+    auditLog: { create: jest.fn() },
+  },
 }))
 
 import { getServerSession } from 'next-auth'
-import { PUT } from '../gifts/[id]/route'
+import { PUT, DELETE } from '../gifts/[id]/route'
 import { prisma } from '@/lib/prisma'
 
 const ctx = { params: Promise.resolve({ id: 'gift1' }) }
@@ -104,4 +107,75 @@ it('401s a non-admin', async () => {
   const res = (await PUT(req(VALID), ctx)) as unknown as { status: number }
   expect(res.status).toBe(401)
   expect(prisma.contribution.update).not.toHaveBeenCalled()
+})
+
+// Nicolle: "I need a button to delete a gift added as well."
+describe('DELETE', () => {
+  const existing = {
+    id: 'gift1',
+    source: 'manual',
+    contributorName: 'Aunt Marilyn',
+    contributorEmail: 'mjhinrichs@msn.com',
+    giftDescription: 'Beautiful engraved cake serving set',
+    amount: 0,
+    createdAt: new Date('2026-07-27T12:00:00.000Z'),
+  }
+  const del = () => DELETE({} as never, ctx)
+
+  beforeEach(() => {
+    ;(prisma.contribution.findFirst as jest.Mock).mockResolvedValue(existing)
+    ;(prisma.contribution.delete as jest.Mock).mockResolvedValue({})
+    ;(prisma.auditLog.create as jest.Mock).mockResolvedValue({ id: 'a1' })
+  })
+
+  it('deletes a gift she recorded', async () => {
+    const res = (await del()) as unknown as { status: number }
+    expect(res.status).toBe(200)
+    expect(prisma.contribution.delete).toHaveBeenCalledWith({ where: { id: 'gift1' } })
+  })
+
+  // Deleting a Stripe row would erase a payment that really happened and leave its
+  // tier counting money with nothing behind it.
+  it('refuses a Stripe contribution', async () => {
+    ;(prisma.contribution.findFirst as jest.Mock).mockResolvedValue(null)
+    const res = (await del()) as unknown as { status: number; body: { error: string } }
+    expect(res.status).toBe(404)
+    expect(res.body.error).toMatch(/recorded by hand/i)
+    expect(prisma.contribution.delete).not.toHaveBeenCalled()
+  })
+
+  it('scopes the lookup to source=manual', async () => {
+    await del()
+    expect(prisma.contribution.findFirst).toHaveBeenCalledWith({
+      where: { id: 'gift1', source: 'manual' },
+    })
+  })
+
+  // The row is the only record of the gift, and a mis-click is otherwise final.
+  it('keeps a copy of what was deleted', async () => {
+    await del()
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'gift_deleted',
+        entityId: 'gift1',
+        oldValues: expect.objectContaining({
+          contributorName: 'Aunt Marilyn',
+          giftDescription: 'Beautiful engraved cake serving set',
+        }),
+      }),
+    })
+  })
+
+  it('still reports success if the audit write fails', async () => {
+    ;(prisma.auditLog.create as jest.Mock).mockRejectedValueOnce(new Error('audit gone'))
+    const res = (await del()) as unknown as { status: number }
+    expect(res.status).toBe(200)
+  })
+
+  it('401s a non-admin', async () => {
+    ;(getServerSession as jest.Mock).mockResolvedValue(null)
+    const res = (await del()) as unknown as { status: number }
+    expect(res.status).toBe(401)
+    expect(prisma.contribution.delete).not.toHaveBeenCalled()
+  })
 })

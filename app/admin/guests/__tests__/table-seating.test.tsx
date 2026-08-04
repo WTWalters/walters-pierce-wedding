@@ -138,6 +138,110 @@ describe('sorted by table number', () => {
   })
 })
 
+// Nicolle's live data: sorted by NAME the table numbers interleave, which is what the
+// original adjacent-row grouping could not survive. The earlier fixture in this file
+// happened to be table-ordered when name-sorted, so it passed against the broken code
+// — a fixture tidier than reality hid the bug.
+describe('with tables interleaved in name order', () => {
+  const INTERLEAVED = [
+    { table: 2, first: 'Amber', last: 'Walters' },
+    { table: 3, first: 'Bob', last: 'Adams' },
+    { table: 2, first: 'Cara', last: 'Doe' },
+    { table: 9, first: 'Dan', last: 'Ely' },
+    { table: undefined, first: 'Eve', last: 'Fox' },
+    { table: 3, first: 'Gabi', last: 'Cain' },
+    { table: undefined, first: 'Hank', last: 'Ives' },
+  ].map((g, i) => ({
+    id: `x${i}`, firstName: g.first, lastName: g.last, email: `${g.first}@x.com`,
+    source: 'imported', reviewedAt: null, createdAt: '2026-07-01T00:00:00.000Z',
+    attending: true, tableNumber: g.table, reservedSeats: 1, rsvpdCount: 1,
+  }))
+
+  beforeEach(() => {
+    global.fetch = jest.fn((url: string) => {
+      if (String(url).includes('/stats')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ totalInvited: 7, rsvpReceived: 7, attending: 7, notAttending: 0 }),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ guests: INTERLEAVED }) })
+    }) as jest.Mock
+  })
+
+  const load = async () => {
+    render(<GuestsPage />)
+    await waitFor(() => expect(screen.getByText('Amber Walters')).toBeInTheDocument())
+  }
+
+  it('announces each table exactly once', async () => {
+    await load()
+    await userEvent.selectOptions(screen.getByLabelText('Sort By'), 'table')
+    await waitFor(() => expect(screen.getByText(/Table 2/)).toBeInTheDocument())
+
+    const headers = rowText().filter((r) => /^Table \d|^No table/.test(r))
+    expect(headers).toHaveLength(4) // tables 2, 3, 9 and the unassigned group
+    expect(headers.filter((h) => h.startsWith('Table 2'))).toHaveLength(1)
+    expect(headers.filter((h) => h.startsWith('No table'))).toHaveLength(1)
+  })
+
+  // Repeated labels meant repeated React keys, and React silently discarded the
+  // sibling rows — which is why most of her parties disappeared.
+  it('still renders every guest', async () => {
+    await load()
+    await userEvent.selectOptions(screen.getByLabelText('Sort By'), 'table')
+    await waitFor(() => expect(screen.getByText(/Table 2/)).toBeInTheDocument())
+
+    for (const g of INTERLEAVED) {
+      expect(screen.getByText(`${g.firstName} ${g.lastName}`)).toBeInTheDocument()
+    }
+    const guestRowCount = rowText().filter((r) => !/^Table \d|^No table/.test(r)).length
+    expect(guestRowCount).toBe(INTERLEAVED.length)
+  })
+
+  it('collects both members of a table together', async () => {
+    await load()
+    await userEvent.selectOptions(screen.getByLabelText('Sort By'), 'table')
+    await waitFor(() => expect(screen.getByText(/Table 2/)).toBeInTheDocument())
+
+    const rows = rowText()
+    const at = (s: string) => rows.findIndex((r) => r.startsWith(s))
+    // Amber and Cara are both table 2 and must sit under the one Table 2 header.
+    expect(at('Table 2')).toBeLessThan(at('Amber'))
+    expect(at('Amber')).toBeLessThan(at('Cara'))
+    expect(at('Cara')).toBeLessThan(at('Table 3'))
+  })
+
+  // Her actual report: "When I switch the sorting field from Table Number back to
+  // Name, it keeps the same formatting as the table number sort."
+  it('returns to a plain list when she switches back to Name', async () => {
+    await load()
+    await userEvent.selectOptions(screen.getByLabelText('Sort By'), 'table')
+    await waitFor(() => expect(screen.getByText(/Table 2/)).toBeInTheDocument())
+
+    await userEvent.selectOptions(screen.getByLabelText('Sort By'), 'name')
+    await waitFor(() => expect(screen.queryByText(/^Table 2/)).not.toBeInTheDocument())
+
+    expect(rowText().filter((r) => /^Table \d|^No table/.test(r))).toHaveLength(0)
+    expect(rowText().map((r) => r.split(' ')[0]))
+      .toEqual(['Amber', 'Bob', 'Cara', 'Dan', 'Eve', 'Gabi', 'Hank'])
+  })
+
+  // The derived list must be right on the render the sort changes, not one behind.
+  it('survives switching back and forth repeatedly', async () => {
+    await load()
+    for (let round = 0; round < 3; round++) {
+      await userEvent.selectOptions(screen.getByLabelText('Sort By'), 'table')
+      await waitFor(() => expect(screen.getByText(/Table 2/)).toBeInTheDocument())
+      expect(rowText().filter((r) => /^Table \d|^No table/.test(r))).toHaveLength(4)
+
+      await userEvent.selectOptions(screen.getByLabelText('Sort By'), 'name')
+      await waitFor(() => expect(rowText().filter((r) => /^Table \d/.test(r))).toHaveLength(0))
+      expect(rowText()).toHaveLength(INTERLEAVED.length)
+    }
+  })
+})
+
 // Every other sort stays a flat list — no stray sub-headers.
 it('adds no sub-headers when sorting by name', async () => {
   await loadPage()
