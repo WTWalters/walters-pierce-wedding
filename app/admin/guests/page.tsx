@@ -301,6 +301,7 @@ export default function GuestsPage() {
     link.download = guestCsvFilename(scope, new Date())
     link.click()
     URL.revokeObjectURL(link.href)
+    setShowCsvColumns(false)
     setMessage(`✅ Downloaded ${filteredGuests.length} guest${filteredGuests.length === 1 ? '' : 's'}`)
   }
 
@@ -470,20 +471,15 @@ export default function GuestsPage() {
           >
             📤 Import CSV
           </button>
+          {/* Opens the column picker rather than downloading straight away —
+              Nicolle: "can it be opened up, perhaps as a popup window, when I click
+              the Download CSV button?" One button instead of two, and the choice is
+              in front of her at the moment she's about to use it. */}
           <button
-            onClick={downloadCSV}
-            disabled={csvColumns.length === 0}
-            title="Downloads exactly the guests shown below, in the order shown"
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setShowCsvColumns(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
           >
             📥 Download CSV
-          </button>
-          <button
-            onClick={() => setShowCsvColumns((open) => !open)}
-            aria-expanded={showCsvColumns}
-            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            ⚙️ Columns ({csvColumns.length})
           </button>
           <button
             onClick={connectGoogleSheets}
@@ -500,40 +496,75 @@ export default function GuestsPage() {
         </div>
       </div>
 
-      {/* CSV column picker */}
+      {/* CSV column picker — a popup, opened by Download CSV. */}
       {showCsvColumns && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <div>
-              <h3 className="font-medium text-gray-900">Columns in the CSV download</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Your choice is remembered on this computer. The download always contains the
-                guests listed below — so a search or filter narrows the file too.
-              </p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[85vh] overflow-y-auto">
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Download CSV</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {filteredGuests.length === guests.length
+                      ? `All ${guests.length} parties.`
+                      : `The ${filteredGuests.length} ${filteredGuests.length === 1 ? 'party' : 'parties'} currently shown, in the order shown.`}{' '}
+                    Your column choice is remembered on this computer.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCsvColumns(false)}
+                  aria-label="Close"
+                  className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-gray-100 pt-4">
+                <h4 className="font-medium text-gray-900">
+                  Columns ({csvColumns.length} of {GUEST_CSV_COLUMNS.length})
+                </h4>
+                <button
+                  onClick={() => setCsvColumns(DEFAULT_GUEST_CSV_KEYS)}
+                  className="text-sm text-[#00330a] underline"
+                >
+                  Reset to default
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                {GUEST_CSV_COLUMNS.map((column) => (
+                  <label key={column.key} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={csvColumns.includes(column.key)}
+                      onChange={() => toggleCsvColumn(column.key)}
+                      className="rounded border-gray-300 text-green-600 focus:ring-green-600"
+                    />
+                    {column.header}
+                  </label>
+                ))}
+              </div>
+              {csvColumns.length === 0 && (
+                <p className="text-sm text-red-600">Pick at least one column to download.</p>
+              )}
+
+              <div className="flex gap-3 pt-2 border-t border-gray-100">
+                <button
+                  onClick={downloadCSV}
+                  disabled={csvColumns.length === 0}
+                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  📥 Download
+                </button>
+                <button
+                  onClick={() => setShowCsvColumns(false)}
+                  className="bg-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => setCsvColumns(DEFAULT_GUEST_CSV_KEYS)}
-              className="text-sm text-[#00330a] underline"
-            >
-              Reset to default
-            </button>
           </div>
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
-            {GUEST_CSV_COLUMNS.map((column) => (
-              <label key={column.key} className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={csvColumns.includes(column.key)}
-                  onChange={() => toggleCsvColumn(column.key)}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-600"
-                />
-                {column.header}
-              </label>
-            ))}
-          </div>
-          {csvColumns.length === 0 && (
-            <p className="mt-3 text-sm text-red-600">Pick at least one column to download.</p>
-          )}
         </div>
       )}
 
