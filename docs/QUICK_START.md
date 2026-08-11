@@ -89,6 +89,11 @@ This guide will help you set up the full-featured wedding website for Emme & Con
    # NextAuth
    NEXTAUTH_URL="http://localhost:3000"
    NEXTAUTH_SECRET="generate-a-secret-key"
+
+   # Admin sign-in — required. Password for the super admin and the shared
+   # admin account; if unset, both are disabled and only database admin
+   # users can sign in. Must also be set on the Railway service.
+   ADMIN_PASSWORD="choose-a-strong-password"
    
    # Stripe
    STRIPE_SECRET_KEY="sk_test_..."
