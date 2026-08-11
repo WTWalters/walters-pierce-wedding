@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { label: 'To Review', href: '/admin/review' },
   { label: 'Emails', href: '/admin/emails' },
   { label: 'Gifts', href: '/admin/registry' },
+  { label: 'Admin Users', href: '/admin/users' },
 ]
 
 export default function AdminLayout({

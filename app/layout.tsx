@@ -1,25 +1,32 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Montserrat, Cormorant_Garamond } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import SessionProvider from "@/components/providers/SessionProvider";
 
-const playfair = Playfair_Display({
+// Self-hosted from app/fonts rather than fetched from Google at build time.
+// next/font/google downloads the files during every build, so an outage or a
+// file rotation on Google's CDN failed the whole production build. These are
+// the same three families, latin subset, variable weight axes.
+
+const playfair = localFont({
+  src: "./fonts/playfair-display-latin-variable.woff2",
   variable: "--font-playfair",
-  subsets: ["latin"],
-  display: 'swap',
+  weight: "400 900",
+  display: "swap",
 });
 
-const montserrat = Montserrat({
+const montserrat = localFont({
+  src: "./fonts/montserrat-latin-variable.woff2",
   variable: "--font-montserrat",
-  subsets: ["latin"],
-  display: 'swap',
+  weight: "100 900",
+  display: "swap",
 });
 
-const cormorant = Cormorant_Garamond({
+const cormorant = localFont({
+  src: "./fonts/cormorant-garamond-latin-variable.woff2",
   variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ['300', '400', '500', '600'],
-  display: 'swap',
+  weight: "300 700",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
