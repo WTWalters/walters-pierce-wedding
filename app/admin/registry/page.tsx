@@ -7,8 +7,21 @@ interface Contribution {
   giftDescription: string | null
   amount: number; message: string | null; paymentStatus: string | null; thankYouSent: boolean
   source: string | null; createdAt: string
+  // The guest Nicolle picked on the form, and who the gift actually resolves to
+  // (that link, or the email/name fallback). See lib/gift-match.
+  guestId: string | null
+  matchedGuestId: string | null
+  matchedGuestName: string | null
+  matchedBy: 'linked' | 'email' | 'name' | null
 }
-const EMPTY_GIFT = { contributorName: '', contributorEmail: '', giftDescription: '', amount: '', givenOn: '' }
+interface GuestOption { id: string; name: string; email: string | null }
+const EMPTY_GIFT = {
+  contributorName: '', contributorEmail: '', giftDescription: '', amount: '', givenOn: '',
+  guestId: '',
+  // The second gift from the same person, e.g. Aunt Marilyn's serving set AND her
+  // $100. Saved as its own row; one thank-you names both.
+  secondGiftDescription: '', secondAmount: '',
+}
 
 // The <input type="date"> wants yyyy-mm-dd in local time. Reading it off the ISO
 // string would shift the day for anyone behind UTC.
@@ -24,6 +37,7 @@ interface TierSummary {
 export default function AdminRegistryPage() {
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [tiers, setTiers] = useState<TierSummary[]>([])
+  const [guests, setGuests] = useState<GuestOption[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [newGift, setNewGift] = useState(EMPTY_GIFT)
@@ -31,10 +45,13 @@ export default function AdminRegistryPage() {
   // fields and validation can't drift apart.
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // The id of the gift whose guest link is being saved, so only that row's picker
+  // greys out rather than the whole table.
+  const [linking, setLinking] = useState<string | null>(null)
   const [message, setMessage] = useState('')
 
   const load = () => fetch('/api/admin/registry').then((r) => r.json()).then((d) => {
-    setContributions(d.contributions || []); setTiers(d.tiers || []); setLoading(false)
+    setContributions(d.contributions || []); setTiers(d.tiers || []); setGuests(d.guests || []); setLoading(false)
   })
   useEffect(() => { load() }, [])
 
@@ -97,8 +114,86 @@ export default function AdminRegistryPage() {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
         />
       </label>
+      {/* Ties the gift to a guest record for certain, so the Thank You note on Guest
+          Management always finds it. Without this the note has to guess from the name
+          or email, which is what left Nicolle told "no gift on file" for gifts she
+          had just entered. Optional: a giver who isn't on the guest list still gets
+          recorded. */}
+      <label className="text-sm">
+        <span className="block text-gray-700 mb-1">Which guest?</span>
+        <select
+          value={newGift.guestId}
+          onChange={(e) => setNewGift({ ...newGift, guestId: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-600"
+        >
+          <option value="">— match by name or email —</option>
+          {guests.map((g) => (
+            <option key={g.id} value={g.id}>{g.name}{g.email ? ` (${g.email})` : ''}</option>
+          ))}
+        </select>
+        <span className="block text-xs text-gray-500 mt-1">
+          Pick them and the Thank You note will always find this gift.
+        </span>
+      </label>
     </div>
   )
+
+  // Only when adding: editing works on one gift row at a time, so a second set of
+  // fields there would be ambiguous about which row it changes.
+  const secondGiftFields = () => (
+    <div className="pt-4 border-t border-gray-100">
+      <p className="text-sm text-gray-700 mb-1 font-medium">Did they give a second gift?</p>
+      <p className="text-sm text-gray-600 mb-3">
+        Aunt Marilyn&rsquo;s engraved cake serving set <em>and</em> her $100 toward the
+        Honeymoon Fund, say. Leave blank if there was only one. One Thank You note
+        acknowledges both &mdash; &ldquo;thank you for the beautiful cake serving set,
+        as well as $100 toward our Honeymoon Fund&rdquo;.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <label className="text-sm">
+          <span className="block text-gray-700 mb-1">Second gift</span>
+          <input
+            placeholder="e.g. cake serving set"
+            value={newGift.secondGiftDescription}
+            onChange={(e) => setNewGift({ ...newGift, secondGiftDescription: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+          />
+        </label>
+        <label className="text-sm">
+          <span className="block text-gray-700 mb-1">Second amount</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="blank for a present"
+            value={newGift.secondAmount}
+            onChange={(e) => setNewGift({ ...newGift, secondAmount: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+          />
+        </label>
+      </div>
+    </div>
+  )
+
+  // Set (or clear) the guest a gift is credited to, straight from the table. Clearing
+  // it falls back to name/email matching rather than leaving the gift orphaned.
+  const linkGift = async (id: string, guestId: string) => {
+    setLinking(id); setMessage('')
+    try {
+      const res = await fetch(`/api/admin/registry/gifts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestId }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) { setMessage(`❌ ${data?.error ?? 'Could not link the gift'}`); return }
+      await load()
+    } catch {
+      setMessage('❌ Could not link the gift')
+    } finally {
+      setLinking(null)
+    }
+  }
 
   const deleteGift = async () => {
     if (!editingId) return
@@ -130,6 +225,10 @@ export default function AdminRegistryPage() {
       // Blank rather than "0", so a present opens with an empty Amount box.
       amount: c.amount > 0 ? String(c.amount) : '',
       givenOn: dateInputValue(c.createdAt),
+      guestId: c.guestId ?? '',
+      // Editing touches this one row only; a second gift is its own row to edit.
+      secondGiftDescription: '',
+      secondAmount: '',
     })
     setMessage('')
   }
@@ -189,13 +288,9 @@ export default function AdminRegistryPage() {
               Describe the gift how you&rsquo;d like it thanked (&ldquo;beautiful cake
               serving set&rdquo;, &ldquo;helping with our AirBNB&rdquo;).
             </p>
-            <p className="text-sm text-gray-600 mt-2">
-              Gave more than one thing? <strong>Add each gift separately.</strong> One
-              Thank You note acknowledges all of them together &mdash; &ldquo;thank you for
-              the beautiful cake serving set, as well as $100 toward our AirBNB&rdquo;.
-            </p>
           </div>
           {giftFields()}
+          {secondGiftFields()}
           <div className="flex gap-3">
             <button
               type="submit"
@@ -253,7 +348,7 @@ export default function AdminRegistryPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Name', 'Gift', 'Amount', 'Message', 'Thanked', 'Date', ''].map((h, i) => (
+                {['Name', 'Guest', 'Gift', 'Amount', 'Message', 'Thanked', 'Date', ''].map((h, i) => (
                   <th key={h || `actions-${i}`} className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -264,6 +359,35 @@ export default function AdminRegistryPage() {
                   <td className="px-3 py-4 text-sm">
                     <div className="font-medium text-gray-900">{c.contributorName}</div>
                     <div className="text-gray-500 break-all">{c.contributorEmail || '— no email —'}</div>
+                  </td>
+                  {/* Which guest this gift will be credited to when a Thank You note
+                      goes out. "Not matched" is the warning Nicolle never had: it's
+                      exactly the gift a send would refuse.
+
+                      Editable on EVERY row, including gifts from the website. The
+                      $25 she asked about came through Buy Me a Coffee, and a Stripe
+                      gift has no Edit button — without a picker here she'd have no
+                      way to connect the one gift she named. It sets the link only;
+                      no amount is touched. */}
+                  <td className="px-3 py-4 text-sm">
+                    <select
+                      value={c.guestId ?? ''}
+                      disabled={linking === c.id}
+                      onChange={(e) => linkGift(c.id, e.target.value)}
+                      aria-label={`Guest for the gift from ${c.contributorName}`}
+                      className={`w-full max-w-[13rem] text-sm border rounded px-2 py-1 bg-white disabled:opacity-50 ${
+                        c.matchedGuestId ? 'border-gray-300' : 'border-amber-400 bg-amber-50'
+                      }`}
+                    >
+                      <option value="">
+                        {c.matchedGuestName
+                          ? `${c.matchedGuestName} (by ${c.matchedBy})`
+                          : '⚠ Not matched — pick a guest'}
+                      </option>
+                      {guests.map((g) => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-3 py-4 text-sm text-gray-900">
                     {c.tierTitle}

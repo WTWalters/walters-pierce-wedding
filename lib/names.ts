@@ -39,6 +39,25 @@ function normalizeDelimiter(raw: string): string {
   return delimiter === ',' ? ', ' : ` ${delimiter} `
 }
 
+// Drops title/relation words so a gift signed "Aunt Marilyn" can be recognised as
+// the guest recorded as "Marilyn Foster". Falls back to the input when the name is
+// nothing BUT a title ("Dad"), which is still the best handle we have on that giver.
+export function stripTitleWords(name: string): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean)
+  const kept = words.filter((w) => !TITLE_OR_RELATION.test(w))
+  return kept.length > 0 ? kept.join(' ') : words.join(' ')
+}
+
+// Splits a typed name into the individual people in it: "Morgan and Nathan Pierce"
+// -> ["Morgan", "Nathan Pierce"]. Used to match a joint gift to either giver.
+export function splitPeople(typed: string): string[] {
+  return (typed ?? '')
+    .split(DELIMITER)
+    .filter((_, i) => i % 2 === 0)
+    .map((p) => p.trim())
+    .filter(Boolean)
+}
+
 // Shortens a name a giver typed at Stripe checkout by keeping each person's first
 // name: "Eleanor Cordi" -> "Eleanor", "Morgan and Nathan pierce" -> "Morgan and
 // Nathan", "Jill, Jose" -> "Jill, Jose", "Aunt Sue" -> "Aunt Sue", "Dad" -> "Dad".
