@@ -14,6 +14,26 @@ import { MessageToSend } from '@/components/admin/MessageToSend'
 
 const CSV_COLUMNS_STORAGE_KEY = 'wpw.guestCsvColumns'
 
+// The grid's columns, in order. `narrow` ones are the counts: centred, tighter
+// padding, and their headers allowed to wrap onto two lines, which is what buys the
+// width for the three make-up columns.
+//
+// Kept as one list so the seating view's sub-header can derive its colSpan instead
+// of carrying a hand-counted number that goes stale the moment a column is added.
+const GUEST_COLUMNS: Array<{ label: string; narrow?: boolean }> = [
+  { label: 'Name' },
+  { label: 'Status' },
+  { label: 'Table', narrow: true },
+  { label: 'No. in Party', narrow: true },
+  { label: '21+', narrow: true },
+  { label: 'Under 21', narrow: true },
+  { label: 'Child', narrow: true },
+  { label: 'No. RSVP’d', narrow: true },
+  { label: 'Actions' },
+]
+
+const NUM_CELL = 'px-2 py-4 whitespace-nowrap text-sm text-center text-gray-900'
+
 // The three buckets a party is made of, in the order they're shown. Driven off one
 // list so the Edit popup can't end up offering a different set from the Add form.
 const MIX_FIELDS = [
@@ -916,11 +936,23 @@ export default function GuestsPage() {
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             {/* Headers wrap onto two lines so the columns stay narrow — that's what
-                made room for Table without pushing Actions off the edge. */}
+                made room for the make-up columns without pushing Actions off the
+                edge. Nicolle: "make the columns narrower so that we can add ones for
+                21+, Under 21 and Child... If you had the columns read 'No. in Party'
+                it could wrap to two lines instead of one." */}
             <thead className="bg-gray-50">
               <tr>
-                {['Name', 'Status', 'Table', 'Number in Party', 'Number RSVP’d', 'Actions'].map((h) => (
-                  <th key={h} className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider align-bottom max-w-[7rem]">{h}</th>
+                {GUEST_COLUMNS.map((c) => (
+                  <th
+                    key={c.label}
+                    className={`py-3 text-xs font-medium text-gray-500 uppercase tracking-wider align-bottom ${
+                      c.narrow
+                        ? 'px-2 text-center w-px whitespace-normal'
+                        : 'px-3 text-left max-w-[7rem]'
+                    }`}
+                  >
+                    {c.label}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -930,7 +962,7 @@ export default function GuestsPage() {
                   // Nicolle's seating view: each table announced once, with space
                   // before the next one, so the list reads as a seating chart.
                   <tr key={`table-${row.key}`} className="bg-green-50 border-t-8 border-gray-100">
-                    <td colSpan={6} className="px-3 py-2 text-sm font-semibold text-[#00330a]">
+                    <td colSpan={GUEST_COLUMNS.length} className="px-3 py-2 text-sm font-semibold text-[#00330a]">
                       {row.label}
                       <span className="ml-2 font-normal text-gray-600">
                         {row.seats} {row.seats === 1 ? 'person' : 'people'} · {row.parties} {row.parties === 1 ? 'party' : 'parties'}
@@ -947,9 +979,17 @@ export default function GuestsPage() {
                       )}
                     </td>
                     <td className="px-3 py-4">{getStatusBadge(row.guest)}</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{row.guest.tableNumber ?? '—'}</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{row.guest.reservedSeats ?? ''}</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{row.guest.rsvpdCount ?? ''}</td>
+                    <td className={NUM_CELL}>{row.guest.tableNumber ?? '—'}</td>
+                    <td className={NUM_CELL}>{row.guest.reservedSeats ?? ''}</td>
+                    {/* Blank, not 0, when a party hasn't been broken out yet — that
+                        empty run of three IS Nicolle's "have I edited this record
+                        yet?" signal, and a column of zeroes would erase it. The
+                        three add up to No. RSVP'd on its right, which is the other
+                        thing she wanted to check at a glance. */}
+                    <td className={NUM_CELL}>{row.guest.adults21Plus ?? ''}</td>
+                    <td className={NUM_CELL}>{row.guest.adultsUnder21 ?? ''}</td>
+                    <td className={NUM_CELL}>{row.guest.children ?? ''}</td>
+                    <td className={NUM_CELL}>{row.guest.rsvpdCount ?? ''}</td>
                     <td className="px-3 py-4 text-sm font-medium">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <button onClick={() => setSelectedGuest(row.guest)} className="text-blue-600 hover:text-blue-900">View</button>
