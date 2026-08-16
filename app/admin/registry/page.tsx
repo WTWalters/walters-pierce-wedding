@@ -45,6 +45,9 @@ export default function AdminRegistryPage() {
   // fields and validation can't drift apart.
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // The id of the gift whose guest link is being saved, so only that row's picker
+  // greys out rather than the whole table.
+  const [linking, setLinking] = useState<string | null>(null)
   const [message, setMessage] = useState('')
 
   const load = () => fetch('/api/admin/registry').then((r) => r.json()).then((d) => {
@@ -171,6 +174,26 @@ export default function AdminRegistryPage() {
       </div>
     </div>
   )
+
+  // Set (or clear) the guest a gift is credited to, straight from the table. Clearing
+  // it falls back to name/email matching rather than leaving the gift orphaned.
+  const linkGift = async (id: string, guestId: string) => {
+    setLinking(id); setMessage('')
+    try {
+      const res = await fetch(`/api/admin/registry/gifts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestId }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) { setMessage(`❌ ${data?.error ?? 'Could not link the gift'}`); return }
+      await load()
+    } catch {
+      setMessage('❌ Could not link the gift')
+    } finally {
+      setLinking(null)
+    }
+  }
 
   const deleteGift = async () => {
     if (!editingId) return
@@ -338,21 +361,33 @@ export default function AdminRegistryPage() {
                     <div className="text-gray-500 break-all">{c.contributorEmail || '— no email —'}</div>
                   </td>
                   {/* Which guest this gift will be credited to when a Thank You note
-                      goes out. "Not matched" here is the warning Nicolle never had:
-                      it's exactly the gift a send would refuse. */}
+                      goes out. "Not matched" is the warning Nicolle never had: it's
+                      exactly the gift a send would refuse.
+
+                      Editable on EVERY row, including gifts from the website. The
+                      $25 she asked about came through Buy Me a Coffee, and a Stripe
+                      gift has no Edit button — without a picker here she'd have no
+                      way to connect the one gift she named. It sets the link only;
+                      no amount is touched. */}
                   <td className="px-3 py-4 text-sm">
-                    {c.matchedGuestName ? (
-                      <>
-                        <div className="text-gray-900">{c.matchedGuestName}</div>
-                        {c.matchedBy !== 'linked' && (
-                          <div className="text-xs text-gray-500">matched by {c.matchedBy}</div>
-                        )}
-                      </>
-                    ) : (
-                      <span className="inline-block bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
-                        Not matched
-                      </span>
-                    )}
+                    <select
+                      value={c.guestId ?? ''}
+                      disabled={linking === c.id}
+                      onChange={(e) => linkGift(c.id, e.target.value)}
+                      aria-label={`Guest for the gift from ${c.contributorName}`}
+                      className={`w-full max-w-[13rem] text-sm border rounded px-2 py-1 bg-white disabled:opacity-50 ${
+                        c.matchedGuestId ? 'border-gray-300' : 'border-amber-400 bg-amber-50'
+                      }`}
+                    >
+                      <option value="">
+                        {c.matchedGuestName
+                          ? `${c.matchedGuestName} (by ${c.matchedBy})`
+                          : '⚠ Not matched — pick a guest'}
+                      </option>
+                      {guests.map((g) => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-3 py-4 text-sm text-gray-900">
                     {c.tierTitle}
