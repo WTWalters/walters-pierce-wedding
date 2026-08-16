@@ -25,10 +25,13 @@ const GUEST_COLUMNS: Array<{ label: string; narrow?: boolean }> = [
   { label: 'Status' },
   { label: 'Table', narrow: true },
   { label: 'No. in Party', narrow: true },
+  // The total, then the three columns that break it down, reading left to right —
+  // Nicolle: "put No. RSVP'd next to No. in Party... then the three following
+  // columns will break down the No. RSVP'd".
+  { label: 'No. RSVP’d', narrow: true },
   { label: '21+', narrow: true },
   { label: 'Under 21', narrow: true },
   { label: 'Child', narrow: true },
-  { label: 'No. RSVP’d', narrow: true },
   { label: 'Actions' },
 ]
 
@@ -981,15 +984,14 @@ export default function GuestsPage() {
                     <td className="px-3 py-4">{getStatusBadge(row.guest)}</td>
                     <td className={NUM_CELL}>{row.guest.tableNumber ?? '—'}</td>
                     <td className={NUM_CELL}>{row.guest.reservedSeats ?? ''}</td>
-                    {/* Blank, not 0, when a party hasn't been broken out yet — that
-                        empty run of three IS Nicolle's "have I edited this record
-                        yet?" signal, and a column of zeroes would erase it. The
-                        three add up to No. RSVP'd on its right, which is the other
-                        thing she wanted to check at a glance. */}
+                    <td className={NUM_CELL}>{row.guest.rsvpdCount ?? ''}</td>
+                    {/* The three that break down No. RSVP'd on their left. Blank,
+                        not 0, when a party hasn't been broken out yet — that empty
+                        run of three IS Nicolle's "have I edited this record yet?"
+                        signal, and a column of zeroes would erase it. */}
                     <td className={NUM_CELL}>{row.guest.adults21Plus ?? ''}</td>
                     <td className={NUM_CELL}>{row.guest.adultsUnder21 ?? ''}</td>
                     <td className={NUM_CELL}>{row.guest.children ?? ''}</td>
-                    <td className={NUM_CELL}>{row.guest.rsvpdCount ?? ''}</td>
                     <td className="px-3 py-4 text-sm font-medium">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <button onClick={() => setSelectedGuest(row.guest)} className="text-blue-600 hover:text-blue-900">View</button>
