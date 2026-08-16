@@ -17,11 +17,14 @@ export async function GET(request: NextRequest) {
     const [attendingParties, decliningParties, seatSum] = await Promise.all([
       prisma.guest.findMany({
         where: { attending: true, ...NOT_AWAITING_REVIEW },
-        select: { rsvpdCount: true, partySize: true, reservedSeats: true, adults: true, children: true },
+        select: {
+          rsvpdCount: true, partySize: true, reservedSeats: true,
+          adults21Plus: true, adultsUnder21: true, children: true,
+        },
       }),
       prisma.guest.findMany({
         where: { attending: false, ...NOT_AWAITING_REVIEW },
-        select: { reservedSeats: true, adults: true, children: true },
+        select: { reservedSeats: true, adults21Plus: true, adultsUnder21: true, children: true },
       }),
       prisma.guest.aggregate({ _sum: { reservedSeats: true }, where: NOT_AWAITING_REVIEW }),
     ])
@@ -60,13 +63,18 @@ export async function GET(request: NextRequest) {
     }, 0)
     const notAttending = declinedSeats + unclaimedSeats
 
-    // The adults / children split under each of the two cards. This is what the
-    // caterer and the bar are quoted against, so a party whose make-up nobody has
-    // entered yet is reported as `unspecified` rather than assumed to be adults.
-    // Each split is built against the card's own total, so the three always add up
-    // to the number printed above them.
+    // The make-up under each of the two cards. This is what the caterer and the bar
+    // are quoted against — adult meals are both adult buckets, the bar is the 21+
+    // one alone — so a party whose make-up nobody has entered yet is reported as
+    // `unspecified` rather than assumed to be adults. Each split is built against the
+    // card's own total, so the parts always add up to the number printed above them.
     const attendingMix = sumMix(
-      attendingParties.map((g) => ({ adults: g.adults, children: g.children, people: headcount(g) }))
+      attendingParties.map((g) => ({
+        adults21Plus: g.adults21Plus,
+        adultsUnder21: g.adultsUnder21,
+        children: g.children,
+        people: headcount(g),
+      }))
     )
     // Not Attending counts surrendered seats, so a declining party contributes its
     // whole reservation and an attending party its shortfall. Only the declining
@@ -74,7 +82,8 @@ export async function GET(request: NextRequest) {
     // definition people who never said who they were.
     const notAttendingMix = sumMix([
       ...decliningParties.map((g) => ({
-        adults: g.adults,
+        adults21Plus: g.adults21Plus,
+        adultsUnder21: g.adultsUnder21,
         children: g.children,
         people: g.reservedSeats ?? 1,
       })),

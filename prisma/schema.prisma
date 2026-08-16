@@ -48,10 +48,17 @@ model Guest {
   partnerEmail        String?        @map("partner_email")
   reservedSeats       Int?           @map("reserved_seats")
   rsvpdCount          Int?           @map("rsvpd_count")
-  /// Who the RSVP'd count is made of. Nicolle enters both by hand on Add/Edit Guest;
-  /// the Attending / Not Attending cards break down by them. Null means "not broken
-  /// out yet", which is not the same as zero — see lib/party-mix.ts.
-  adults              Int?
+  /// Who the RSVP'd count is made of — three buckets that never overlap, so they add
+  /// up to the number in the party. Nicolle enters all three by hand on Add/Edit
+  /// Guest and the cards break down by them. Null means "not broken out yet", which
+  /// is not the same as zero — see lib/party-mix.ts.
+  ///
+  /// The 21+ split exists for the bar: an adult under 21 eats an adult meal but
+  /// drinks nothing, so the two can't share a bucket. Mapped onto the plain `adults`
+  /// column it already had — the code name is spelled out because a bare "adults"
+  /// reads as "all adults", and that misreading is a wrong bar order.
+  adults21Plus        Int?           @map("adults")
+  adultsUnder21       Int?           @map("adults_under_21")
   children            Int?
   source              String         @default("imported")
   tableNumber         Int?           @map("table_number")

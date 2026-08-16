@@ -20,7 +20,8 @@ export type GuestCsvRow = {
   attending?: boolean | null
   reservedSeats?: number | null
   rsvpdCount?: number | null
-  adults?: number | null
+  adults21Plus?: number | null
+  adultsUnder21?: number | null
   children?: number | null
   dietaryRestrictions?: string | null
   songRequest?: string | null
@@ -73,8 +74,10 @@ export const GUEST_CSV_COLUMNS: GuestCsvColumn[] = [
   { key: 'reservedSeats', header: 'Reserved Seats', isDefault: false, value: (g) => num(g.reservedSeats) },
   { key: 'rsvpdCount', header: "Number RSVP'd", isDefault: false, value: (g) => num(g.rsvpdCount) },
   // What the caterer and the bar are actually quoted against, so they're worth
-  // sending on. Opt-in like the other headcount columns.
-  { key: 'adults', header: 'Adults', isDefault: false, value: (g) => num(g.adults) },
+  // sending on — the caterer adds the two adult columns, the bar reads 21+ alone.
+  // Opt-in like the other headcount columns.
+  { key: 'adults21Plus', header: 'Adults 21+', isDefault: false, value: (g) => num(g.adults21Plus) },
+  { key: 'adultsUnder21', header: 'Adults Under 21', isDefault: false, value: (g) => num(g.adultsUnder21) },
   { key: 'children', header: 'Children', isDefault: false, value: (g) => num(g.children) },
   { key: 'specialRequests', header: 'Special Requests', isDefault: false, value: (g) => text(g.specialRequests) },
   { key: 'notes', header: 'Notes', isDefault: false, value: (g) => text(g.notes) },

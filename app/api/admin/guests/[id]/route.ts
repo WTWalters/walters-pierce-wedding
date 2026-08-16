@@ -50,12 +50,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const reservedSeats = body.reservedSeats != null && body.reservedSeats !== '' ? parseInt(body.reservedSeats) : null
     // A reset clears the make-up along with the count: the record has to look like
     // no RSVP ever arrived, and leaving 2 adults behind would keep them in the
-    // caterer's total.
-    const { adults, children } = isReset ? { adults: null, children: null } : readMix(body)
-    // The number in the party IS adults + children whenever she has entered them.
+    // caterer's and the bar's totals.
+    const mix = isReset
+      ? { adults21Plus: null, adultsUnder21: null, children: null }
+      : readMix(body)
+    // The number in the party IS its make-up added together, whenever she entered it.
     const rsvpdCount = isReset
       ? null
-      : partySize({ adults, children }) ??
+      : partySize(mix) ??
         (body.rsvpdCount != null && body.rsvpdCount !== '' ? parseInt(body.rsvpdCount) : null)
     const cap = assertSeatCap({ reservedSeats, rsvpdCount })
     if (!cap.ok) {
@@ -84,8 +86,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // here would silently blank any value still on an older record.
         reservedSeats,
         rsvpdCount,
-        adults,
-        children,
+        ...mix,
         songRequest: body.songRequest || null,
         tableNumber: body.tableNumber ? parseInt(body.tableNumber) : null,
         dietaryRestrictions: body.dietaryRestrictions || null,

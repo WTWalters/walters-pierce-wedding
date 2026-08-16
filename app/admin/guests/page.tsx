@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { assertSeatCap, formatPartyName } from '@/lib/guests'
 import { guestListStatus, formatAddedDate } from '@/lib/review'
-import { formatMix, partySize, type MixTotals } from '@/lib/party-mix'
+import { formatMix, partySize, EMPTY_MIX, type MixTotals } from '@/lib/party-mix'
 import {
   GUEST_CSV_COLUMNS,
   DEFAULT_GUEST_CSV_KEYS,
@@ -13,6 +13,14 @@ import {
 import { MessageToSend } from '@/components/admin/MessageToSend'
 
 const CSV_COLUMNS_STORAGE_KEY = 'wpw.guestCsvColumns'
+
+// The three buckets a party is made of, in the order they're shown. Driven off one
+// list so the Edit popup can't end up offering a different set from the Add form.
+const MIX_FIELDS = [
+  { key: 'adults21Plus', id: 'edit-adults-21-plus', label: 'Adult(s) 21+' },
+  { key: 'adultsUnder21', id: 'edit-adults-under-21', label: 'Adult(s) under 21' },
+  { key: 'children', id: 'edit-children', label: 'Children' },
+] as const
 
 // A rendered row is either a guest or the table sub-header that introduces a group.
 type GuestRow =
@@ -47,7 +55,8 @@ interface Guest {
   partnerLastName?: string
   reservedSeats?: number | null
   rsvpdCount?: number | null
-  adults?: number | null
+  adults21Plus?: number | null
+  adultsUnder21?: number | null
   children?: number | null
   songRequest?: string
   source?: string | null
@@ -73,8 +82,6 @@ interface GuestStats {
   attendingMix: MixTotals
   notAttendingMix: MixTotals
 }
-
-const EMPTY_MIX: MixTotals = { adults: 0, children: 0, unspecified: 0 }
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<Guest[]>([])
@@ -115,7 +122,8 @@ export default function GuestsPage() {
     partnerFirstName: '',
     partnerLastName: '',
     reservedSeats: '',
-    adults: '',
+    adults21Plus: '',
+    adultsUnder21: '',
     children: ''
   })
 
@@ -175,6 +183,15 @@ export default function GuestsPage() {
       setIsLoading(false)
     }
   }
+
+  // The running "Number in party" under the Add form's three fields. Blank stays
+  // blank rather than becoming 0, so an untouched form shows no total at all.
+  const numeric = (v: string) => (v === '' ? null : Number(v))
+  const newGuestPartySize = partySize({
+    adults21Plus: numeric(newGuest.adults21Plus),
+    adultsUnder21: numeric(newGuest.adultsUnder21),
+    children: numeric(newGuest.children),
+  })
 
   const filteredGuests = useMemo(() => {
     const filtered = guests.filter(guest => {
@@ -267,7 +284,8 @@ export default function GuestsPage() {
           partnerFirstName: '',
           partnerLastName: '',
           reservedSeats: '',
-          adults: '',
+          adults21Plus: '',
+          adultsUnder21: '',
           children: ''
         })
         setShowAddForm(false)
@@ -750,22 +768,35 @@ export default function GuestsPage() {
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
             />
 
-            {/* Who's coming, split the way the caterer and the bar need it. The
-                number in the party is these two added together — there is no third
-                figure to keep in step. */}
+            {/* Who's coming, split the way the caterer and the bar need it. Three
+                buckets that don't overlap, so they add up to the number in the party
+                — there is no separate figure to keep in step. The 21+ split is what
+                the bar is quoted against: an adult under 21 eats an adult meal but
+                drinks nothing. */}
             <div className="md:col-span-2 lg:col-span-3 border-t border-gray-100 pt-4">
               <p className="text-sm font-medium text-gray-700">Who&rsquo;s in this party</p>
               <p className="text-xs text-gray-500">
-                The number in the party is the adults plus the children.
+                The number in the party is these added together. Adults under 21 are
+                counted separately for the bar.
               </p>
             </div>
             <label className="text-sm text-gray-700">
-              <span className="block mb-1">Adult(s)</span>
+              <span className="block mb-1">Adult(s) 21+</span>
               <input
                 type="number"
                 min="0"
-                value={newGuest.adults}
-                onChange={(e) => setNewGuest({...newGuest, adults: e.target.value})}
+                value={newGuest.adults21Plus}
+                onChange={(e) => setNewGuest({...newGuest, adults21Plus: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </label>
+            <label className="text-sm text-gray-700">
+              <span className="block mb-1">Adult(s) under 21</span>
+              <input
+                type="number"
+                min="0"
+                value={newGuest.adultsUnder21}
+                onChange={(e) => setNewGuest({...newGuest, adultsUnder21: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
               />
             </label>
@@ -779,15 +810,9 @@ export default function GuestsPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
               />
             </label>
-            <div className="text-sm text-gray-600 self-end pb-2">
-              {partySize({
-                adults: newGuest.adults === '' ? null : Number(newGuest.adults),
-                children: newGuest.children === '' ? null : Number(newGuest.children),
-              }) !== null && (
-                <>Number in party: <strong>{partySize({
-                  adults: newGuest.adults === '' ? null : Number(newGuest.adults),
-                  children: newGuest.children === '' ? null : Number(newGuest.children),
-                })}</strong></>
+            <div className="md:col-span-2 lg:col-span-3 text-sm text-gray-600">
+              {newGuestPartySize !== null && (
+                <>Number in party: <strong>{newGuestPartySize}</strong></>
               )}
             </div>
 
@@ -1223,59 +1248,41 @@ export default function GuestsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>
-                {/* Adults and Children make up the party, so Number RSVP'd follows
-                    from them rather than being typed a third time. It stays editable
-                    only while neither has been entered, which is how every record
-                    imported before these fields existed keeps its count. */}
-                <div>
-                  <label htmlFor="edit-adults" className="block text-sm font-medium text-gray-700 mb-1">Adult(s)</label>
-                  <input
-                    id="edit-adults"
-                    type="number"
-                    min={0}
-                    value={editingGuest.adults ?? ''}
-                    onChange={(e) => {
-                      const adults = e.target.value ? parseInt(e.target.value) : null
-                      setEditingGuest({
-                        ...editingGuest,
-                        adults,
-                        rsvpdCount: partySize({ adults, children: editingGuest.children }) ?? editingGuest.rsvpdCount,
-                      })
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="edit-children" className="block text-sm font-medium text-gray-700 mb-1">Children</label>
-                  <input
-                    id="edit-children"
-                    type="number"
-                    min={0}
-                    value={editingGuest.children ?? ''}
-                    onChange={(e) => {
-                      const children = e.target.value ? parseInt(e.target.value) : null
-                      setEditingGuest({
-                        ...editingGuest,
-                        children,
-                        rsvpdCount: partySize({ adults: editingGuest.adults, children }) ?? editingGuest.rsvpdCount,
-                      })
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
-                  />
-                </div>
+                {/* The party's make-up, so Number RSVP'd follows from it rather than
+                    being typed again. That field stays editable only while nothing
+                    here has been entered, which is how every record imported before
+                    these fields existed keeps the count it already had. Adults under
+                    21 are their own bucket because the bar can't be quoted off a
+                    number that includes them. */}
+                {MIX_FIELDS.map(({ key, id, label }) => (
+                  <div key={key}>
+                    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                    <input
+                      id={id}
+                      type="number"
+                      min={0}
+                      value={editingGuest[key] ?? ''}
+                      onChange={(e) => {
+                        const next = { ...editingGuest, [key]: e.target.value ? parseInt(e.target.value) : null }
+                        setEditingGuest({ ...next, rsvpdCount: partySize(next) ?? next.rsvpdCount })
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                    />
+                  </div>
+                ))}
                 <div>
                   <label htmlFor="edit-rsvpd-count" className="block text-sm font-medium text-gray-700 mb-1">Number RSVP&apos;d</label>
                   <input
                     id="edit-rsvpd-count"
                     type="number"
                     min={0}
-                    disabled={partySize({ adults: editingGuest.adults, children: editingGuest.children }) !== null}
+                    disabled={partySize(editingGuest) !== null}
                     value={editingGuest.rsvpdCount ?? ''}
                     onChange={(e) => setEditingGuest({...editingGuest, rsvpdCount: e.target.value ? parseInt(e.target.value) : null})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 disabled:bg-gray-100 disabled:text-gray-600"
                   />
-                  {partySize({ adults: editingGuest.adults, children: editingGuest.children }) !== null && (
-                    <p className="text-xs text-gray-500 mt-1">Adults plus children.</p>
+                  {partySize(editingGuest) !== null && (
+                    <p className="text-xs text-gray-500 mt-1">Everyone in the party added together.</p>
                   )}
                 </div>
                 <div className="md:col-span-2 lg:col-span-3">

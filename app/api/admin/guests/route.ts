@@ -50,12 +50,12 @@ export async function POST(request: NextRequest) {
     const { firstName, lastName, email, phone, addressLine1, addressLine2, city, state, zipCode, notes,
             partnerFirstName, partnerLastName, reservedSeats: rawSeats, rsvpdCount: rawRsvpd, songRequest } = data
     const reservedSeats = rawSeats != null && rawSeats !== '' ? parseInt(rawSeats) : null
-    // The number in the party IS adults + children whenever she has entered them —
-    // her rule, and it stops the two from ever disagreeing on one record. With
-    // neither entered, the typed count stands on its own.
-    const { adults, children } = readMix(data)
+    // The number in the party IS its make-up added together whenever she has entered
+    // it — her rule, and it stops the figures from ever disagreeing on one record.
+    // With nothing entered, the typed count stands on its own.
+    const mix = readMix(data)
     const rsvpdCount =
-      partySize({ adults, children }) ??
+      partySize(mix) ??
       (rawRsvpd != null && rawRsvpd !== '' ? parseInt(rawRsvpd) : null)
     const cap = assertSeatCap({ reservedSeats, rsvpdCount })
     if (!cap.ok) {
@@ -100,8 +100,7 @@ export async function POST(request: NextRequest) {
         partnerLastName: partnerLastName || null,
         reservedSeats,
         rsvpdCount,
-        adults,
-        children,
+        ...mix,
         songRequest: songRequest || null
       }
     })
