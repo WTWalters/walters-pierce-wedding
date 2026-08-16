@@ -163,3 +163,65 @@ describe('the Edit Guest popup', () => {
     expect(screen.getByLabelText("Number RSVP'd")).toBeDisabled()
   })
 })
+
+// Nicolle: "make the columns on the Guest Management page narrower so that we can
+// add ones for 21+, Under 21 and Child so at a glance I can a) determine that I've
+// edited the record and b) determine that the numbers are correct."
+describe('the make-up columns in the grid', () => {
+  const headers = () => screen.getAllByRole('columnheader').map((h) => h.textContent?.trim())
+
+  it('shows a column for each group', async () => {
+    render(<GuestsPage />)
+    await waitFor(() => expect(screen.getByText('Paula Kuper')).toBeInTheDocument())
+    expect(headers()).toEqual(
+      expect.arrayContaining(['21+', 'Under 21', 'Child'])
+    )
+  })
+
+  // Shortened so the header wraps to two lines instead of forcing a wide column.
+  it('shortens the two count headers so they can wrap', async () => {
+    render(<GuestsPage />)
+    await waitFor(() => expect(screen.getByText('Paula Kuper')).toBeInTheDocument())
+    expect(headers()).toEqual(expect.arrayContaining(['No. in Party', 'No. RSVP’d']))
+    expect(headers()).not.toEqual(expect.arrayContaining(['Number in Party']))
+  })
+
+  // The three read left-to-right into the total they make up, so the check she
+  // wants — do these add up? — is one glance along the row.
+  it('places them immediately before the RSVP’d total', async () => {
+    render(<GuestsPage />)
+    await waitFor(() => expect(screen.getByText('Paula Kuper')).toBeInTheDocument())
+    const labels = headers()
+    expect(labels.slice(labels.indexOf('21+'), labels.indexOf('21+') + 4))
+      .toEqual(['21+', 'Under 21', 'Child', 'No. RSVP’d'])
+  })
+
+  it("shows the party's numbers in its row", async () => {
+    render(<GuestsPage />)
+    await waitFor(() => expect(screen.getByText('Paula Kuper')).toBeInTheDocument())
+    const cells = screen.getAllByRole('cell').map((c) => c.textContent?.trim())
+    // No. in Party 6, then 2 / 1 / 2 across the groups, then RSVP'd 5.
+    expect(cells).toEqual(expect.arrayContaining(['6', '2', '1', '5']))
+  })
+
+  // Her signal (a): an un-broken-out party leaves those three cells EMPTY. A column
+  // of zeroes would look identical to a party of adults and hide the work left.
+  it('leaves them blank on a party that has not been broken out', async () => {
+    global.fetch = jest.fn((url: string) => {
+      if (String(url).includes('/stats')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(STATS) })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          guests: [{ ...GUESTS[0], adults21Plus: null, adultsUnder21: null, children: null }],
+        }),
+      })
+    }) as jest.Mock
+    render(<GuestsPage />)
+    await waitFor(() => expect(screen.getByText('Paula Kuper')).toBeInTheDocument())
+    const cells = screen.getAllByRole('cell').map((c) => c.textContent?.trim())
+    expect(cells).not.toEqual(expect.arrayContaining(['0']))
+    expect(cells.filter((c) => c === '').length).toBeGreaterThanOrEqual(3)
+  })
+})
