@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { assertSeatCap } from '@/lib/guests'
 import { NOT_AWAITING_REVIEW } from '@/lib/review'
+import { readMix, partySize } from '@/lib/party-mix'
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,7 +50,13 @@ export async function POST(request: NextRequest) {
     const { firstName, lastName, email, phone, addressLine1, addressLine2, city, state, zipCode, notes,
             partnerFirstName, partnerLastName, reservedSeats: rawSeats, rsvpdCount: rawRsvpd, songRequest } = data
     const reservedSeats = rawSeats != null && rawSeats !== '' ? parseInt(rawSeats) : null
-    const rsvpdCount = rawRsvpd != null && rawRsvpd !== '' ? parseInt(rawRsvpd) : null
+    // The number in the party IS adults + children whenever she has entered them —
+    // her rule, and it stops the two from ever disagreeing on one record. With
+    // neither entered, the typed count stands on its own.
+    const { adults, children } = readMix(data)
+    const rsvpdCount =
+      partySize({ adults, children }) ??
+      (rawRsvpd != null && rawRsvpd !== '' ? parseInt(rawRsvpd) : null)
     const cap = assertSeatCap({ reservedSeats, rsvpdCount })
     if (!cap.ok) {
       return NextResponse.json({ error: cap.message }, { status: 400 })
@@ -93,6 +100,8 @@ export async function POST(request: NextRequest) {
         partnerLastName: partnerLastName || null,
         reservedSeats,
         rsvpdCount,
+        adults,
+        children,
         songRequest: songRequest || null
       }
     })

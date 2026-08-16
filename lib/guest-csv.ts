@@ -20,6 +20,8 @@ export type GuestCsvRow = {
   attending?: boolean | null
   reservedSeats?: number | null
   rsvpdCount?: number | null
+  adults?: number | null
+  children?: number | null
   dietaryRestrictions?: string | null
   songRequest?: string | null
   specialRequests?: string | null
@@ -70,6 +72,10 @@ export const GUEST_CSV_COLUMNS: GuestCsvColumn[] = [
   // herself if they ever hold anything, instead of asking.
   { key: 'reservedSeats', header: 'Reserved Seats', isDefault: false, value: (g) => num(g.reservedSeats) },
   { key: 'rsvpdCount', header: "Number RSVP'd", isDefault: false, value: (g) => num(g.rsvpdCount) },
+  // What the caterer and the bar are actually quoted against, so they're worth
+  // sending on. Opt-in like the other headcount columns.
+  { key: 'adults', header: 'Adults', isDefault: false, value: (g) => num(g.adults) },
+  { key: 'children', header: 'Children', isDefault: false, value: (g) => num(g.children) },
   { key: 'specialRequests', header: 'Special Requests', isDefault: false, value: (g) => text(g.specialRequests) },
   { key: 'notes', header: 'Notes', isDefault: false, value: (g) => text(g.notes) },
 ]

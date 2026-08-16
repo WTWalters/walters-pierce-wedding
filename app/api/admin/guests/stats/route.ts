@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NOT_AWAITING_REVIEW } from '@/lib/review'
+import { sumMix } from '@/lib/party-mix'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,11 +17,11 @@ export async function GET(request: NextRequest) {
     const [attendingParties, decliningParties, seatSum] = await Promise.all([
       prisma.guest.findMany({
         where: { attending: true, ...NOT_AWAITING_REVIEW },
-        select: { rsvpdCount: true, partySize: true, reservedSeats: true },
+        select: { rsvpdCount: true, partySize: true, reservedSeats: true, adults: true, children: true },
       }),
       prisma.guest.findMany({
         where: { attending: false, ...NOT_AWAITING_REVIEW },
-        select: { reservedSeats: true },
+        select: { reservedSeats: true, adults: true, children: true },
       }),
       prisma.guest.aggregate({ _sum: { reservedSeats: true }, where: NOT_AWAITING_REVIEW }),
     ])
@@ -59,7 +60,31 @@ export async function GET(request: NextRequest) {
     }, 0)
     const notAttending = declinedSeats + unclaimedSeats
 
-    const stats = { totalInvited, rsvpReceived, attending, notAttending }
+    // The adults / children split under each of the two cards. This is what the
+    // caterer and the bar are quoted against, so a party whose make-up nobody has
+    // entered yet is reported as `unspecified` rather than assumed to be adults.
+    // Each split is built against the card's own total, so the three always add up
+    // to the number printed above them.
+    const attendingMix = sumMix(
+      attendingParties.map((g) => ({ adults: g.adults, children: g.children, people: headcount(g) }))
+    )
+    // Not Attending counts surrendered seats, so a declining party contributes its
+    // whole reservation and an attending party its shortfall. Only the declining
+    // half has a make-up on file; an attending party's unclaimed seats are by
+    // definition people who never said who they were.
+    const notAttendingMix = sumMix([
+      ...decliningParties.map((g) => ({
+        adults: g.adults,
+        children: g.children,
+        people: g.reservedSeats ?? 1,
+      })),
+      ...attendingParties.map((g) => {
+        const claimed = headcount(g)
+        return { people: Math.max(0, (g.reservedSeats ?? claimed) - claimed) }
+      }),
+    ])
+
+    const stats = { totalInvited, rsvpReceived, attending, notAttending, attendingMix, notAttendingMix }
 
     return NextResponse.json(stats)
   } catch (error) {

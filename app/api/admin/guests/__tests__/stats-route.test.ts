@@ -130,3 +130,69 @@ it('returns 401 when not admin', async () => {
   const res: any = await GET({} as any)
   expect(res.status).toBe(401)
 })
+
+// Nicolle needs a firm adult count for the caterer and the bar, so the two RSVP
+// cards break down by adults and children.
+describe('the adults / children breakdown', () => {
+  it('splits the attending card', async () => {
+    setup(
+      [
+        { rsvpdCount: 4, partySize: null, reservedSeats: 4, adults: 2, children: 2 },
+        { rsvpdCount: 2, partySize: null, reservedSeats: 2, adults: 2, children: 0 },
+      ],
+      []
+    )
+    const res: any = await GET({} as any)
+    expect(res.body.attending).toBe(6)
+    expect(res.body.attendingMix).toEqual({ adults: 4, children: 2, unspecified: 0 })
+  })
+
+  it('never counts a party nobody has broken out as adults', async () => {
+    setup(
+      [
+        { rsvpdCount: 2, partySize: null, reservedSeats: 2, adults: 2, children: 0 },
+        { rsvpdCount: 3, partySize: null, reservedSeats: 3, adults: null, children: null },
+      ],
+      []
+    )
+    const res: any = await GET({} as any)
+    expect(res.body.attendingMix).toEqual({ adults: 2, children: 0, unspecified: 3 })
+  })
+
+  it('always adds up to the number printed on the card', async () => {
+    setup(
+      [
+        { rsvpdCount: 4, partySize: null, reservedSeats: 6, adults: 1, children: 0 },
+        { rsvpdCount: 2, partySize: null, reservedSeats: 2, adults: null, children: null },
+      ],
+      [{ reservedSeats: 3, adults: 3, children: 0 }, { reservedSeats: 2, adults: null, children: null }]
+    )
+    const res: any = await GET({} as any)
+    const sums = (m: { adults: number; children: number; unspecified: number }) =>
+      m.adults + m.children + m.unspecified
+    expect(sums(res.body.attendingMix)).toBe(res.body.attending)
+    expect(sums(res.body.notAttendingMix)).toBe(res.body.notAttending)
+  })
+
+  it('splits the not-attending card by the declining parties on file', async () => {
+    setup([], [{ reservedSeats: 4, adults: 2, children: 2 }])
+    const res: any = await GET({} as any)
+    expect(res.body.notAttending).toBe(4)
+    expect(res.body.notAttendingMix).toEqual({ adults: 2, children: 2, unspecified: 0 })
+  })
+
+  // An attending party that held 4 seats and claimed 2 gives up 2 — but nobody ever
+  // said who those two would have been, so they can't be called adults.
+  it('leaves unclaimed seats unspecified rather than guessing', async () => {
+    setup([{ rsvpdCount: 2, partySize: null, reservedSeats: 4, adults: 2, children: 0 }], [])
+    const res: any = await GET({} as any)
+    expect(res.body.notAttending).toBe(2)
+    expect(res.body.notAttendingMix).toEqual({ adults: 0, children: 0, unspecified: 2 })
+  })
+
+  it('reports zeroes when nothing has been broken out at all', async () => {
+    setup([{ rsvpdCount: 2, partySize: null, reservedSeats: 2 }], [])
+    const res: any = await GET({} as any)
+    expect(res.body.attendingMix).toEqual({ adults: 0, children: 0, unspecified: 2 })
+  })
+})

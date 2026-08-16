@@ -32,16 +32,23 @@ beforeEach(() => {
   ;(getServerSession as jest.Mock).mockResolvedValue({ user: { role: 'admin' } })
   ;(prisma.setting.findUnique as jest.Mock).mockResolvedValue({ value: '{}' })
   ;(prisma.guest.findMany as jest.Mock).mockResolvedValue([
-    { id: GUEST_ID, firstName: 'Muriel', preferredName: 'Grandma', email: 'Muriel@X.com', rsvpdCount: 1, reservedSeats: 1 },
+    { id: GUEST_ID, firstName: 'Muriel', lastName: 'Ashby', preferredName: 'Grandma', email: 'Muriel@X.com', rsvpdCount: 1, reservedSeats: 1 },
   ])
   ;(prisma.contribution.updateMany as jest.Mock).mockResolvedValue({ count: 1 })
 })
 
-// The route now loads every gift for that address, so the fixture is a list.
+// The route loads every gift and resolves each to a guest (lib/gift-match), so a
+// fixture is a list and each gift needs something to be matched ON. These helpers
+// default that to the guest's own address; tests about matching set it themselves.
+const withIdentity = (gift: Record<string, unknown>) => ({
+  contributorName: 'Muriel Ashby',
+  contributorEmail: 'muriel@x.com',
+  ...gift,
+})
 const giftOnFile = (gift: Record<string, unknown> | null) =>
-  (prisma.contribution.findMany as jest.Mock).mockResolvedValue(gift ? [gift] : [])
+  (prisma.contribution.findMany as jest.Mock).mockResolvedValue(gift ? [withIdentity(gift)] : [])
 const giftsOnFile = (gifts: Array<Record<string, unknown>>) =>
-  (prisma.contribution.findMany as jest.Mock).mockResolvedValue(gifts)
+  (prisma.contribution.findMany as jest.Mock).mockResolvedValue(gifts.map(withIdentity))
 
 it('thanks them for the gift on record', async () => {
   giftOnFile({ id: 'gift1', amount: 150, giftDescription: 'cheque', registryItem: null })
@@ -67,11 +74,61 @@ it('prefers the tier title for a Honeymoon Fund gift', async () => {
 // Only the RSVP intake lowercases addresses; admin-entered guests keep their casing,
 // so a case-sensitive lookup would miss exactly the hand-entered records.
 it('finds the gift regardless of email casing', async () => {
-  giftOnFile({ id: 'gift1', amount: 20, giftDescription: 'cash', registryItem: null })
-  await send()
-  expect((prisma.contribution.findMany as jest.Mock).mock.calls[0][0].where).toEqual({
-    contributorEmail: { equals: 'Muriel@X.com', mode: 'insensitive' },
+  giftOnFile({
+    id: 'gift1', amount: 20, giftDescription: 'cash', registryItem: null,
+    contributorEmail: 'MURIEL@x.COM', // guest is on file as Muriel@X.com
   })
+  const res = await send()
+  expect(results(res)[0].success).toBe(true)
+})
+
+// The disconnect Nicolle reported: she records a cash gift or a present by hand and
+// has no email for the giver, so an email-only lookup insisted no gift existed.
+it('finds a hand-recorded gift that has no email on it, by name', async () => {
+  giftOnFile({
+    id: 'gift1', amount: 0, giftDescription: 'beautiful cake serving set', registryItem: null,
+    contributorName: 'Aunt Muriel', contributorEmail: '',
+  })
+  const res = await send()
+  expect(results(res)[0].success).toBe(true)
+  expect((sendEmail as jest.Mock).mock.calls[0][0].text).toContain('beautiful cake serving set')
+})
+
+// The other half of it: a Stripe gift carries whatever address was typed at
+// checkout, which needn't be the one on the guest record.
+it('finds a gift given under a different email, by name', async () => {
+  giftOnFile({
+    id: 'gift1', amount: 25, giftDescription: null, registryItem: { title: 'Buy Me a Coffee' },
+    contributorName: 'Muriel Ashby', contributorEmail: 'someone-else@work.example',
+  })
+  const res = await send()
+  expect(results(res)[0].success).toBe(true)
+  expect((sendEmail as jest.Mock).mock.calls[0][0].text).toContain('Buy Me a Coffee')
+})
+
+// The explicit link Nicolle sets on the gift form beats any guesswork.
+it('uses the guest picked on the gift form even when the name says otherwise', async () => {
+  giftOnFile({
+    id: 'gift1', amount: 40, giftDescription: 'cash', registryItem: null,
+    guestId: GUEST_ID, contributorName: 'Somebody Else Entirely', contributorEmail: '',
+  })
+  const res = await send()
+  expect(results(res)[0].success).toBe(true)
+})
+
+// A gift that could be either of two guests must not be sent to the wrong one.
+it('refuses rather than guess between two guests with the same first name', async () => {
+  ;(prisma.guest.findMany as jest.Mock).mockResolvedValue([
+    { id: GUEST_ID, firstName: 'Muriel', lastName: 'Ashby', email: 'Muriel@X.com', rsvpdCount: 1, reservedSeats: 1 },
+    { id: '22222222-2222-4222-8222-222222222222', firstName: 'Muriel', lastName: 'Boyd', email: 'mb@x.com', rsvpdCount: 1, reservedSeats: 1 },
+  ])
+  giftOnFile({
+    id: 'gift1', amount: 0, giftDescription: 'a vase', registryItem: null,
+    contributorName: 'Aunt Muriel', contributorEmail: '',
+  })
+  const res = await send()
+  expect(results(res)[0].success).toBe(false)
+  expect(results(res)[0].error).toMatch(/No gift on file/)
 })
 
 it('loads gifts oldest-first so the sentence reads in order', async () => {

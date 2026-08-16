@@ -1,6 +1,7 @@
 import { render, screen, waitFor, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GuestsPage from '../page'
+import { GUEST_CSV_COLUMNS, DEFAULT_GUEST_CSV_KEYS } from '@/lib/guest-csv'
 
 const GUESTS = [
   {
@@ -214,6 +215,8 @@ describe('the popup', () => {
   it('shows how many columns are selected', async () => {
     await loadPage()
     await openPicker()
-    expect(screen.getByRole('dialog').textContent).toMatch(/Columns \(19 of 23\)/)
+    // Counted off the column definitions, so adding a column doesn't fail this.
+    const shown = `Columns (${DEFAULT_GUEST_CSV_KEYS.length} of ${GUEST_CSV_COLUMNS.length})`
+    expect(screen.getByRole('dialog').textContent).toContain(shown)
   })
 })

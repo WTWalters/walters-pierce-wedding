@@ -21,6 +21,16 @@ export const giftRecordSchema = z.object({
   amount: z.coerce.number().min(0).max(1_000_000).optional().default(0),
   // Date only (yyyy-mm-dd) from a date input, or omitted.
   givenOn: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  // The guest this gift is from, chosen on the form. Optional — a giver who isn't on
+  // the guest list at all still gets recorded, and falls back to name/email matching.
+  // '' from an unselected <select> means "no guest chosen", same as omitted.
+  guestId: z.string().trim().uuid().optional().or(z.literal('')),
+  // The second gift, for a giver like Aunt Marilyn who gave both a present and cash
+  // in one go. Stored as its OWN contribution row rather than extra columns here:
+  // the thank-you already names any number of gifts, and one row per gift is what
+  // keeps the Gifts tab's totals and thanked-flags honest per gift.
+  secondGiftDescription: z.string().trim().max(500).optional().default(''),
+  secondAmount: z.coerce.number().min(0).max(1_000_000).optional().default(0),
 })
 
 export type GiftRecordFields = {
@@ -28,6 +38,7 @@ export type GiftRecordFields = {
   contributorEmail: string
   giftDescription: string | null
   amount: number
+  guestId: string | null
   createdAt?: Date
 }
 
@@ -45,7 +56,7 @@ export function parseGiftRecord(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' }
   }
-  const { contributorName, contributorEmail, giftDescription, amount, givenOn } = parsed.data
+  const { contributorName, contributorEmail, giftDescription, amount, givenOn, guestId } = parsed.data
 
   // Neither an amount nor a description leaves a row that says nothing and a
   // thank-you that can only manage "your generous gift".
@@ -65,9 +76,45 @@ export function parseGiftRecord(
       contributorEmail: email,
       giftDescription: giftDescription || null,
       amount,
+      guestId: guestId || null,
       // A bare yyyy-mm-dd parses as UTC midnight, which in Denver is the evening
       // before — noon keeps the date she typed on both sides of the conversion.
       ...(givenOn ? { createdAt: new Date(`${givenOn}T12:00:00`) } : {}),
     },
+  }
+}
+
+/**
+ * Validate a submission from the Add-a-gift form, which may describe TWO gifts from
+ * the same person — Aunt Marilyn's engraved cake serving set and her $100 toward the
+ * Honeymoon Fund. Returns one record per gift, in the order she typed them, so the
+ * thank-you lists them that way.
+ *
+ * The giver's name, email, guest link and date are shared: they're one person giving
+ * on one occasion. Only the description and amount differ.
+ */
+export function parseGiftRecords(
+  body: unknown
+): { ok: true; value: GiftRecordFields[] } | { ok: false; error: string } {
+  const first = parseGiftRecord(body)
+  if (!first.ok) return first
+
+  const parsed = giftRecordSchema.safeParse(body)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' }
+  }
+  const { secondGiftDescription, secondAmount } = parsed.data
+
+  // Both blank is the ordinary single-gift case, not an error.
+  if (secondAmount === 0 && !secondGiftDescription) {
+    return { ok: true, value: [first.value] }
+  }
+
+  return {
+    ok: true,
+    value: [
+      first.value,
+      { ...first.value, giftDescription: secondGiftDescription || null, amount: secondAmount },
+    ],
   }
 }

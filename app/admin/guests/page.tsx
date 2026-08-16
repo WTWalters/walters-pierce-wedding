@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { assertSeatCap, formatPartyName } from '@/lib/guests'
 import { guestListStatus, formatAddedDate } from '@/lib/review'
+import { formatMix, partySize, type MixTotals } from '@/lib/party-mix'
 import {
   GUEST_CSV_COLUMNS,
   DEFAULT_GUEST_CSV_KEYS,
@@ -46,6 +47,8 @@ interface Guest {
   partnerLastName?: string
   reservedSeats?: number | null
   rsvpdCount?: number | null
+  adults?: number | null
+  children?: number | null
   songRequest?: string
   source?: string | null
   reviewedAt?: string | null
@@ -65,7 +68,13 @@ interface GuestStats {
   rsvpReceived: number
   attending: number
   notAttending: number
+  // The adults / children split under the two RSVP cards — the numbers the caterer
+  // and the bar are quoted against. `unspecified` is the parties still to break out.
+  attendingMix: MixTotals
+  notAttendingMix: MixTotals
 }
+
+const EMPTY_MIX: MixTotals = { adults: 0, children: 0, unspecified: 0 }
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<Guest[]>([])
@@ -78,6 +87,8 @@ export default function GuestsPage() {
     rsvpReceived: 0,
     attending: 0,
     notAttending: 0,
+    attendingMix: EMPTY_MIX,
+    notAttendingMix: EMPTY_MIX,
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -103,7 +114,9 @@ export default function GuestsPage() {
     notes: '',
     partnerFirstName: '',
     partnerLastName: '',
-    reservedSeats: ''
+    reservedSeats: '',
+    adults: '',
+    children: ''
   })
 
   useEffect(() => {
@@ -148,7 +161,13 @@ export default function GuestsPage() {
       const statsData = await statsResponse.json()
 
       setGuests(guestsData.guests || [])
-      setStats(statsData)
+      // Default the two breakdowns rather than trusting the payload to carry them:
+      // a cached or older response would otherwise blank the whole page on render.
+      setStats({
+        ...statsData,
+        attendingMix: statsData.attendingMix ?? EMPTY_MIX,
+        notAttendingMix: statsData.notAttendingMix ?? EMPTY_MIX,
+      })
     } catch (error) {
       console.error('Failed to fetch guests:', error)
       setMessage('❌ Failed to load guest data')
@@ -247,7 +266,9 @@ export default function GuestsPage() {
           notes: '',
           partnerFirstName: '',
           partnerLastName: '',
-          reservedSeats: ''
+          reservedSeats: '',
+          adults: '',
+          children: ''
         })
         setShowAddForm(false)
         fetchGuests()
@@ -578,13 +599,23 @@ export default function GuestsPage() {
           <div className="text-2xl font-bold text-yellow-900">{stats.rsvpReceived}</div>
           <div className="text-yellow-800 text-sm">RSVPs Received</div>
         </div>
+        {/* Broken down by adults and children, which is what the caterer and the bar
+            need. "N to enter" is the parties whose make-up nobody has filled in yet —
+            shown rather than folded into the adult count, so a number quoted off this
+            card is a number that's actually been counted. */}
         <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-green-900">{stats.attending}</div>
           <div className="text-green-800 text-sm">Attending</div>
+          {formatMix(stats.attendingMix) && (
+            <div className="text-green-700 text-xs mt-1">{formatMix(stats.attendingMix)}</div>
+          )}
         </div>
         <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-red-900">{stats.notAttending}</div>
           <div className="text-red-800 text-sm">Not Attending</div>
+          {formatMix(stats.notAttendingMix) && (
+            <div className="text-red-700 text-xs mt-1">{formatMix(stats.notAttendingMix)}</div>
+          )}
         </div>
       </div>
 
@@ -718,6 +749,47 @@ export default function GuestsPage() {
               onChange={(e) => setNewGuest({...newGuest, reservedSeats: e.target.value})}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
             />
+
+            {/* Who's coming, split the way the caterer and the bar need it. The
+                number in the party is these two added together — there is no third
+                figure to keep in step. */}
+            <div className="md:col-span-2 lg:col-span-3 border-t border-gray-100 pt-4">
+              <p className="text-sm font-medium text-gray-700">Who&rsquo;s in this party</p>
+              <p className="text-xs text-gray-500">
+                The number in the party is the adults plus the children.
+              </p>
+            </div>
+            <label className="text-sm text-gray-700">
+              <span className="block mb-1">Adult(s)</span>
+              <input
+                type="number"
+                min="0"
+                value={newGuest.adults}
+                onChange={(e) => setNewGuest({...newGuest, adults: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </label>
+            <label className="text-sm text-gray-700">
+              <span className="block mb-1">Children</span>
+              <input
+                type="number"
+                min="0"
+                value={newGuest.children}
+                onChange={(e) => setNewGuest({...newGuest, children: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </label>
+            <div className="text-sm text-gray-600 self-end pb-2">
+              {partySize({
+                adults: newGuest.adults === '' ? null : Number(newGuest.adults),
+                children: newGuest.children === '' ? null : Number(newGuest.children),
+              }) !== null && (
+                <>Number in party: <strong>{partySize({
+                  adults: newGuest.adults === '' ? null : Number(newGuest.adults),
+                  children: newGuest.children === '' ? null : Number(newGuest.children),
+                })}</strong></>
+              )}
+            </div>
 
             <div className="md:col-span-2 lg:col-span-3 flex space-x-3">
               <button
@@ -1151,15 +1223,60 @@ export default function GuestsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                 </div>
+                {/* Adults and Children make up the party, so Number RSVP'd follows
+                    from them rather than being typed a third time. It stays editable
+                    only while neither has been entered, which is how every record
+                    imported before these fields existed keeps its count. */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Number RSVP&apos;d</label>
+                  <label htmlFor="edit-adults" className="block text-sm font-medium text-gray-700 mb-1">Adult(s)</label>
                   <input
+                    id="edit-adults"
                     type="number"
                     min={0}
-                    value={editingGuest.rsvpdCount ?? ''}
-                    onChange={(e) => setEditingGuest({...editingGuest, rsvpdCount: e.target.value ? parseInt(e.target.value) : null})}
+                    value={editingGuest.adults ?? ''}
+                    onChange={(e) => {
+                      const adults = e.target.value ? parseInt(e.target.value) : null
+                      setEditingGuest({
+                        ...editingGuest,
+                        adults,
+                        rsvpdCount: partySize({ adults, children: editingGuest.children }) ?? editingGuest.rsvpdCount,
+                      })
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
+                </div>
+                <div>
+                  <label htmlFor="edit-children" className="block text-sm font-medium text-gray-700 mb-1">Children</label>
+                  <input
+                    id="edit-children"
+                    type="number"
+                    min={0}
+                    value={editingGuest.children ?? ''}
+                    onChange={(e) => {
+                      const children = e.target.value ? parseInt(e.target.value) : null
+                      setEditingGuest({
+                        ...editingGuest,
+                        children,
+                        rsvpdCount: partySize({ adults: editingGuest.adults, children }) ?? editingGuest.rsvpdCount,
+                      })
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-rsvpd-count" className="block text-sm font-medium text-gray-700 mb-1">Number RSVP&apos;d</label>
+                  <input
+                    id="edit-rsvpd-count"
+                    type="number"
+                    min={0}
+                    disabled={partySize({ adults: editingGuest.adults, children: editingGuest.children }) !== null}
+                    value={editingGuest.rsvpdCount ?? ''}
+                    onChange={(e) => setEditingGuest({...editingGuest, rsvpdCount: e.target.value ? parseInt(e.target.value) : null})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 disabled:bg-gray-100 disabled:text-gray-600"
+                  />
+                  {partySize({ adults: editingGuest.adults, children: editingGuest.children }) !== null && (
+                    <p className="text-xs text-gray-500 mt-1">Adults plus children.</p>
+                  )}
                 </div>
                 <div className="md:col-span-2 lg:col-span-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Favorite Song</label>

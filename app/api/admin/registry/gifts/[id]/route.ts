@@ -39,6 +39,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         contributorEmail: parsed.value.contributorEmail,
         giftDescription: parsed.value.giftDescription,
         amount: parsed.value.amount,
+        guestId: parsed.value.guestId,
         // Left alone when she doesn't touch the date field, rather than silently
         // re-stamping the gift with today.
         ...(parsed.value.createdAt ? { createdAt: parsed.value.createdAt } : {}),

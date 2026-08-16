@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, logEmail, COORDINATOR_FROM, NOTIFY_EMAIL } from '@/lib/email'
 import { greetingName } from '@/lib/names'
+import { matchGiftsToGuests } from '@/lib/gift-match'
 import {
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
@@ -57,34 +58,34 @@ export async function POST(request: NextRequest) {
   // acknowledging both. Recording each gift separately keeps the ledger honest and
   // lets the note scale past two without a "second gift" field.
   //
-  // Looked up by email, case-insensitively: only the RSVP intake lowercases
-  // addresses, while admin-entered guests keep whatever casing was typed.
+  // This used to look gifts up by email alone, which is what produced Nicolle's
+  // "there's no gift recorded" on gifts she had plainly just added: a hand-recorded
+  // gift often has no email at all, and a Stripe one carries whatever address was
+  // typed at checkout. lib/gift-match resolves a gift to its guest by the explicit
+  // link first, then email, then name.
   type GiftOnFile = { id: string; amount: number; label: string | null }
-  const giftsByEmail = new Map<string, GiftOnFile[]>()
+  const giftsByGuestId = new Map<string, GiftOnFile[]>()
   if (template === 'registry_thank_you') {
-    const emails = guests.map((g) => g.email).filter((e): e is string => Boolean(e))
-    for (const email of emails) {
-      const gifts = await prisma.contribution.findMany({
-        where: { contributorEmail: { equals: email, mode: 'insensitive' } },
-        // Oldest first, so the sentence lists them in the order they arrived.
-        orderBy: { createdAt: 'asc' },
-        include: { registryItem: { select: { title: true } } },
-      })
-      if (gifts.length > 0) {
-        giftsByEmail.set(
-          email.toLowerCase(),
-          gifts.map((gift) => ({
-            id: gift.id,
-            amount: Number(gift.amount),
-            // A Stripe gift names its tier; one Nicolle recorded names what it was.
-            label: gift.registryItem?.title ?? gift.giftDescription ?? null,
-          }))
-        )
-      }
+    const allGifts = await prisma.contribution.findMany({
+      // Oldest first, so the sentence lists them in the order they arrived.
+      orderBy: { createdAt: 'asc' },
+      include: { registryItem: { select: { title: true } } },
+    })
+    for (const [guestId, gifts] of matchGiftsToGuests(allGifts, guests)) {
+      giftsByGuestId.set(
+        guestId,
+        gifts.map((gift) => ({
+          id: gift.id,
+          amount: Number(gift.amount),
+          // A Stripe gift names its tier; one Nicolle recorded names what it was.
+          label: gift.registryItem?.title ?? gift.giftDescription ?? null,
+        }))
+      )
     }
   }
 
   type GuestRow = {
+    id?: string
     firstName: string
     preferredName?: string | null
     rsvpdCount: number | null
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       case 'rsvp_over_count': return generateRsvpOverCountEmail(who, g.rsvpdCount, g.reservedSeats)
       case 'gracious_regrets': return generateGraciousRegretsEmail(who)
       case 'registry_thank_you': {
-        const gifts = (g.email ? giftsByEmail.get(g.email.toLowerCase()) : undefined) ?? []
+        const gifts = (g.id ? giftsByGuestId.get(g.id) : undefined) ?? []
         return generateRegistryThankYouEmail({
           name: who,
           gifts: gifts.map((gift) => ({ amount: gift.amount, label: gift.label })),
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
     // Refuse rather than send a thank-you that can't name the gift. Recording the
     // gift on the Gifts tab first is the intended order, and a vague note to
     // someone who gave generously is worse than no note.
-    const giftsOnFile = giftsByEmail.get(guest.email.toLowerCase())
+    const giftsOnFile = giftsByGuestId.get(guest.id)
     if (template === 'registry_thank_you' && !giftsOnFile) {
       results.push({
         guestId: guest.id,
