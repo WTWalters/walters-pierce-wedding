@@ -186,14 +186,15 @@ describe('the make-up columns in the grid', () => {
     expect(headers()).not.toEqual(expect.arrayContaining(['Number in Party']))
   })
 
-  // The three read left-to-right into the total they make up, so the check she
-  // wants — do these add up? — is one glance along the row.
-  it('places them immediately before the RSVP’d total', async () => {
+  // Nicolle: "put No. RSVP'd next to No. in Party... then the three following
+  // columns will break down the No. RSVP'd". Total first, then its parts, so the
+  // check she wants — do these add up? — is one glance rightward along the row.
+  it('puts the two totals together, then the three that break the second one down', async () => {
     render(<GuestsPage />)
     await waitFor(() => expect(screen.getByText('Paula Kuper')).toBeInTheDocument())
     const labels = headers()
-    expect(labels.slice(labels.indexOf('21+'), labels.indexOf('21+') + 4))
-      .toEqual(['21+', 'Under 21', 'Child', 'No. RSVP’d'])
+    expect(labels.slice(labels.indexOf('No. in Party'), labels.indexOf('No. in Party') + 5))
+      .toEqual(['No. in Party', 'No. RSVP’d', '21+', 'Under 21', 'Child'])
   })
 
   it("shows the party's numbers in its row", async () => {
