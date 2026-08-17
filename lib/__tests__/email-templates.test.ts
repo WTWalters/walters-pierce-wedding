@@ -6,6 +6,7 @@ import {
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
   generateWeddingIcs,
+  generateRsvpReminderEmail,
 } from '@/lib/email-templates'
 
 const submission = {
@@ -190,5 +191,54 @@ describe('generateWeddingIcs', () => {
     expect(
       generateWeddingIcs({ date: 'TBA', time: 'TBA', venueName: 'TBA', venueAddress: '' })
     ).toBeNull()
+  })
+})
+
+// Nicolle: "an email on the dropdown menu that says something like, 'Just a gentle
+// reminder that you have [X] days to reply to the RSVP before your response is
+// listed as no'... We could call it 'RSVP - unknown'."
+describe('generateRsvpReminderEmail', () => {
+  const render = (days: number) => generateRsvpReminderEmail('Marilyn', days, '2026-08-20')
+
+  it('says how many days are left, in her words', () => {
+    expect(render(3).text).toContain('gentle reminder that you have 3 days to reply')
+  })
+
+  it('uses the singular on the last-but-one day', () => {
+    expect(render(1).text).toContain('you have 1 day to reply')
+  })
+
+  it('says today is the last day rather than "0 days"', () => {
+    const out = render(0)
+    expect(out.text).toContain('today is the last day')
+    expect(out.text).not.toContain('0 days')
+    expect(out.subject).toBe('Last day to RSVP — Emme & Connor')
+  })
+
+  // "3 days" alone makes the reader do the arithmetic; the date removes the doubt.
+  it('spells the deadline out beside the countdown', () => {
+    expect(render(3).text).toContain('Thursday, August 20, 2026')
+  })
+
+  it('explains the consequence she asked to convey', () => {
+    expect(render(3).text).toMatch(/counted as unable to come/i)
+  })
+
+  it('links somewhere they can actually reply', () => {
+    expect(render(3).html).toContain('walters-pierce-wedding.com/rsvp')
+  })
+
+  it('counts the days in the subject line too', () => {
+    expect(render(3).subject).toBe('A gentle reminder — 3 days left to RSVP')
+  })
+
+  it('greets a guest with no name without saying "Hi ,"', () => {
+    expect(generateRsvpReminderEmail('', 3, '2026-08-20').text).toContain('Hi there,')
+  })
+
+  it('escapes a name rather than letting it into the markup', () => {
+    const out = generateRsvpReminderEmail('<b>Mal</b>', 3, '2026-08-20')
+    expect(out.html).not.toContain('<b>Mal</b>')
+    expect(out.html).toContain('&lt;b&gt;Mal&lt;/b&gt;')
   })
 })

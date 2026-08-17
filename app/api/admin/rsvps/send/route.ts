@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail, logEmail, COORDINATOR_FROM, NOTIFY_EMAIL } from '@/lib/email'
 import { greetingName } from '@/lib/names'
 import { matchGiftsToGuests } from '@/lib/gift-match'
+import { daysUntilDeadline, DEFAULT_RSVP_DEADLINE } from '@/lib/rsvp-deadline'
 import {
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
@@ -13,6 +14,7 @@ import {
   generateRsvpNoEmail,
   generateRsvpOverCountEmail,
   generateRegistryThankYouEmail,
+  generateRsvpReminderEmail,
   generateWeddingIcs,
   WeddingDetails,
 } from '@/lib/email-templates'
@@ -28,13 +30,17 @@ const sendSchema = z.object({
     'rsvp_no',
     'rsvp_over_count',
     'registry_thank_you',
+    'rsvp_reminder',
   ]),
   dryRun: z.boolean().optional(),
 })
 
 async function loadDetails(): Promise<WeddingDetails> {
   const row = await prisma.setting.findUnique({ where: { key: 'wedding_details' } })
-  const fallback: WeddingDetails = { date: 'TBA', time: 'TBA', venueName: 'TBA', venueAddress: '' }
+  const fallback: WeddingDetails = {
+    date: 'TBA', time: 'TBA', venueName: 'TBA', venueAddress: '',
+    rsvpDeadline: DEFAULT_RSVP_DEADLINE,
+  }
   if (!row?.value) return fallback
   try { return { ...fallback, ...JSON.parse(row.value) } } catch { return fallback }
 }
@@ -84,6 +90,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Days left to reply, counted once for the whole batch so every note in one send
+  // quotes the same number. Null means the saved deadline isn't a usable date.
+  const deadline = details.rsvpDeadline || DEFAULT_RSVP_DEADLINE
+  const daysLeft = daysUntilDeadline(deadline)
+
   type GuestRow = {
     id?: string
     firstName: string
@@ -100,6 +111,7 @@ export async function POST(request: NextRequest) {
       case 'rsvp_no': return generateRsvpNoEmail(who)
       case 'rsvp_over_count': return generateRsvpOverCountEmail(who, g.rsvpdCount, g.reservedSeats)
       case 'gracious_regrets': return generateGraciousRegretsEmail(who)
+      case 'rsvp_reminder': return generateRsvpReminderEmail(who, daysLeft ?? 0, deadline)
       case 'registry_thank_you': {
         const gifts = (g.id ? giftsByGuestId.get(g.id) : undefined) ?? []
         return generateRegistryThankYouEmail({
@@ -150,6 +162,34 @@ export async function POST(request: NextRequest) {
         error: 'No gift on file — add it on the Gifts tab first',
       })
       continue
+    }
+    if (template === 'rsvp_reminder') {
+      // "You have X days to reply" only makes sense while there are days left, and
+      // a mistyped deadline gives no number at all. Refusing beats sending a note
+      // that says "-2 days" or "NaN days" to a hundred people.
+      if (daysLeft === null) {
+        results.push({
+          guestId: guest.id, email: guest.email, success: false,
+          error: 'The RSVP deadline isn’t a valid date — fix it before sending',
+        })
+        continue
+      }
+      if (daysLeft < 0) {
+        results.push({
+          guestId: guest.id, email: guest.email, success: false,
+          error: 'The RSVP deadline has passed — move it before sending a reminder',
+        })
+        continue
+      }
+      // This is the "RSVP - unknown" note by definition. Someone who has already
+      // answered would read "reply before you're listed as no" as us losing their RSVP.
+      if (guest.attending !== null) {
+        results.push({
+          guestId: guest.id, email: guest.email, success: false,
+          error: 'They have already replied — this reminder is only for guests with no answer',
+        })
+        continue
+      }
     }
     const tpl = render(guest)
     const res = await sendEmail(

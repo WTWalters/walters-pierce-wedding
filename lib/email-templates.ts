@@ -1,4 +1,5 @@
 import { formatAddedDate } from './review'
+import { daysLeftPhrase, formatDeadline } from './rsvp-deadline'
 
 interface Rendered { subject: string; html: string; text: string }
 
@@ -112,6 +113,8 @@ export interface WeddingDetails {
   time: string
   venueName: string
   venueAddress: string
+  /** yyyy-mm-dd. Drives the countdown in the RSVP reminder — see lib/rsvp-deadline. */
+  rsvpDeadline?: string
 }
 
 export function generateVenueDetailsEmail(guestFirstName: string, d: WeddingDetails): Rendered {
@@ -238,6 +241,57 @@ export function generateRsvpNoEmail(firstName: string): Rendered {
     + `but we truly appreciate you letting us know.`
     + cta.text
   return { subject: 'Thank you for your RSVP — Emme & Connor', html: wrap('We’ll miss you', body), text }
+}
+
+// The nudge for a guest who hasn't answered yet — Nicolle's "RSVP - unknown".
+// Her wording: "Just a gentle reminder that you have [X] days to reply to the RSVP
+// before your response is listed as no."
+//
+// `daysLeft` is counted by lib/rsvp-deadline in the wedding's timezone, and the
+// deadline is spelled out beside it so the note doesn't rely on the reader working
+// out what "3 days" lands on. Callers must not send this once the deadline has
+// passed — "you have -2 days" is not a note you send anyone, and the send route
+// refuses instead.
+export function generateRsvpReminderEmail(
+  firstName: string,
+  daysLeft: number,
+  deadline: string
+): Rendered {
+  const name = escapeHtml(firstName || 'there')
+  const window = daysLeft <= 0
+    ? 'today is the last day'
+    : `you have <strong>${daysLeftPhrase(daysLeft)}</strong>`
+  const windowText = daysLeft <= 0 ? 'today is the last day' : `you have ${daysLeftPhrase(daysLeft)}`
+  const by = escapeHtml(formatDeadline(deadline))
+
+  const body = `<p>Hi ${name},</p>
+    <p>Just a gentle reminder that ${window} to reply to your RSVP. We need every
+    answer in by <strong>${by}</strong> — after that we have to give the caterer our
+    final numbers, and anyone we haven't heard from will be counted as unable to
+    come.</p>
+    <p>It only takes a moment, and we'd so love to have you there.</p>
+    <p style="text-align:center; margin: 24px 0;">
+      <a href="https://walters-pierce-wedding.com/rsvp" class="cta-button"
+         style="background:#00330a; color:#D4AF37; padding:12px 24px; border-radius:999px; text-decoration:none; display:inline-block;">
+        Reply to your RSVP
+      </a>
+    </p>`
+
+  const text = `Hi ${firstName || 'there'},\n\n`
+    + `Just a gentle reminder that ${windowText} to reply to your RSVP. We need every answer in by `
+    + `${formatDeadline(deadline)} — after that we have to give the caterer our final numbers, and anyone `
+    + `we haven't heard from will be counted as unable to come.\n\n`
+    + `It only takes a moment, and we'd so love to have you there.\n\n`
+    + `Reply here: https://walters-pierce-wedding.com/rsvp\n\n`
+    + `With love,\nEmme & Connor`
+
+  return {
+    subject: daysLeft <= 0
+      ? 'Last day to RSVP — Emme & Connor'
+      : `A gentle reminder — ${daysLeftPhrase(daysLeft)} left to RSVP`,
+    html: wrap('We’d love an answer', body),
+    text,
+  }
 }
 
 // `allowedCount` is the number of guests Nicolle has approved for this party
