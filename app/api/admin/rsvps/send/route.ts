@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, logEmail, COORDINATOR_FROM, NOTIFY_EMAIL } from '@/lib/email'
 import { greetingName } from '@/lib/names'
+import { matchGiftsToGuests } from '@/lib/gift-match'
+import { daysUntilDeadline, DEFAULT_RSVP_DEADLINE } from '@/lib/rsvp-deadline'
 import {
   generateVenueDetailsEmail,
   generateGraciousRegretsEmail,
@@ -13,6 +15,7 @@ import {
   generateRsvpOverCountEmail,
   generateRegistryThankYouEmail,
   generateFinalHeadcountEmail,
+  generateRsvpReminderEmail,
   generateWeddingIcs,
   type FinalHeadcountContent,
   WeddingDetails,
@@ -30,6 +33,7 @@ const sendSchema = z.object({
     'rsvp_over_count',
     'registry_thank_you',
     'final_headcount',
+    'rsvp_reminder',
   ]),
   dryRun: z.boolean().optional(),
   // Nicolle reviews and edits this one before it goes out (she asked to, and it is
@@ -49,7 +53,10 @@ const sendSchema = z.object({
 
 async function loadDetails(): Promise<WeddingDetails> {
   const row = await prisma.setting.findUnique({ where: { key: 'wedding_details' } })
-  const fallback: WeddingDetails = { date: 'TBA', time: 'TBA', venueName: 'TBA', venueAddress: '' }
+  const fallback: WeddingDetails = {
+    date: 'TBA', time: 'TBA', venueName: 'TBA', venueAddress: '',
+    rsvpDeadline: DEFAULT_RSVP_DEADLINE,
+  }
   if (!row?.value) return fallback
   try { return { ...fallback, ...JSON.parse(row.value) } } catch { return fallback }
 }
@@ -73,34 +80,39 @@ export async function POST(request: NextRequest) {
   // acknowledging both. Recording each gift separately keeps the ledger honest and
   // lets the note scale past two without a "second gift" field.
   //
-  // Looked up by email, case-insensitively: only the RSVP intake lowercases
-  // addresses, while admin-entered guests keep whatever casing was typed.
+  // This used to look gifts up by email alone, which is what produced Nicolle's
+  // "there's no gift recorded" on gifts she had plainly just added: a hand-recorded
+  // gift often has no email at all, and a Stripe one carries whatever address was
+  // typed at checkout. lib/gift-match resolves a gift to its guest by the explicit
+  // link first, then email, then name.
   type GiftOnFile = { id: string; amount: number; label: string | null }
-  const giftsByEmail = new Map<string, GiftOnFile[]>()
+  const giftsByGuestId = new Map<string, GiftOnFile[]>()
   if (template === 'registry_thank_you') {
-    const emails = guests.map((g) => g.email).filter((e): e is string => Boolean(e))
-    for (const email of emails) {
-      const gifts = await prisma.contribution.findMany({
-        where: { contributorEmail: { equals: email, mode: 'insensitive' } },
-        // Oldest first, so the sentence lists them in the order they arrived.
-        orderBy: { createdAt: 'asc' },
-        include: { registryItem: { select: { title: true } } },
-      })
-      if (gifts.length > 0) {
-        giftsByEmail.set(
-          email.toLowerCase(),
-          gifts.map((gift) => ({
-            id: gift.id,
-            amount: Number(gift.amount),
-            // A Stripe gift names its tier; one Nicolle recorded names what it was.
-            label: gift.registryItem?.title ?? gift.giftDescription ?? null,
-          }))
-        )
-      }
+    const allGifts = await prisma.contribution.findMany({
+      // Oldest first, so the sentence lists them in the order they arrived.
+      orderBy: { createdAt: 'asc' },
+      include: { registryItem: { select: { title: true } } },
+    })
+    for (const [guestId, gifts] of matchGiftsToGuests(allGifts, guests)) {
+      giftsByGuestId.set(
+        guestId,
+        gifts.map((gift) => ({
+          id: gift.id,
+          amount: Number(gift.amount),
+          // A Stripe gift names its tier; one Nicolle recorded names what it was.
+          label: gift.registryItem?.title ?? gift.giftDescription ?? null,
+        }))
+      )
     }
   }
 
+  // Days left to reply, counted once for the whole batch so every note in one send
+  // quotes the same number. Null means the saved deadline isn't a usable date.
+  const deadline = details.rsvpDeadline || DEFAULT_RSVP_DEADLINE
+  const daysLeft = daysUntilDeadline(deadline)
+
   type GuestRow = {
+    id?: string
     firstName: string
     preferredName?: string | null
     rsvpdCount: number | null
@@ -116,8 +128,9 @@ export async function POST(request: NextRequest) {
       case 'final_headcount': return generateFinalHeadcountEmail(who, g.rsvpdCount, content as FinalHeadcountContent)
       case 'rsvp_over_count': return generateRsvpOverCountEmail(who, g.rsvpdCount, g.reservedSeats)
       case 'gracious_regrets': return generateGraciousRegretsEmail(who)
+      case 'rsvp_reminder': return generateRsvpReminderEmail(who, daysLeft ?? 0, deadline)
       case 'registry_thank_you': {
-        const gifts = (g.email ? giftsByEmail.get(g.email.toLowerCase()) : undefined) ?? []
+        const gifts = (g.id ? giftsByGuestId.get(g.id) : undefined) ?? []
         return generateRegistryThankYouEmail({
           name: who,
           gifts: gifts.map((gift) => ({ amount: gift.amount, label: gift.label })),
@@ -167,7 +180,7 @@ export async function POST(request: NextRequest) {
     // Refuse rather than send a thank-you that can't name the gift. Recording the
     // gift on the Gifts tab first is the intended order, and a vague note to
     // someone who gave generously is worse than no note.
-    const giftsOnFile = giftsByEmail.get(guest.email.toLowerCase())
+    const giftsOnFile = giftsByGuestId.get(guest.id)
     if (template === 'registry_thank_you' && !giftsOnFile) {
       results.push({
         guestId: guest.id,
@@ -176,6 +189,34 @@ export async function POST(request: NextRequest) {
         error: 'No gift on file — add it on the Gifts tab first',
       })
       continue
+    }
+    if (template === 'rsvp_reminder') {
+      // "You have X days to reply" only makes sense while there are days left, and
+      // a mistyped deadline gives no number at all. Refusing beats sending a note
+      // that says "-2 days" or "NaN days" to a hundred people.
+      if (daysLeft === null) {
+        results.push({
+          guestId: guest.id, email: guest.email, success: false,
+          error: 'The RSVP deadline isn’t a valid date — fix it before sending',
+        })
+        continue
+      }
+      if (daysLeft < 0) {
+        results.push({
+          guestId: guest.id, email: guest.email, success: false,
+          error: 'The RSVP deadline has passed — move it before sending a reminder',
+        })
+        continue
+      }
+      // This is the "RSVP - unknown" note by definition. Someone who has already
+      // answered would read "reply before you're listed as no" as us losing their RSVP.
+      if (guest.attending !== null) {
+        results.push({
+          guestId: guest.id, email: guest.email, success: false,
+          error: 'They have already replied — this reminder is only for guests with no answer',
+        })
+        continue
+      }
     }
     const tpl = render(guest)
     const res = await sendEmail(

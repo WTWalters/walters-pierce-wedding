@@ -3,12 +3,16 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NOT_AWAITING_REVIEW } from '@/lib/review'
+import { DEFAULT_RSVP_DEADLINE } from '@/lib/rsvp-deadline'
 
 // Next.js route files may only export handlers/config — keep this const local.
 const WEDDING_DETAILS_KEY = 'wedding_details'
 
 const DEFAULT_DETAILS = {
   date: 'TBA', time: 'TBA', venueName: 'TBA', venueAddress: '',
+  // The RSVP reminder counts down to this. Kept here rather than in code so the
+  // date can be moved without a deploy — see lib/rsvp-deadline.
+  rsvpDeadline: DEFAULT_RSVP_DEADLINE,
 }
 
 export async function GET() {
@@ -51,6 +55,7 @@ export async function PUT(request: NextRequest) {
     time: String(body.time || 'TBA'),
     venueName: String(body.venueName || 'TBA'),
     venueAddress: String(body.venueAddress ?? ''),
+    rsvpDeadline: String(body.rsvpDeadline || DEFAULT_RSVP_DEADLINE),
   }
   await prisma.setting.upsert({
     where: { key: WEDDING_DETAILS_KEY },

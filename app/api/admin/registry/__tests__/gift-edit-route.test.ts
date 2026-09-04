@@ -6,13 +6,14 @@ jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    contribution: { findFirst: jest.fn(), update: jest.fn(), delete: jest.fn() },
+    contribution: { findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
+    guest: { findUnique: jest.fn() },
     auditLog: { create: jest.fn() },
   },
 }))
 
 import { getServerSession } from 'next-auth'
-import { PUT, DELETE } from '../gifts/[id]/route'
+import { PUT, PATCH, DELETE } from '../gifts/[id]/route'
 import { prisma } from '@/lib/prisma'
 
 const ctx = { params: Promise.resolve({ id: 'gift1' }) }
@@ -177,5 +178,70 @@ describe('DELETE', () => {
     const res = (await del()) as unknown as { status: number }
     expect(res.status).toBe(401)
     expect(prisma.contribution.delete).not.toHaveBeenCalled()
+  })
+})
+
+// Linking a gift to the guest who gave it. Unlike PUT, this is allowed on gifts that
+// came through the website: the case Nicolle named is the $25 through "Buy Me a
+// Coffee", a Stripe gift with no Edit button at all.
+describe('PATCH — linking a gift to a guest', () => {
+  const GUEST = '11111111-1111-4111-8111-111111111111'
+
+  beforeEach(() => {
+    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { role: 'admin' } })
+    ;(prisma.contribution.findUnique as jest.Mock).mockResolvedValue({ id: 'gift1' })
+    ;(prisma.guest.findUnique as jest.Mock).mockResolvedValue({ id: GUEST })
+  })
+
+  it('stores the link', async () => {
+    const res = (await PATCH(req({ guestId: GUEST }), ctx)) as unknown as { status: number }
+    expect(res.status).toBe(200)
+    expect(prisma.contribution.update).toHaveBeenCalledWith({
+      where: { id: 'gift1' },
+      data: { guestId: GUEST },
+    })
+  })
+
+  // The whole point: a Stripe gift can be linked even though it can't be edited.
+  it('works on a gift that came from the website', async () => {
+    ;(prisma.contribution.findUnique as jest.Mock).mockResolvedValue({ id: 'gift1', source: null })
+    const res = (await PATCH(req({ guestId: GUEST }), ctx)) as unknown as { status: number }
+    expect(res.status).toBe(200)
+  })
+
+  it('touches nothing but the link, so a real payment keeps its amount', async () => {
+    await PATCH(req({ guestId: GUEST }), ctx)
+    expect((prisma.contribution.update as jest.Mock).mock.calls[0][0].data).toEqual({ guestId: GUEST })
+  })
+
+  it('clears the link, falling back to name and email matching', async () => {
+    await PATCH(req({ guestId: '' }), ctx)
+    expect((prisma.contribution.update as jest.Mock).mock.calls[0][0].data).toEqual({ guestId: null })
+  })
+
+  it('rejects a guest who is no longer on the list', async () => {
+    ;(prisma.guest.findUnique as jest.Mock).mockResolvedValue(null)
+    const res = (await PATCH(req({ guestId: GUEST }), ctx)) as unknown as { status: number }
+    expect(res.status).toBe(400)
+    expect(prisma.contribution.update).not.toHaveBeenCalled()
+  })
+
+  it('rejects something that is not an id', async () => {
+    const res = (await PATCH(req({ guestId: 'marilyn' }), ctx)) as unknown as { status: number }
+    expect(res.status).toBe(400)
+    expect(prisma.contribution.update).not.toHaveBeenCalled()
+  })
+
+  it('404s a gift that no longer exists', async () => {
+    ;(prisma.contribution.findUnique as jest.Mock).mockResolvedValue(null)
+    const res = (await PATCH(req({ guestId: GUEST }), ctx)) as unknown as { status: number }
+    expect(res.status).toBe(404)
+  })
+
+  it('401s a non-admin', async () => {
+    ;(getServerSession as jest.Mock).mockResolvedValue(null)
+    const res = (await PATCH(req({ guestId: GUEST }), ctx)) as unknown as { status: number }
+    expect(res.status).toBe(401)
+    expect(prisma.contribution.update).not.toHaveBeenCalled()
   })
 })

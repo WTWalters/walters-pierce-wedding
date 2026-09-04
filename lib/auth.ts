@@ -5,12 +5,13 @@ import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { sendEmail } from "./email"
 
-// Hardcoded admin credentials (Whitney's choice — private repo).
-// ADMIN_EMAIL / ADMIN_PASSWORD env vars override these if ever set.
-const ADMIN_CREDENTIALS = {
-  email: process.env.ADMIN_EMAIL || 'admin@walters-pierce-wedding.com',
-  password: process.env.ADMIN_PASSWORD || 'Kund@lini12',
-}
+// The built-in admin logins (the super admin and the shared admin account)
+// authenticate against ADMIN_PASSWORD, which must be set in the deployment
+// environment. There is deliberately no fallback value: an unset variable
+// disables these two logins rather than accepting a password committed to the
+// repository. Database users are unaffected either way.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@walters-pierce-wedding.com'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
 
 const SUPER_ADMIN_EMAIL = 'whitney.walters@gmail.com'
 const MAX_LOGIN_ATTEMPTS = 3
@@ -18,6 +19,27 @@ const LOCKOUT_DURATION = 30 * 60 * 1000 // 30 minutes
 
 // In-memory storage for login attempts (in production, use Redis or database)
 const loginAttempts = new Map<string, { count: number; lastAttempt: number; lockedUntil?: number }>()
+
+let missingAdminPasswordLogged = false
+
+// True when ADMIN_PASSWORD is configured. When it is not, the built-in logins
+// are skipped and a one-off error is logged so the cause is visible in the
+// deployment logs instead of showing up as an unexplained failed login.
+function adminPasswordConfigured(): boolean {
+  if (ADMIN_PASSWORD) {
+    return true
+  }
+
+  if (!missingAdminPasswordLogged) {
+    console.error(
+      'ADMIN_PASSWORD is not set. The built-in admin logins are disabled until it is ' +
+      'configured in the deployment environment; database admin users can still sign in.'
+    )
+    missingAdminPasswordLogged = true
+  }
+
+  return false
+}
 
 function checkLoginAttempts(email: string): { allowed: boolean; remainingAttempts?: number } {
   const attempts = loginAttempts.get(email)
@@ -124,29 +146,33 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Super admin bypass - always allow whitney.walters@gmail.com
-        if (email === SUPER_ADMIN_EMAIL) {
-          const isValidSuperAdmin = credentials.password === ADMIN_CREDENTIALS.password
+        // Built-in admin logins. Skipped entirely when ADMIN_PASSWORD is not
+        // configured, so the database lookup below still gets a chance.
+        if (adminPasswordConfigured()) {
+          // Super admin bypass - always allow whitney.walters@gmail.com
+          if (email === SUPER_ADMIN_EMAIL) {
+            const isValidSuperAdmin = credentials.password === ADMIN_PASSWORD
 
-          recordLoginAttempt(email, isValidSuperAdmin)
+            recordLoginAttempt(email, isValidSuperAdmin)
 
-          if (isValidSuperAdmin) {
+            if (isValidSuperAdmin) {
+              return {
+                id: 'super-admin',
+                email: SUPER_ADMIN_EMAIL,
+                role: 'admin',
+              }
+            }
+            return null
+          }
+
+          // Shared admin account
+          if (email === ADMIN_EMAIL && credentials.password === ADMIN_PASSWORD) {
+            recordLoginAttempt(email, true)
             return {
-              id: 'super-admin',
-              email: SUPER_ADMIN_EMAIL,
+              id: 'admin',
+              email: ADMIN_EMAIL,
               role: 'admin',
             }
-          }
-          return null
-        }
-
-        // Check hardcoded admin credentials
-        if (email === ADMIN_CREDENTIALS.email && credentials.password === ADMIN_CREDENTIALS.password) {
-          recordLoginAttempt(email, true)
-          return {
-            id: 'admin',
-            email: ADMIN_CREDENTIALS.email,
-            role: 'admin',
           }
         }
 

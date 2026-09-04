@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parseGiftRecord } from '@/lib/gift-record'
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // Edit a gift Nicolle recorded by hand. Only those: she asked for it ("I don't need /
 // want to edit ones that come in from the website"), and it's the safe boundary. A
 // Stripe contribution's amount is tied to a real payment and was already added to its
@@ -39,6 +41,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         contributorEmail: parsed.value.contributorEmail,
         giftDescription: parsed.value.giftDescription,
         amount: parsed.value.amount,
+        guestId: parsed.value.guestId,
         // Left alone when she doesn't touch the date field, rather than silently
         // re-stamping the gift with today.
         ...(parsed.value.createdAt ? { createdAt: parsed.value.createdAt } : {}),
@@ -49,6 +52,50 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error) {
     console.error('Error updating a gift:', error)
     return NextResponse.json({ error: 'Failed to update the gift' }, { status: 500 })
+  }
+}
+
+// Link a gift to the guest who gave it — and ONLY that. Deliberately not limited to
+// hand-recorded gifts, unlike PUT and DELETE: the case Nicolle reported by name is
+// the $25 that came through "Buy Me a Coffee", a Stripe gift with no Edit button at
+// all. Without this she'd have no way to connect exactly the gift she asked about.
+//
+// The boundary PUT protects still holds, because this writes no money: a Stripe
+// gift's amount stays tied to its payment and its tier's raised total. Saying who
+// gave it changes nothing a guest can see.
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { id } = await params
+
+    const body = await request.json().catch(() => null)
+    const raw = (body as { guestId?: unknown } | null)?.guestId
+    // '' and null both mean "unlink", and fall back to name/email matching.
+    const guestId = raw == null || raw === '' ? null : String(raw)
+    if (guestId && !UUID.test(guestId)) {
+      return NextResponse.json({ error: 'That is not a guest' }, { status: 400 })
+    }
+    // Check the guest exists rather than letting the FK fail as a 500.
+    if (guestId) {
+      const guest = await prisma.guest.findUnique({ where: { id: guestId }, select: { id: true } })
+      if (!guest) {
+        return NextResponse.json({ error: 'That guest is no longer on the list' }, { status: 400 })
+      }
+    }
+
+    const existing = await prisma.contribution.findUnique({ where: { id }, select: { id: true } })
+    if (!existing) {
+      return NextResponse.json({ error: 'That gift no longer exists' }, { status: 404 })
+    }
+
+    await prisma.contribution.update({ where: { id }, data: { guestId } })
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Error linking a gift to a guest:', error)
+    return NextResponse.json({ error: 'Failed to link the gift' }, { status: 500 })
   }
 }
 

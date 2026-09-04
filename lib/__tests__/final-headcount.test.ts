@@ -16,6 +16,12 @@ describe('the default wording', () => {
     expect(t.html).toContain('<strong>2</strong> guests')
   })
 
+  // Pinned literally: the weekday is derived from the date, so a wrong date shows
+  // up here rather than in 63 inboxes. Nicolle: "9-10 (next Thursday)".
+  it('spells the deadline out as the Thursday she named', () => {
+    expect(FINAL_HEADCOUNT_DEADLINE).toBe('Thursday, September 10, 2026')
+  })
+
   it('links the RSVP page absolutely — an email has no origin to resolve against', () => {
     const t = generateFinalHeadcountEmail('Jean', 2)
     expect(t.html).toContain('https://walters-pierce-wedding.com/rsvp')

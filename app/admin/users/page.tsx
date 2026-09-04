@@ -18,9 +18,12 @@ export default function AdminUsersPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserRole, setNewUserRole] = useState('admin')
+  const [newUserPassword, setNewUserPassword] = useState('')
   const [addingUser, setAddingUser] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  // Shown once after creation so the new sign-in details can be handed over
+  const [newCredentials, setNewCredentials] = useState<{ email: string; password: string; generated: boolean } | null>(null)
 
   // Password update state
   const [showPasswordForm, setShowPasswordForm] = useState<string | null>(null)
@@ -61,9 +64,15 @@ export default function AdminUsersPage() {
       return
     }
 
+    if (newUserPassword && newUserPassword.length < 6) {
+      setError('Password must be at least 6 characters long')
+      return
+    }
+
     setAddingUser(true)
     setError('')
     setSuccess('')
+    setNewCredentials(null)
 
     try {
       const response = await fetch('/api/admin/users', {
@@ -73,13 +82,20 @@ export default function AdminUsersPage() {
         },
         body: JSON.stringify({
           email: newUserEmail.trim(),
-          role: newUserRole
+          role: newUserRole,
+          password: newUserPassword || undefined
         })
       })
 
       if (response.ok) {
-        setSuccess('User added successfully!')
+        const data = await response.json()
+        setNewCredentials({
+          email: data.user.email,
+          password: data.initialPassword,
+          generated: data.generatedPassword
+        })
         setNewUserEmail('')
+        setNewUserPassword('')
         setShowAddForm(false)
         fetchUsers() // Refresh the list
       } else {
@@ -222,6 +238,45 @@ export default function AdminUsersPage() {
         </div>
       )}
 
+      {/* New sign-in details — shown once, right after creation */}
+      {newCredentials && (
+        <div className="bg-green-50 border border-green-300 rounded-lg p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="text-green-900 font-semibold">Account created — share these sign-in details</h4>
+              <p className="text-green-800 text-sm mt-1">
+                This is the only time the password is shown. Copy it before leaving this page.
+              </p>
+              <dl className="mt-3 text-sm text-green-900 space-y-1">
+                <div className="flex gap-2">
+                  <dt className="font-medium w-20">Email:</dt>
+                  <dd className="font-mono">{newCredentials.email}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="font-medium w-20">Password:</dt>
+                  <dd className="font-mono">{newCredentials.password}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="font-medium w-20">Sign in at:</dt>
+                  <dd className="font-mono">/auth/login</dd>
+                </div>
+              </dl>
+              {newCredentials.generated && (
+                <p className="text-green-800 text-sm mt-3">
+                  This password was generated automatically. Use <strong>Change Password</strong> below to set a different one.
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setNewCredentials(null)}
+              className="text-green-700 hover:text-green-900 text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Add User Form */}
       {showAddForm && (
         <div className="bg-white p-6 rounded-lg shadow border">
@@ -257,6 +312,24 @@ export default function AdminUsersPage() {
               </select>
             </div>
 
+            <div>
+              <label htmlFor="newUserPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Password <span className="text-gray-500 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                id="newUserPassword"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                minLength={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
+                placeholder="Leave blank to generate one"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum 6 characters. If left blank, a password is generated and shown to you once.
+              </p>
+            </div>
+
             <div className="flex space-x-3">
               <button
                 type="submit"
@@ -270,6 +343,7 @@ export default function AdminUsersPage() {
                 onClick={() => {
                   setShowAddForm(false)
                   setNewUserEmail('')
+                  setNewUserPassword('')
                   setError('')
                 }}
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
@@ -455,7 +529,7 @@ export default function AdminUsersPage() {
             <div className="text-blue-800 text-sm mt-1 space-y-1">
               <p>• <strong>Admin users</strong> have full access to all admin features</p>
               <p>• <strong>Guest users</strong> have limited access (if implemented)</p>
-              <p>• New admin users will need to set up their password on first login</p>
+              <p>• Any admin can add another admin — the new sign-in details are shown once, at creation</p>
               <p>• Click <strong>"Change Password"</strong> to update any user's password</p>
               <p>• When updating your own password, you must provide your current password</p>
               <p>• You cannot delete your own account for security reasons</p>

@@ -2,6 +2,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { getStoredName, setStoredName, getDeviceId } from '@/components/photos/identity'
 
 type Comment = { id: string; authorName: string; comment: string; createdAt: string }
@@ -29,6 +30,12 @@ export default function PhotosPage() {
   const [pendingComments, setPendingComments] = useState<Record<string, boolean>>({})
   const [pendingLikes, setPendingLikes] = useState<Record<string, boolean>>({})
   const [commentError, setCommentError] = useState<Record<string, boolean>>({})
+  // Only one caption is edited at a time, so a single draft is enough — and it can't
+  // leak between photos the way a per-id map could if a save were left half-finished.
+  const [editingCaption, setEditingCaption] = useState<string | null>(null)
+  const [captionDraft, setCaptionDraft] = useState('')
+  const [savingCaption, setSavingCaption] = useState(false)
+  const [captionError, setCaptionError] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingFiles = useRef<File[] | null>(null)
   const pendingComment = useRef<{ photoId: string; text: string } | null>(null)
@@ -198,6 +205,35 @@ export default function PhotosPage() {
     }
   }
 
+  const startCaption = (photo: Photo) => {
+    setEditingCaption(photo.id)
+    setCaptionDraft(photo.caption ?? '')
+    setCaptionError(false)
+  }
+
+  const saveCaption = async (photo: Photo) => {
+    const caption = captionDraft.trim()
+    setSavingCaption(true)
+    setCaptionError(false)
+    try {
+      const res = await fetch(`/api/photos/${photo.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption, deviceId: getDeviceId() }),
+      })
+      if (!res.ok) throw new Error('caption failed')
+      const data = await res.json()
+      // Patch the one row rather than refetching the gallery: a full refresh here
+      // would scroll a long gallery out from under whoever just typed.
+      setPhotos((ps) => ps.map((p) => (p.id === photo.id ? { ...p, caption: data.caption } : p)))
+      setEditingCaption(null)
+    } catch {
+      setCaptionError(true)
+    } finally {
+      setSavingCaption(false)
+    }
+  }
+
   const deletePhoto = async (photo: Photo) => {
     if (!confirm('Delete this photo? This can’t be undone.')) return
     const prev = photos
@@ -229,6 +265,20 @@ export default function PhotosPage() {
   return (
     <div className="min-h-screen bg-[#fdfcfb]">
       <header className="bg-[#00330a] text-white py-10 px-4 text-center">
+        {/* A real link to "/", not history.back(). Most people reach this page by
+            scanning the QR on a table card, so they arrive with no history to go back
+            to — a back gesture would either do nothing or throw them out of the site
+            entirely. Gold on the dark header, because the green underline link the
+            other pages use would be invisible here. */}
+        <div className="max-w-5xl mx-auto mb-8 text-left">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-[#D4AF37] hover:text-white underline underline-offset-4 transition-colors"
+          >
+            <span aria-hidden="true">&larr;</span>
+            Back to Wedding Website
+          </Link>
+        </div>
         <h1 className="text-4xl md:text-5xl font-serif" style={{ fontFamily: 'Playfair Display, serif' }}>
           Photo Gallery
         </h1>
@@ -303,7 +353,55 @@ export default function PhotosPage() {
                       )}
                     </span>
                   </div>
-                  {photo.caption && <p className="mt-1 text-sm text-gray-600">{photo.caption}</p>}
+                  {/* The caption, and the way to write one. Editing is offered only
+                      on your own photos (or to an admin), matching who may delete. */}
+                  {editingCaption === photo.id ? (
+                    <div className="mt-2">
+                      <textarea
+                        value={captionDraft}
+                        onChange={(e) => setCaptionDraft(e.target.value)}
+                        maxLength={280}
+                        rows={2}
+                        autoFocus
+                        aria-label="Photo caption"
+                        placeholder="Say something about this photo…"
+                        className="w-full border rounded px-2 py-1 text-sm"
+                      />
+                      <div className="mt-1 flex items-center gap-2">
+                        <button
+                          onClick={() => saveCaption(photo)}
+                          disabled={savingCaption}
+                          className="text-xs bg-[#00330a] text-white px-3 py-1 rounded disabled:opacity-50"
+                        >
+                          {savingCaption ? 'Saving…' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => setEditingCaption(null)}
+                          className="text-xs text-gray-600 underline"
+                        >
+                          Cancel
+                        </button>
+                        <span className="text-xs text-gray-400 ml-auto">{captionDraft.length}/280</span>
+                      </div>
+                      {captionError && (
+                        <p className="mt-1 text-xs text-red-600">
+                          That caption couldn&apos;t be saved — please try again.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {photo.caption && <p className="mt-1 text-sm text-gray-600">{photo.caption}</p>}
+                      {(photo.mine || isAdmin) && (
+                        <button
+                          onClick={() => startCaption(photo)}
+                          className="mt-1 text-xs text-[#00330a] underline"
+                        >
+                          {photo.caption ? 'Edit caption' : 'Add a caption'}
+                        </button>
+                      )}
+                    </>
+                  )}
                   <button
                     onClick={() => setOpenComments((o) => ({ ...o, [photo.id]: !o[photo.id] }))}
                     className="mt-2 text-xs text-[#00330a] underline"

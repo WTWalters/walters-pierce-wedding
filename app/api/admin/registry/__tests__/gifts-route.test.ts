@@ -4,7 +4,14 @@ jest.mock('next/server', () => ({
 }))
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
-jest.mock('@/lib/prisma', () => ({ prisma: { contribution: { create: jest.fn() } } }))
+// $transaction: the route writes both gifts of a two-gift submission together, so
+// recording the serving set can't succeed while the $100 beside it fails.
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    contribution: { create: jest.fn() },
+    $transaction: jest.fn((ops: unknown[]) => Promise.all(ops)),
+  },
+}))
 
 import { getServerSession } from 'next-auth'
 import { POST } from '../gifts/route'
@@ -148,4 +155,92 @@ it('401s a non-admin', async () => {
   const res = (await POST(req(VALID))) as unknown as { status: number }
   expect(res.status).toBe(401)
   expect(prisma.contribution.create).not.toHaveBeenCalled()
+})
+
+// Nicolle's case: Aunt Marilyn gave BOTH the engraved cake serving set and $100
+// toward the Honeymoon Fund, and she wants to enter them in one go.
+describe('a second gift from the same person', () => {
+  const nth = (i: number) => (prisma.contribution.create as jest.Mock).mock.calls[i][0].data
+
+  const marilyn = {
+    ...VALID,
+    contributorName: 'Aunt Marilyn',
+    giftDescription: 'beautiful cake serving set',
+    amount: '',
+    secondGiftDescription: 'our Honeymoon Fund',
+    secondAmount: '100',
+  }
+
+  it('records it as its own gift, so both can be thanked and tracked', async () => {
+    const res = (await POST(req(marilyn))) as unknown as { status: number }
+    expect(res.status).toBe(200)
+    expect(prisma.contribution.create).toHaveBeenCalledTimes(2)
+    expect(nth(0)).toMatchObject({ giftDescription: 'beautiful cake serving set', amount: 0 })
+    expect(nth(1)).toMatchObject({ giftDescription: 'our Honeymoon Fund', amount: 100 })
+  })
+
+  it('carries the giver, the date and the guest link onto both', async () => {
+    await POST(req({ ...marilyn, guestId: '11111111-1111-4111-8111-111111111111' }))
+    for (const i of [0, 1]) {
+      expect(nth(i)).toMatchObject({
+        contributorName: 'Aunt Marilyn',
+        contributorEmail: 'sue@x.com',
+        guestId: '11111111-1111-4111-8111-111111111111',
+        source: 'manual',
+      })
+      expect(nth(i).createdAt.toISOString()).toContain('2026-07-04')
+    }
+  })
+
+  it('writes both together, so one cannot land without the other', async () => {
+    await POST(req(marilyn))
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1)
+  })
+
+  it('records just one gift when the second is left blank', async () => {
+    await POST(req(VALID))
+    expect(prisma.contribution.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('accepts a second present with no amount', async () => {
+    const res = (await POST(
+      req({ ...marilyn, secondGiftDescription: 'a crystal bowl', secondAmount: '' })
+    )) as unknown as { status: number }
+    expect(res.status).toBe(200)
+    expect(nth(1)).toMatchObject({ giftDescription: 'a crystal bowl', amount: 0 })
+  })
+
+  it('accepts a second cash gift with no description', async () => {
+    const res = (await POST(
+      req({ ...marilyn, secondGiftDescription: '', secondAmount: '100' })
+    )) as unknown as { status: number }
+    expect(res.status).toBe(200)
+    expect(nth(1)).toMatchObject({ giftDescription: null, amount: 100 })
+  })
+
+  it('rejects the whole submission when the FIRST gift is empty', async () => {
+    const res = (await POST(
+      req({ ...marilyn, giftDescription: '', amount: '' })
+    )) as unknown as { status: number }
+    expect(res.status).toBe(400)
+    expect(prisma.contribution.create).not.toHaveBeenCalled()
+  })
+})
+
+// The picker on the form; the thank-you send trusts it over any name guesswork.
+describe('the guest link', () => {
+  it('is stored when she picks a guest', async () => {
+    await POST(req({ ...VALID, guestId: '11111111-1111-4111-8111-111111111111' }))
+    expect(created().guestId).toBe('11111111-1111-4111-8111-111111111111')
+  })
+
+  it('is null when she leaves the picker alone', async () => {
+    await POST(req({ ...VALID, guestId: '' }))
+    expect(created().guestId).toBeNull()
+  })
+
+  it('is rejected when it is not a real id', async () => {
+    const res = (await POST(req({ ...VALID, guestId: 'not-a-uuid' }))) as unknown as { status: number }
+    expect(res.status).toBe(400)
+  })
 })

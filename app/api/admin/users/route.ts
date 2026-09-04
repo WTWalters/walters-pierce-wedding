@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { email, role = 'admin' } = body
+    const { email, role = 'admin', password } = body
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })
@@ -57,6 +57,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
+    // A password may be supplied so it can be handed to the new admin directly;
+    // otherwise one is generated below and returned in the response.
+    if (password !== undefined && password !== '' && password.length < 6) {
+      return NextResponse.json({
+        error: 'Password must be at least 6 characters long'
+      }, { status: 400 })
+    }
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase() }
@@ -66,9 +74,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 })
     }
 
-    // Generate a temporary password (user will need to reset it)
-    const tempPassword = Math.random().toString(36).slice(-8)
-    const hashedPassword = await bcrypt.hash(tempPassword, 12)
+    // Use the supplied password, or generate one to hand to the new user
+    const generatedPassword = !password
+    const initialPassword = password || Math.random().toString(36).slice(-8)
+    const hashedPassword = await bcrypt.hash(initialPassword, 12)
 
     // Create new user
     const newUser = await prisma.user.create({
@@ -105,8 +114,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       user: newUser,
-      tempPassword,
-      message: 'User created successfully. Temporary password: ' + tempPassword
+      // Returned once, at creation time, so the admin can pass the sign-in
+      // details along — it is never retrievable afterwards.
+      initialPassword,
+      generatedPassword,
+      message: `User created successfully. Sign-in password: ${initialPassword}`
     })
   } catch (error) {
     console.error('Error creating user:', error)
