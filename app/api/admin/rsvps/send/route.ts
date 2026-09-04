@@ -12,7 +12,9 @@ import {
   generateRsvpNoEmail,
   generateRsvpOverCountEmail,
   generateRegistryThankYouEmail,
+  generateFinalHeadcountEmail,
   generateWeddingIcs,
+  type FinalHeadcountContent,
   WeddingDetails,
 } from '@/lib/email-templates'
 
@@ -27,8 +29,22 @@ const sendSchema = z.object({
     'rsvp_no',
     'rsvp_over_count',
     'registry_thank_you',
+    'final_headcount',
   ]),
   dryRun: z.boolean().optional(),
+  // Nicolle reviews and edits this one before it goes out (she asked to, and it is
+  // the only template she sends to the whole list at once). Plain prose only —
+  // generateFinalHeadcountEmail escapes it — and capped so a paste accident can't
+  // put a novel in 63 inboxes.
+  content: z
+    .object({
+      subject: z.string().trim().max(200).optional(),
+      heading: z.string().trim().max(200).optional(),
+      intro: z.string().trim().max(4000).optional(),
+      ask: z.string().trim().max(4000).optional(),
+      includeCount: z.boolean().optional(),
+    })
+    .optional(),
 })
 
 async function loadDetails(): Promise<WeddingDetails> {
@@ -47,7 +63,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
-  const { guestIds, template, dryRun } = parsed.data
+  const { guestIds, template, dryRun, content } = parsed.data
 
   const guests = await prisma.guest.findMany({ where: { id: { in: guestIds } } })
   const details = await loadDetails()
@@ -97,6 +113,7 @@ export async function POST(request: NextRequest) {
     switch (template) {
       case 'rsvp_yes': return generateRsvpYesEmail(who, details, g.rsvpdCount)
       case 'rsvp_no': return generateRsvpNoEmail(who)
+      case 'final_headcount': return generateFinalHeadcountEmail(who, g.rsvpdCount, content as FinalHeadcountContent)
       case 'rsvp_over_count': return generateRsvpOverCountEmail(who, g.rsvpdCount, g.reservedSeats)
       case 'gracious_regrets': return generateGraciousRegretsEmail(who)
       case 'registry_thank_you': {
@@ -113,7 +130,17 @@ export async function POST(request: NextRequest) {
 
   if (dryRun) {
     const sample = guests[0]
-    return NextResponse.json({ preview: render(sample ?? { firstName: '', rsvpdCount: null, reservedSeats: null }), recipients: guests.length })
+    // Name the guest the preview was rendered for: the greeting and the party
+    // count differ per recipient, so a preview with no attribution reads as if
+    // everyone gets "Hi Jean! ... 2 guests".
+    const previewedAs = sample
+      ? { name: greetingName(sample), rsvpdCount: sample.rsvpdCount }
+      : null
+    return NextResponse.json({
+      preview: render(sample ?? { firstName: '', rsvpdCount: null, reservedSeats: null }),
+      recipients: guests.length,
+      previewedAs,
+    })
   }
 
   // Venue-details and RSVP-yes emails carry the calendar invite; it exists

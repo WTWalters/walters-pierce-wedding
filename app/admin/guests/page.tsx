@@ -10,6 +10,7 @@ import {
   guestCsvFilename,
 } from '@/lib/guest-csv'
 import { MessageToSend } from '@/components/admin/MessageToSend'
+import { BulkAttendingEmail } from '@/components/admin/BulkAttendingEmail'
 
 const CSV_COLUMNS_STORAGE_KEY = 'wpw.guestCsvColumns'
 
@@ -81,6 +82,7 @@ export default function GuestsPage() {
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [showBulkEmail, setShowBulkEmail] = useState(false)
   const [sortBy, setSortBy] = useState('name')
   const [showImport, setShowImport] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -221,6 +223,22 @@ export default function GuestsPage() {
 
     return filtered
   }, [guests, searchTerm, statusFilter, sortBy])
+
+  // Deliberately the whole attending list, not the filtered view: the send is
+  // "everyone who said yes", and reading it off the grid would quietly shrink to
+  // whatever search or filter happened to be left on.
+  const attendingRecipients = useMemo(
+    () =>
+      guests
+        .filter((g) => g.attending === true)
+        .map((g) => ({
+          id: g.id,
+          name: `${g.preferredName || g.firstName} ${g.lastName}`.trim(),
+          email: g.email ?? null,
+          rsvpdCount: g.rsvpdCount ?? null,
+        })),
+    [guests]
+  )
 
   const addGuest = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -487,6 +505,16 @@ export default function GuestsPage() {
           >
             📊 Google Sheets
           </button>
+          {/* Everyone attending, in one send — she owes the venue a final number
+              and cannot click a per-row dropdown 63 times. The modal is a review
+              step, not a confirm: she edits the wording and sees it rendered. */}
+          <button
+            onClick={() => setShowBulkEmail(true)}
+            disabled={attendingRecipients.length === 0}
+            className="bg-[#00330a] text-white px-4 py-2 rounded-md hover:bg-[#004a10] transition-colors disabled:opacity-40"
+          >
+            ✉️ Email Attending ({attendingRecipients.length})
+          </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
@@ -495,6 +523,13 @@ export default function GuestsPage() {
           </button>
         </div>
       </div>
+
+      {showBulkEmail && (
+        <BulkAttendingEmail
+          recipients={attendingRecipients}
+          onClose={() => setShowBulkEmail(false)}
+        />
+      )}
 
       {/* CSV column picker — a popup, opened by Download CSV. */}
       {showCsvColumns && (
