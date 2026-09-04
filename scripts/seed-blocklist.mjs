@@ -13,6 +13,7 @@ const BLOCKLIST = [
   'montana harris',
   'tom walters',
   'thomas walters',
+  'cheyenne joiner',
 ]
 
 const existing = await prisma.setting.findUnique({ where: { key: 'rsvp_blocklist' } })

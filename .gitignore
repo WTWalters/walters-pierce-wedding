@@ -45,3 +45,9 @@ next-env.d.ts
 
 # Local git worktrees for feature work
 .worktrees/
+
+# Knowledge-graph output — regenerate with /graphify, don't commit (1.3MB)
+graphify-out/
+
+# Local run configs: absolute paths to this machine's node
+.claude/launch.json
