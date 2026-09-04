@@ -1,0 +1,94 @@
+import {
+  generateFinalHeadcountEmail,
+  FINAL_HEADCOUNT_DEFAULTS,
+  FINAL_HEADCOUNT_DEADLINE,
+} from '@/lib/email-templates'
+
+// Nicolle, 2026-09-04: "We have to give BRR (and Serendipity) our final numbers
+// on 9-10 ... I'd like to prompt everyone to consider what they RSVP'd."
+describe('the default wording', () => {
+  it('carries her message, the guest’s count and the deadline', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2)
+    expect(t.text).toContain('Hi Jean!')
+    expect(t.text).toContain("almost two weeks away and we can't wait to celebrate with you!")
+    expect(t.text).toContain('We have you down for 2 guests.')
+    expect(t.text).toContain(FINAL_HEADCOUNT_DEADLINE)
+    expect(t.html).toContain('<strong>2</strong> guests')
+  })
+
+  it('links the RSVP page absolutely — an email has no origin to resolve against', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2)
+    expect(t.html).toContain('https://walters-pierce-wedding.com/rsvp')
+    expect(t.text).toContain('Update your RSVP: https://walters-pierce-wedding.com/rsvp')
+  })
+
+  it('says "guest" for a party of one', () => {
+    const t = generateFinalHeadcountEmail('Sam', 1)
+    expect(t.text).toContain('We have you down for 1 guest.')
+    expect(t.text).not.toContain('1 guests')
+  })
+
+  // Inventing a number would be worse than omitting the line: the guest may
+  // correct themselves against it.
+  it.each([null, 0])('omits the count line when the number on record is %p', (count) => {
+    const t = generateFinalHeadcountEmail('Sam', count)
+    expect(t.text).not.toContain('We have you down for')
+    expect(t.html).not.toContain('We have you down for')
+  })
+
+  it('falls back to a greeting that still reads as English with no name', () => {
+    expect(generateFinalHeadcountEmail('', 2).text).toContain('Hi there!')
+  })
+})
+
+// The point of the review step: what she types is what goes out.
+describe('her edits', () => {
+  it('replace the subject, headline and both paragraphs', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, {
+      subject: 'Two weeks!',
+      heading: 'Nearly there',
+      intro: 'We are so close now.',
+      ask: 'Let us know by Friday.',
+    })
+    expect(t.subject).toBe('Two weeks!')
+    expect(t.html).toContain('Nearly there')
+    expect(t.text).toContain('Hi Jean! We are so close now.')
+    expect(t.text).toContain('Let us know by Friday.')
+    expect(t.text).not.toContain(FINAL_HEADCOUNT_DEFAULTS.intro)
+  })
+
+  it('turns a blank line into a new paragraph', () => {
+    const t = generateFinalHeadcountEmail('Jean', null, { intro: 'First thought.\n\nSecond thought.' })
+    expect(t.html).toContain('<p>Hi Jean! First thought.</p>')
+    expect(t.html).toContain('<p>Second thought.</p>')
+  })
+
+  it('drops the count line when she unticks it', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { includeCount: false })
+    expect(t.text).not.toContain('We have you down for')
+  })
+
+  // A field she cleared should not silently send an empty email; the suggested
+  // wording is the floor.
+  it('falls back to the default when a box is left empty', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { subject: '   ', intro: '' })
+    expect(t.subject).toBe(FINAL_HEADCOUNT_DEFAULTS.subject)
+    expect(t.text).toContain(FINAL_HEADCOUNT_DEFAULTS.intro)
+  })
+
+  // She is editing a template bound for 63 inboxes, so her prose is escaped.
+  it('escapes markup rather than rendering it', () => {
+    const t = generateFinalHeadcountEmail('Jean', null, {
+      intro: 'Bring <b>everyone</b> & their "plus ones"',
+    })
+    expect(t.html).toContain('&lt;b&gt;everyone&lt;/b&gt;')
+    expect(t.html).toContain('&amp;')
+    expect(t.html).not.toContain('<b>everyone</b>')
+  })
+
+  it('escapes a guest name too', () => {
+    const t = generateFinalHeadcountEmail('<script>', 1)
+    expect(t.html).not.toContain('<script>')
+    expect(t.html).toContain('&lt;script&gt;')
+  })
+})

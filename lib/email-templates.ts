@@ -192,11 +192,23 @@ function venueAddressLines(raw: string): string[] {
 // Shared Honeymoon Fund call-to-action, appended to the guest-facing RSVP
 // confirmations (yes + no) so wording and styling stay identical. Absolute URL so
 // it never renders relative in an email client.
-function registryCta(): { html: string; text: string } {
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://walters-pierce-wedding.com'}/registry`
-  const html = `<p style="text-align:center; margin:24px 0 4px;"><a href="${url}" style="display:inline-block; background:#00330a; color:#D4AF37; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:bold;">Visit our Honeymoon Fund &#127873;</a></p>`
-  const text = `\n\nVisit our Honeymoon Fund: ${url}`
+// Absolute, because an email has no origin to resolve a relative path against.
+function siteUrl(path: string): string {
+  return `${process.env.NEXT_PUBLIC_SITE_URL || 'https://walters-pierce-wedding.com'}${path}`
+}
+
+// The gold-on-green button every guest-facing call to action uses. `htmlLabel` is
+// interpolated as-is so a caller can pass an entity (the registry's gift emoji);
+// callers pass literals, never guest input.
+function ctaButton(path: string, htmlLabel: string, textLabel: string): { html: string; text: string } {
+  const url = siteUrl(path)
+  const html = `<p style="text-align:center; margin:24px 0 4px;"><a href="${url}" style="display:inline-block; background:#00330a; color:#D4AF37; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:bold;">${htmlLabel}</a></p>`
+  const text = `\n\n${textLabel}: ${url}`
   return { html, text }
+}
+
+function registryCta(): { html: string; text: string } {
+  return ctaButton('/registry', 'Visit our Honeymoon Fund &#127873;', 'Visit our Honeymoon Fund')
 }
 
 export function generateRsvpYesEmail(
@@ -265,6 +277,89 @@ export function generateRsvpOverCountEmail(
     + `${lead} ${allowedPhrase}. `
     + `Let us know if you can still celebrate with us within that count—we'd love to have you!`
   return { subject: 'A quick note about your RSVP — Emme & Connor', html: wrap('A quick note about your RSVP', body), text }
+}
+
+// The date Nicolle owes Blackstone Rivers Ranch and Serendipity their final
+// numbers. It is in the guest-facing copy because a request to "update your RSVP"
+// with no date gets actioned the week after the caterer is already committed.
+// One constant so the next round is a one-line edit, not a search through prose.
+export const FINAL_HEADCOUNT_DEADLINE = 'Thursday, September 10'
+
+/**
+ * The wording Nicolle sees pre-filled in the editor. Kept out of the render body
+ * so the form and the email can never drift: the box she edits is seeded from
+ * these exact strings, and leaving one untouched sends this text verbatim.
+ */
+export const FINAL_HEADCOUNT_DEFAULTS = {
+  subject: 'A quick check on your RSVP — Emme & Connor',
+  heading: 'Almost two weeks to go!',
+  intro: "Our wedding is almost two weeks away and we can't wait to celebrate with you!",
+  ask:
+    'If anything pops up and you can no longer attend, please update your RSVP on '
+    + `our website by ${FINAL_HEADCOUNT_DEADLINE}.`,
+} as const
+
+export interface FinalHeadcountContent {
+  subject?: string
+  heading?: string
+  intro?: string
+  ask?: string
+  includeCount?: boolean
+}
+
+// Her text arrives as plain prose typed into a textarea, so blank lines mean new
+// paragraphs and every character is escaped. She is editing a template that goes
+// to 63 different people — it must not be able to carry markup into their inboxes.
+function prose(text: string, greeting?: string): string {
+  const blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean)
+  if (blocks.length === 0) return greeting ? `<p>${greeting}</p>` : ''
+  return blocks
+    .map((block, i) => {
+      const inner = escapeHtml(block).replace(/\n/g, '<br>')
+      return `<p>${i === 0 && greeting ? `${greeting} ` : ''}${inner}</p>`
+    })
+    .join('\n    ')
+}
+
+/**
+ * Sent to everyone already on record as attending, a fortnight out (Nicolle,
+ * 2026-09-04: "prompt everyone to consider what they RSVP'd in light of any
+ * changes in their lives").
+ *
+ * It quotes the count back because that is the number being confirmed — asking
+ * someone to "check your RSVP" without showing it makes them go and look, and
+ * most won't. Same reasoning as the RSVP-Yes confirmation, which already does it.
+ * A party with no count on record simply doesn't get the sentence; inventing a
+ * number here would be worse than omitting it, since the guest may correct
+ * themselves against it.
+ */
+export function generateFinalHeadcountEmail(
+  firstName: string,
+  rsvpdCount: number | null,
+  content: FinalHeadcountContent = {}
+): Rendered {
+  const subject = content.subject?.trim() || FINAL_HEADCOUNT_DEFAULTS.subject
+  const heading = content.heading?.trim() || FINAL_HEADCOUNT_DEFAULTS.heading
+  const intro = content.intro?.trim() || FINAL_HEADCOUNT_DEFAULTS.intro
+  const ask = content.ask?.trim() || FINAL_HEADCOUNT_DEFAULTS.ask
+  const includeCount = content.includeCount !== false
+
+  const name = escapeHtml(firstName || 'there')
+  const cta = ctaButton('/rsvp', 'Update your RSVP', 'Update your RSVP')
+  const count = includeCount && rsvpdCount != null && rsvpdCount > 0 ? rsvpdCount : null
+  const guestWord = count === 1 ? 'guest' : 'guests'
+  const countSentence = count ? `We have you down for ${count} ${guestWord}.` : ''
+
+  const body = `
+    ${prose(intro, `Hi ${name}!`)}
+    ${count ? `<p>We have you down for <strong>${count}</strong> ${guestWord}.</p>` : ''}
+    ${prose(ask)}
+    ${cta.html}`
+  const text = `Hi ${firstName || 'there'}! ${intro}\n\n`
+    + (countSentence ? `${countSentence}\n\n` : '')
+    + ask
+    + cta.text
+  return { subject, html: wrap(heading, body), text }
 }
 
 // Internal heads-up to the coordinator (Nicolle) when a Honeymoon Fund gift lands,
