@@ -402,7 +402,6 @@ export function generateFinalHeadcountEmail(
   const includeCount = content.includeCount !== false
 
   const name = escapeHtml(firstName || 'there')
-  const cta = ctaButton('/rsvp', 'Update your RSVP', 'Update your RSVP')
   const count = includeCount && rsvpdCount != null && rsvpdCount > 0 ? rsvpdCount : null
   const guestWord = count === 1 ? 'guest' : 'guests'
   const countSentence = count ? `We have you down for ${count} ${guestWord}.` : ''
@@ -410,12 +409,10 @@ export function generateFinalHeadcountEmail(
   const body = `
     ${prose(intro, `Hi ${name}!`)}
     ${count ? `<p>We have you down for <strong>${count}</strong> ${guestWord}.</p>` : ''}
-    ${prose(ask)}
-    ${cta.html}`
+    ${prose(ask)}`
   const text = `Hi ${firstName || 'there'}! ${intro}\n\n`
     + (countSentence ? `${countSentence}\n\n` : '')
     + ask
-    + cta.text
   return { subject, html: wrap(heading, body), text }
 }
 

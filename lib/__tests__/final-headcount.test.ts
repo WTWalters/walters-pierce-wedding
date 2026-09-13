@@ -22,10 +22,15 @@ describe('the default wording', () => {
     expect(FINAL_HEADCOUNT_DEADLINE).toBe('Thursday, September 10, 2026')
   })
 
-  it('links the RSVP page absolutely — an email has no origin to resolve against', () => {
+  // Removed deliberately (Whitney, 2026-09-13): the email carries no RSVP link or
+  // button. Anyone needing to change their answer goes through Nicolle or the site
+  // itself, so nothing here should invite a self-service edit.
+  it('carries no RSVP button or link', () => {
     const t = generateFinalHeadcountEmail('Jean', 2)
-    expect(t.html).toContain('https://walters-pierce-wedding.com/rsvp')
-    expect(t.text).toContain('Update your RSVP: https://walters-pierce-wedding.com/rsvp')
+    expect(t.html).not.toContain('/rsvp')
+    expect(t.text).not.toContain('/rsvp')
+    expect(t.html).not.toContain('Update your RSVP')
+    expect(t.text).not.toContain('Update your RSVP')
   })
 
   it('says "guest" for a party of one', () => {
