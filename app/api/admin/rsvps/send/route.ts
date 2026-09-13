@@ -118,6 +118,9 @@ export async function POST(request: NextRequest) {
     rsvpdCount: number | null
     reservedSeats: number | null
     email?: string | null
+    // Drives the thank-you note's closing line. Null is "hasn't answered", which is
+    // deliberately not the same as "not coming" — see generateRegistryThankYouEmail.
+    attending?: boolean | null
   }
   const render = (g: GuestRow) => {
     // One resolved greeting for every template — honors the per-guest override.
@@ -134,6 +137,7 @@ export async function POST(request: NextRequest) {
         return generateRegistryThankYouEmail({
           name: who,
           gifts: gifts.map((gift) => ({ amount: gift.amount, label: gift.label })),
+          attending: g.attending ?? null,
         })
       }
       case 'venue_details':

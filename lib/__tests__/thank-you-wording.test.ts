@@ -1,10 +1,10 @@
-import { generateRegistryThankYouEmail } from '@/lib/email-templates'
+import { generateRegistryThankYouEmail, THANK_YOU_CLOSING } from '@/lib/email-templates'
 
 // A Stripe contribution always has both a tier and an amount. Its wording must not
 // have shifted — this is the note guests already receive automatically.
 it('is unchanged for a Honeymoon Fund gift', () => {
   const t = generateRegistryThankYouEmail({ name: 'Eleanor', gifts: [{ label: 'Buy us Coffee', amount: 50 }] })
-  expect(t.subject).toBe('Thank you for your honeymoon gift, Eleanor!')
+  expect(t.subject).toBe('Thank you for your gift, Eleanor!')
   expect(t.text).toContain('generous gift of $50 toward Buy us Coffee')
   expect(t.html).toContain('<strong>$50</strong>')
   expect(t.html).toContain('<strong>Buy us Coffee</strong>')
@@ -114,4 +114,58 @@ it('escapes a name and description supplied by hand', () => {
   const t = generateRegistryThankYouEmail({ name: '<img src=x onerror=alert(1)>', gifts: [{ label: '<script>evil()</script>', amount: 10, }] })
   expect(t.html).not.toContain('<img src=x')
   expect(t.html).not.toContain('<script>')
+})
+
+// Whitney, 2026-09-13: gifts are no longer only Honeymoon Fund contributions, so the
+// subject cannot call every one of them a honeymoon gift.
+it('thanks them for a "gift", not a "honeymoon gift"', () => {
+  const t = generateRegistryThankYouEmail({ name: 'Sue', gifts: [{ label: 'the vase' }] })
+  expect(t.subject).toBe('Thank you for your gift, Sue!')
+  expect(t.subject).not.toContain('honeymoon')
+})
+
+// Nicolle, 2026-09-13, on someone who has already RSVP'd no: "We'll miss you on our
+// big day! We're so sorry you can't be there to celebrate with us, but keep an eye
+// out for photos soon!" Her wording, pinned literally.
+describe('the closing line', () => {
+  const gifts = [{ label: 'the vase', amount: 40 }]
+
+  it('is her regrets wording when they are on record as not coming', () => {
+    const t = generateRegistryThankYouEmail({ name: 'Sue', gifts, attending: false })
+    expect(t.html).toContain(THANK_YOU_CLOSING.notAttending)
+    expect(t.text).toContain(THANK_YOU_CLOSING.notAttending)
+    expect(t.text).not.toContain("We can't wait to celebrate with you")
+  })
+
+  it('reads exactly as Nicolle wrote it', () => {
+    expect(THANK_YOU_CLOSING.notAttending).toBe(
+      "We'll miss you on our big day! We're so sorry you can't be there to celebrate "
+      + 'with us, but keep an eye out for photos soon!'
+    )
+  })
+
+  it('stays celebratory for a guest who is coming', () => {
+    const t = generateRegistryThankYouEmail({ name: 'Sue', gifts, attending: true })
+    expect(t.html).toContain(THANK_YOU_CLOSING.attending)
+    expect(t.text).toContain(THANK_YOU_CLOSING.attending)
+    expect(t.text).not.toContain('keep an eye out for photos')
+  })
+
+  // A gift routinely arrives before the RSVP does. Telling someone who simply has
+  // not answered "sorry you can't be there" is the worse of the two errors.
+  it.each([undefined, null])('stays celebratory when the answer is %p', (attending) => {
+    const t = generateRegistryThankYouEmail({ name: 'Sue', gifts, attending })
+    expect(t.text).toContain(THANK_YOU_CLOSING.attending)
+    expect(t.text).not.toContain('keep an eye out for photos')
+  })
+
+  // Both bodies read from one string, so they cannot drift apart.
+  it('says the same thing in the HTML and the plain text', () => {
+    for (const attending of [true, false]) {
+      const t = generateRegistryThankYouEmail({ name: 'Sue', gifts, attending })
+      const expected = attending ? THANK_YOU_CLOSING.attending : THANK_YOU_CLOSING.notAttending
+      expect(t.html).toContain(expected)
+      expect(t.text).toContain(expected)
+    }
+  })
 })

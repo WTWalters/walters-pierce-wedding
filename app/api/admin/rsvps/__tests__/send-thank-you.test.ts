@@ -218,3 +218,47 @@ it('does not look up gifts for an RSVP email', async () => {
   await POST(req({ guestIds: [GUEST_ID], template: 'rsvp_no' }))
   expect(prisma.contribution.findMany).not.toHaveBeenCalled()
 })
+
+// The closing line is chosen from the guest's own RSVP answer, so the route has to
+// carry it through to the template. Nicolle, 2026-09-13: a giver who already told us
+// they can't come should hear "keep an eye out for photos", not "can't wait to
+// celebrate with you".
+describe('the closing line follows their RSVP', () => {
+  const attendingIs = (attending: boolean | null) =>
+    (prisma.guest.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: GUEST_ID, firstName: 'Muriel', lastName: 'Ashby', preferredName: 'Grandma',
+        email: 'Muriel@X.com', rsvpdCount: 1, reservedSeats: 1, attending,
+      },
+    ])
+
+  const sentText = async () => {
+    giftOnFile({ id: 'gift1', amount: 40, giftDescription: 'the vase', registryItem: null })
+    await send()
+    return (sendEmail as jest.Mock).mock.calls[0][0].text as string
+  }
+
+  it('sends her regrets wording to a guest on record as not coming', async () => {
+    attendingIs(false)
+    expect(await sentText()).toContain('keep an eye out for photos soon!')
+  })
+
+  it('sends the celebratory wording to a guest who is coming', async () => {
+    attendingIs(true)
+    expect(await sentText()).toContain("We can't wait to celebrate with you")
+  })
+
+  // No answer yet is not the same as "not coming"; a gift often beats the RSVP.
+  it('stays celebratory for a guest who has not answered', async () => {
+    attendingIs(null)
+    const text = await sentText()
+    expect(text).toContain("We can't wait to celebrate with you")
+    expect(text).not.toContain('keep an eye out for photos')
+  })
+})
+
+it('no longer calls every gift a honeymoon gift', async () => {
+  giftOnFile({ id: 'gift1', amount: 40, giftDescription: 'the vase', registryItem: null })
+  await send()
+  expect((sendEmail as jest.Mock).mock.calls[0][0].subject).toBe('Thank you for your gift, Grandma!')
+})

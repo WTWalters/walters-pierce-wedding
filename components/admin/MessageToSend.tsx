@@ -8,7 +8,7 @@ const OPTIONS: { value: Template; label: string; confirm: string }[] = [
   { value: 'rsvp_no', label: 'RSVP No', confirm: 'the “sorry to miss you” note' },
   { value: 'rsvp_over_count', label: 'Incorrect RSVP', confirm: 'the “too many guests” note' },
   // Names the gift on record, so it needs one — see the Gifts tab.
-  { value: 'registry_thank_you', label: 'Thank You', confirm: 'the honeymoon-gift thank-you note' },
+  { value: 'registry_thank_you', label: 'Thank You', confirm: 'the gift thank-you note' },
   // Nicolle's name for it. Counts down to the RSVP deadline; the send refuses for
   // anyone who has already answered, and once the deadline is past.
   { value: 'rsvp_reminder', label: 'RSVP - unknown', confirm: 'the gentle “days left to RSVP” reminder' },
