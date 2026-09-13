@@ -41,6 +41,14 @@ export function BulkAttendingEmail({
   const [ask, setAsk] = useState<string>(FINAL_HEADCOUNT_DEFAULTS.ask)
   const [includeCount, setIncludeCount] = useState(true)
 
+  // The boxes are a draft. They open on whatever was saved last time, and "Save as
+  // the default wording" makes the current draft what they open on next time — so a
+  // correction she makes once does not have to be retyped on the next send.
+  const [loadingWording, setLoadingWording] = useState(true)
+  const [savedWording, setSavedWording] = useState(false)
+  const [savingWording, setSavingWording] = useState(false)
+  const [wordingMsg, setWordingMsg] = useState('')
+
   const [previewHtml, setPreviewHtml] = useState('')
   const [previewedAs, setPreviewedAs] = useState<{ name: string; rsvpdCount: number | null } | null>(null)
   const [previewIndex, setPreviewIndex] = useState(0)
@@ -62,10 +70,59 @@ export function BulkAttendingEmail({
     [subject, heading, intro, ask, includeCount]
   )
 
+  // Load once, on open. Deliberately before the form is editable: seeding the boxes
+  // with the suggestion and then overwriting them a moment later would discard
+  // anything she had already started typing.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/admin/email-wording')
+        if (!res.ok) throw new Error()
+        const data = await res.json()
+        if (cancelled || !data?.wording) return
+        setSubject(data.wording.subject)
+        setHeading(data.wording.heading)
+        setIntro(data.wording.intro)
+        setAsk(data.wording.ask)
+        setIncludeCount(data.wording.includeCount !== false)
+        setSavedWording(Boolean(data.saved))
+      } catch {
+        // Fall back to the suggestion already in state — she can still send.
+        if (!cancelled) setWordingMsg('Could not load the saved wording; showing the original.')
+      } finally {
+        if (!cancelled) setLoadingWording(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function saveWording() {
+    setSavingWording(true)
+    setWordingMsg('')
+    try {
+      const res = await fetch('/api/admin/email-wording', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, heading, intro, ask, includeCount }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Not saved')
+      setSavedWording(true)
+      setWordingMsg('Saved ✓ This is what the form will open on next time.')
+    } catch (err) {
+      setWordingMsg(err instanceof Error ? err.message : 'Not saved')
+    } finally {
+      setSavingWording(false)
+    }
+  }
+
   // The preview comes from the same renderer that sends, so what she approves is
   // exactly what leaves — no second copy of the layout to drift out of step.
   useEffect(() => {
-    if (!sampleGuest) return
+    if (!sampleGuest || loadingWording) return
     let cancelled = false
     const timer = setTimeout(async () => {
       try {
@@ -93,7 +150,7 @@ export function BulkAttendingEmail({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [content, sampleGuest])
+  }, [content, sampleGuest, loadingWording])
 
   async function send() {
     setSending(true)
@@ -159,7 +216,9 @@ export function BulkAttendingEmail({
           </button>
         </div>
 
-        {results ? (
+        {loadingWording && !results ? (
+          <div className="p-6 text-sm text-gray-600">Loading the saved wording…</div>
+        ) : results ? (
           <div className="p-6 overflow-y-auto space-y-4">
             <p className="text-sm text-gray-900">
               Sent to <strong>{sent}</strong> of {sendable.length}.
@@ -240,18 +299,43 @@ export function BulkAttendingEmail({
                   </span>
                 </span>
               </label>
-              <button
-                onClick={() => {
-                  setSubject(FINAL_HEADCOUNT_DEFAULTS.subject)
-                  setHeading(FINAL_HEADCOUNT_DEFAULTS.heading)
-                  setIntro(FINAL_HEADCOUNT_DEFAULTS.intro)
-                  setAsk(FINAL_HEADCOUNT_DEFAULTS.ask)
-                  setIncludeCount(true)
-                }}
-                className="text-sm text-green-700 hover:underline"
-              >
-                Reset to the suggested wording
-              </button>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                {/* Makes the current draft what the form opens on next time. Separate
+                    from sending on purpose: saving the wording sends nothing, and
+                    sending does not quietly change the saved wording. */}
+                <button
+                  onClick={saveWording}
+                  disabled={savingWording || sending}
+                  className="px-3 py-1.5 rounded-md border border-[#00330a] text-[#00330a] text-sm hover:bg-[#00330a] hover:text-white transition-colors disabled:opacity-40"
+                >
+                  {savingWording ? 'Saving…' : 'Save as the default wording'}
+                </button>
+                {/* Fills the boxes with the original suggestion. It does not touch
+                    what is saved until she saves, so this is safe to click just to
+                    see what the wording used to say. */}
+                <button
+                  onClick={() => {
+                    setSubject(FINAL_HEADCOUNT_DEFAULTS.subject)
+                    setHeading(FINAL_HEADCOUNT_DEFAULTS.heading)
+                    setIntro(FINAL_HEADCOUNT_DEFAULTS.intro)
+                    setAsk(FINAL_HEADCOUNT_DEFAULTS.ask)
+                    setIncludeCount(true)
+                    setWordingMsg('')
+                  }}
+                  disabled={sending}
+                  className="text-sm text-green-700 hover:underline disabled:opacity-40"
+                >
+                  Reset to the original wording
+                </button>
+              </div>
+              {wordingMsg && <p className="text-xs text-gray-600">{wordingMsg}</p>}
+              <p className="text-xs text-gray-500">
+                {savedWording
+                  ? 'These boxes opened on your saved wording.'
+                  : 'These boxes opened on the original suggested wording.'}{' '}
+                Edits here always apply to this send; saving also keeps them for next
+                time.
+              </p>
             </div>
 
             {/* Right: exactly what one person receives */}
@@ -315,7 +399,9 @@ export function BulkAttendingEmail({
           {!results && (
             <button
               onClick={() => (confirming ? send() : setConfirming(true))}
-              disabled={sending || sendable.length === 0}
+              // Until the saved wording has loaded, the boxes still hold the original
+              // suggestion — sending now would quietly send that instead of hers.
+              disabled={sending || sendable.length === 0 || loadingWording}
               className="px-4 py-2 rounded-md bg-[#00330a] text-white disabled:opacity-40"
             >
               {sending
