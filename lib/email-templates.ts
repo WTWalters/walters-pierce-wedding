@@ -516,6 +516,11 @@ export function generateRegistryThankYouEmail(data: {
     return `your generous gifts — ${joinGifts(phrases)}`
   }
 
+  // Gift-neutral on purpose (Whitney, 2026-09-13): the gifts on record are no longer
+  // only Honeymoon Fund contributions, and thanking someone for a cake serving set
+  // "as we get ready for our honeymoon in Ireland" doesn't land. The Honeymoon Fund
+  // tier name still appears in the sentence above whenever that is what they gave.
+  //
   // One string for both bodies, so the HTML and plain-text notes cannot drift apart.
   const closing =
     data.attending === false ? THANK_YOU_CLOSING.notAttending : THANK_YOU_CLOSING.attending
@@ -524,12 +529,12 @@ export function generateRegistryThankYouEmail(data: {
   const body = `
     <p>Dear ${name},</p>
     <p>Thank you so much for ${sentence(htmlPhrases)}. It means the world to us as we
-    get ready for our honeymoon in Ireland.</p>
+    start this next chapter together.</p>
     <p>${closing}</p>
     <p style="margin-top: 24px;">With love and gratitude,<br><strong>Emme &amp; Connor</strong></p>`
   const html = wrap('A heartfelt thank you', body)
   const text = `Dear ${data.name},\n\nThank you so much for ${sentence(textPhrases)}. `
-    + `It means the world to us as we get ready for our honeymoon in Ireland. ${closing}\n\n`
+    + `It means the world to us as we start this next chapter together. ${closing}\n\n`
     + `With love and gratitude,\nEmme & Connor\nwalters-pierce-wedding.com`
   return { subject, html, text }
 }

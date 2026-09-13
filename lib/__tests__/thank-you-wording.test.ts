@@ -117,11 +117,23 @@ it('escapes a name and description supplied by hand', () => {
 })
 
 // Whitney, 2026-09-13: gifts are no longer only Honeymoon Fund contributions, so the
-// subject cannot call every one of them a honeymoon gift.
-it('thanks them for a "gift", not a "honeymoon gift"', () => {
-  const t = generateRegistryThankYouEmail({ name: 'Sue', gifts: [{ label: 'the vase' }] })
-  expect(t.subject).toBe('Thank you for your gift, Sue!')
-  expect(t.subject).not.toContain('honeymoon')
+// note cannot frame every one of them as a honeymoon gift. The Honeymoon Fund tier
+// name still appears when that IS what they gave — see the first test in this file.
+describe('a gift that is not a honeymoon contribution', () => {
+  const vase = () => generateRegistryThankYouEmail({ name: 'Sue', gifts: [{ label: 'the vase' }] })
+
+  it('thanks them for a "gift", not a "honeymoon gift"', () => {
+    expect(vase().subject).toBe('Thank you for your gift, Sue!')
+    expect(vase().subject).not.toContain('honeymoon')
+  })
+
+  it('keeps the body gift-neutral rather than naming the honeymoon', () => {
+    const t = vase()
+    expect(t.text).toContain('as we start this next chapter together')
+    expect(t.html).toContain('start this next chapter together')
+    expect(t.text).not.toContain('honeymoon in Ireland')
+    expect(t.html).not.toContain('honeymoon in Ireland')
+  })
 })
 
 // Nicolle, 2026-09-13, on someone who has already RSVP'd no: "We'll miss you on our
