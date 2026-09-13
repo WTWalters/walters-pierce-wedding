@@ -402,7 +402,6 @@ export function generateFinalHeadcountEmail(
   const includeCount = content.includeCount !== false
 
   const name = escapeHtml(firstName || 'there')
-  const cta = ctaButton('/rsvp', 'Update your RSVP', 'Update your RSVP')
   const count = includeCount && rsvpdCount != null && rsvpdCount > 0 ? rsvpdCount : null
   const guestWord = count === 1 ? 'guest' : 'guests'
   const countSentence = count ? `We have you down for ${count} ${guestWord}.` : ''
@@ -410,12 +409,10 @@ export function generateFinalHeadcountEmail(
   const body = `
     ${prose(intro, `Hi ${name}!`)}
     ${count ? `<p>We have you down for <strong>${count}</strong> ${guestWord}.</p>` : ''}
-    ${prose(ask)}
-    ${cta.html}`
+    ${prose(ask)}`
   const text = `Hi ${firstName || 'there'}! ${intro}\n\n`
     + (countSentence ? `${countSentence}\n\n` : '')
     + ask
-    + cta.text
   return { subject, html: wrap(heading, body), text }
 }
 
@@ -470,6 +467,22 @@ function joinGifts(phrases: string[]): string {
 }
 
 /**
+ * The closing line, which turns on whether the giver will actually be there.
+ *
+ * Nicolle, 2026-09-13, gave the regrets wording verbatim — it is hers, not a
+ * paraphrase, so edit it only on her say-so. Someone who has already told us they
+ * can't come should not be thanked with "we can't wait to celebrate with you";
+ * that reads as though nobody opened their RSVP.
+ */
+export const THANK_YOU_CLOSING = {
+  attending:
+    "We can't wait to celebrate with you — and we'll be sure to share a photo of us enjoying it!",
+  notAttending:
+    "We'll miss you on our big day! We're so sorry you can't be there to celebrate "
+    + 'with us, but keep an eye out for photos soon!',
+} as const
+
+/**
  * Takes a list so one note can acknowledge everything a person gave (Nicolle:
  * "it should be a combined thank you note" — Aunt Marilyn gave a cake serving set
  * AND cash). One gift keeps the original single-gift wording, so the note Stripe
@@ -477,10 +490,17 @@ function joinGifts(phrases: string[]): string {
  *
  * Amounts are optional throughout: a present has no meaningful figure, and "your
  * generous gift of $0 toward crystal bowl" is not a note you send your grandmother.
+ *
+ * `attending` picks the closing line. Only an explicit `false` — someone on record
+ * as not coming — gets the regrets wording. Unknown (null/undefined, i.e. no RSVP
+ * yet, or a Stripe gift we could not match to a guest) keeps the celebratory line:
+ * a gift often arrives before the RSVP does, and telling someone "sorry you can't
+ * be there" when they simply haven't answered yet is the worse of the two errors.
  */
 export function generateRegistryThankYouEmail(data: {
   name: string
   gifts: ThankYouGift[]
+  attending?: boolean | null
 }): Rendered {
   const name = escapeHtml(data.name)
   const htmlPhrases = data.gifts
@@ -496,16 +516,25 @@ export function generateRegistryThankYouEmail(data: {
     return `your generous gifts — ${joinGifts(phrases)}`
   }
 
-  const subject = `Thank you for your honeymoon gift, ${data.name}!`
+  // Gift-neutral on purpose (Whitney, 2026-09-13): the gifts on record are no longer
+  // only Honeymoon Fund contributions, and thanking someone for a cake serving set
+  // "as we get ready for our honeymoon in Ireland" doesn't land. The Honeymoon Fund
+  // tier name still appears in the sentence above whenever that is what they gave.
+  //
+  // One string for both bodies, so the HTML and plain-text notes cannot drift apart.
+  const closing =
+    data.attending === false ? THANK_YOU_CLOSING.notAttending : THANK_YOU_CLOSING.attending
+
+  const subject = `Thank you for your gift, ${data.name}!`
   const body = `
     <p>Dear ${name},</p>
     <p>Thank you so much for ${sentence(htmlPhrases)}. It means the world to us as we
-    get ready for our honeymoon in Ireland.</p>
-    <p>We can't wait to celebrate with you — and we'll be sure to share a photo of us enjoying it!</p>
+    start this next chapter together.</p>
+    <p>${closing}</p>
     <p style="margin-top: 24px;">With love and gratitude,<br><strong>Emme &amp; Connor</strong></p>`
   const html = wrap('A heartfelt thank you', body)
   const text = `Dear ${data.name},\n\nThank you so much for ${sentence(textPhrases)}. `
-    + `It means the world to us as we get ready for our honeymoon in Ireland. We can't wait to celebrate with you.\n\n`
+    + `It means the world to us as we start this next chapter together. ${closing}\n\n`
     + `With love and gratitude,\nEmme & Connor\nwalters-pierce-wedding.com`
   return { subject, html, text }
 }

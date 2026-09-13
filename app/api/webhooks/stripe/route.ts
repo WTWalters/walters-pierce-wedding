@@ -87,11 +87,17 @@ export async function POST(request: NextRequest) {
             // match case-insensitively or Nicolle's hand-entered guests never match.
             // Resolved here (not earlier) and guarded so a lookup blip can neither
             // cost the coordinator her heads-up above nor the giver their thank-you.
-            let guestRecord: { firstName: string; preferredName: string | null } | null = null
+            let guestRecord: {
+              firstName: string
+              preferredName: string | null
+              attending: boolean | null
+            } | null = null
             try {
               guestRecord = await prisma.guest.findFirst({
                 where: { email: { equals: email, mode: 'insensitive' } },
-                select: { firstName: true, preferredName: true },
+                // attending picks the note's closing line; an unmatched giver stays
+                // null, which keeps the celebratory wording rather than guessing.
+                select: { firstName: true, preferredName: true, attending: true },
               })
             } catch (lookupErr) {
               console.error('Guest lookup for the gift greeting failed:', lookupErr)
@@ -101,6 +107,7 @@ export async function POST(request: NextRequest) {
             const tmpl = generateRegistryThankYouEmail({
               name: greeting,
               gifts: [{ amount, label: item?.title ?? 'your gift' }],
+              attending: guestRecord?.attending ?? null,
             })
             const res = await sendEmail({ to: email, ...tmpl }, { from: EMME_CONNOR_FROM })
             await logEmail({
