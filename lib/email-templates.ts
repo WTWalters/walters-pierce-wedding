@@ -369,13 +369,15 @@ export interface FinalHeadcountContent {
 // to 63 different people — it must not be able to carry markup into their inboxes.
 function prose(text: string, greeting?: string): string {
   const blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean)
-  if (blocks.length === 0) return greeting ? `<p>${greeting}</p>` : ''
-  return blocks
-    .map((block, i) => {
-      const inner = escapeHtml(block).replace(/\n/g, '<br>')
-      return `<p>${i === 0 && greeting ? `${greeting} ` : ''}${inner}</p>`
-    })
-    .join('\n    ')
+  // The greeting is its own paragraph, not a prefix on the first one (Nicolle,
+  // 2026-09-13, of the highway-closure email: "Could you please put 'Hi [insert
+  // name here]' on a line and then new paragraph"). Run together, her opening
+  // sentence read as part of the salutation.
+  //
+  // Already escaped by the caller, which builds it from the resolved guest name.
+  const paragraphs = greeting ? [greeting] : []
+  paragraphs.push(...blocks.map((block) => escapeHtml(block).replace(/\n/g, '<br>')))
+  return paragraphs.map((p) => `<p>${p}</p>`).join('\n    ')
 }
 
 /**
@@ -410,7 +412,7 @@ export function generateFinalHeadcountEmail(
     ${prose(intro, `Hi ${name}!`)}
     ${count ? `<p>We have you down for <strong>${count}</strong> ${guestWord}.</p>` : ''}
     ${prose(ask)}`
-  const text = `Hi ${firstName || 'there'}! ${intro}\n\n`
+  const text = `Hi ${firstName || 'there'}!\n\n${intro}\n\n`
     + (countSentence ? `${countSentence}\n\n` : '')
     + ask
   return { subject, html: wrap(heading, body), text }

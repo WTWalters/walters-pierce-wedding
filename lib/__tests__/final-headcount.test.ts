@@ -63,15 +63,29 @@ describe('her edits', () => {
     })
     expect(t.subject).toBe('Two weeks!')
     expect(t.html).toContain('Nearly there')
-    expect(t.text).toContain('Hi Jean! We are so close now.')
+    expect(t.text).toContain('Hi Jean!\n\nWe are so close now.')
     expect(t.text).toContain('Let us know by Friday.')
     expect(t.text).not.toContain(FINAL_HEADCOUNT_DEFAULTS.intro)
   })
 
   it('turns a blank line into a new paragraph', () => {
     const t = generateFinalHeadcountEmail('Jean', null, { intro: 'First thought.\n\nSecond thought.' })
-    expect(t.html).toContain('<p>Hi Jean! First thought.</p>')
+    expect(t.html).toContain('<p>First thought.</p>')
     expect(t.html).toContain('<p>Second thought.</p>')
+  })
+
+  // Nicolle, 2026-09-13, of the highway-closure email: "Could you please put
+  // 'Hi [insert name here]' on a line and then new paragraph". Run together, her
+  // opening sentence read as part of the salutation.
+  it('puts the greeting on its own line, above the opening', () => {
+    const t = generateFinalHeadcountEmail('Matt & Brie', null, {
+      intro: 'We have updated information regarding highway closures.',
+    })
+    expect(t.html).toContain('<p>Hi Matt &amp; Brie!</p>')
+    expect(t.html).toContain('<p>We have updated information regarding highway closures.</p>')
+    expect(t.html).not.toContain('Brie! We have updated')
+    // The plain-text part has to break the same way, or the two read differently.
+    expect(t.text).toContain('Hi Matt & Brie!\n\nWe have updated information')
   })
 
   it('drops the count line when she unticks it', () => {
