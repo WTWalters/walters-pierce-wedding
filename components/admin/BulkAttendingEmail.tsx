@@ -271,8 +271,8 @@ export function BulkAttendingEmail({
                   className="mt-1 w-full border rounded-md px-3 py-2 text-sm"
                 />
                 <span className="text-xs text-gray-500">
-                  Each guest&apos;s own greeting (&ldquo;Hi Jean!&rdquo;) is added in front of this
-                  automatically. Leave a blank line for a new paragraph.
+                  Each guest&apos;s own greeting (&ldquo;Hi Jean!&rdquo;) is added automatically, on
+                  its own line above this. Leave a blank line for a new paragraph.
                 </span>
               </label>
               <label className="block">
