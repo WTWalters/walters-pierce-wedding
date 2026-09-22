@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { verifyGuestPhoto, photoUrls } from '@/lib/cloudinary'
+import { PAGE_SIZE, parseCursor, cursorFor } from '@/lib/photo-paging'
 
 const createSchema = z.object({
   publicId: z.string().min(1).max(300),
@@ -11,23 +12,48 @@ const createSchema = z.object({
   deviceId: z.string().max(100).optional(),
 })
 
+// Paged newest-first; see lib/photo-paging.ts for the cursor.
 export async function GET(request: NextRequest) {
   try {
-    const deviceId = new URL(request.url).searchParams.get('deviceId') ?? ''
-    const photos = await prisma.photo.findMany({
-      where: { isHidden: false, category: 'guest' },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-      include: {
-        likes: { select: { deviceId: true } },
-        comments: {
-          where: { isHidden: false },
-          orderBy: { createdAt: 'asc' },
-          select: { id: true, authorName: true, comment: true, createdAt: true },
+    const params = new URL(request.url).searchParams
+    const deviceId = params.get('deviceId') ?? ''
+    const rawCursor = params.get('cursor')
+    const cursor = rawCursor ? parseCursor(rawCursor) : null
+    if (rawCursor && !cursor) {
+      return NextResponse.json({ error: 'Invalid cursor' }, { status: 400 })
+    }
+    const visible: Prisma.PhotoWhereInput = { isHidden: false, category: 'guest' }
+    const where: Prisma.PhotoWhereInput = cursor
+      ? {
+          ...visible,
+          OR: [
+            { createdAt: { lt: cursor.createdAt } },
+            { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+          ],
+        }
+      : visible
+    // One more than a page, to learn whether there is a next page without a second query.
+    const [rows, total] = await Promise.all([
+      prisma.photo.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: PAGE_SIZE + 1,
+        include: {
+          likes: { select: { deviceId: true } },
+          comments: {
+            where: { isHidden: false },
+            orderBy: { createdAt: 'asc' },
+            select: { id: true, authorName: true, comment: true, createdAt: true },
+          },
         },
-      },
-    })
+      }),
+      prisma.photo.count({ where: visible }),
+    ])
+    const hasMore = rows.length > PAGE_SIZE
+    const photos = hasMore ? rows.slice(0, PAGE_SIZE) : rows
     return NextResponse.json({
+      nextCursor: hasMore ? cursorFor(photos[photos.length - 1]) : null,
+      total,
       photos: photos.map((p) => ({
         id: p.id,
         uploadedByName: p.uploadedByName,

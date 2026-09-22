@@ -23,7 +23,7 @@ jest.mock('next/server', () => ({
 }))
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    photo: { findMany: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
+    photo: { findMany: jest.fn(), findFirst: jest.fn(), create: jest.fn(), count: jest.fn() },
   },
 }))
 jest.mock('@/lib/cloudinary', () => ({
@@ -33,6 +33,7 @@ jest.mock('@/lib/cloudinary', () => ({
 }))
 
 import { GET, POST } from '../route'
+import { PAGE_SIZE, cursorFor } from '@/lib/photo-paging'
 import { prisma } from '@/lib/prisma'
 import { verifyGuestPhoto } from '@/lib/cloudinary'
 
@@ -49,6 +50,7 @@ const makePost = (json: unknown) => ({ json: async () => json }) as never
 beforeEach(() => {
   jest.clearAllMocks()
   ;(require('@/lib/cloudinary').photoUrls as jest.Mock).mockReturnValue({ fileUrl: 'F', thumbnailUrl: 'T' })
+  ;(prisma.photo.count as jest.Mock).mockResolvedValue(1)
 })
 
 describe('GET', () => {
@@ -77,6 +79,86 @@ describe('GET', () => {
       body: { photos: Array<Record<string, unknown>> }
     }
     expect(res.body.photos[0]).not.toHaveProperty('deviceId')
+  })
+})
+
+// The gallery used to stop at the newest 200. With a hundred guests sending five to
+// ten photos each from home, most of the wedding would have been invisible.
+describe('GET, paged', () => {
+  type Page = { body: { photos: Array<{ id: string }>; nextCursor: string | null; total: number }; status: number }
+  const rows = (n: number, from = 0) =>
+    Array.from({ length: n }, (_, k) => ({
+      ...dbPhoto,
+      id: `00000000-0000-4000-8000-${String(from + k).padStart(12, '0')}`,
+      createdAt: new Date(Date.UTC(2026, 8, 12, 20, 0, 0, 999 - (from + k))),
+    }))
+
+  it('asks for the newest first, one more than a page, to learn whether there is more', async () => {
+    ;(prisma.photo.findMany as jest.Mock).mockResolvedValue(rows(3))
+    await GET(makeGet('http://x/api/photos?deviceId=dev-1'))
+    expect(prisma.photo.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isHidden: false, category: 'guest' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: PAGE_SIZE + 1,
+      })
+    )
+  })
+
+  it('a gallery that fits in a page has no next cursor', async () => {
+    ;(prisma.photo.findMany as jest.Mock).mockResolvedValue(rows(3))
+    ;(prisma.photo.count as jest.Mock).mockResolvedValue(3)
+    const res = (await GET(makeGet('http://x/api/photos?deviceId=dev-1'))) as Page
+    expect(res.body.photos).toHaveLength(3)
+    expect(res.body.nextCursor).toBeNull()
+    expect(res.body.total).toBe(3)
+  })
+
+  it('a full page hands back exactly a page and a cursor at its last photo', async () => {
+    const all = rows(PAGE_SIZE + 1)
+    ;(prisma.photo.findMany as jest.Mock).mockResolvedValue(all)
+    ;(prisma.photo.count as jest.Mock).mockResolvedValue(312)
+    const res = (await GET(makeGet('http://x/api/photos?deviceId=dev-1'))) as Page
+    expect(res.body.photos).toHaveLength(PAGE_SIZE)
+    expect(res.body.photos[PAGE_SIZE - 1].id).toBe(all[PAGE_SIZE - 1].id)
+    expect(res.body.nextCursor).toBe(cursorFor(all[PAGE_SIZE - 1]))
+    expect(res.body.total).toBe(312)
+  })
+
+  // Keyset on (createdAt, id), not an offset: a photo uploaded mid-scroll lands at the
+  // top and shifts nothing underneath, and the cursor still works if its own photo
+  // has since been deleted.
+  it('a cursor asks only for photos older than the one it names', async () => {
+    const last = rows(1)[0]
+    ;(prisma.photo.findMany as jest.Mock).mockResolvedValue([])
+    await GET(makeGet(`http://x/api/photos?deviceId=dev-1&cursor=${encodeURIComponent(cursorFor(last))}`))
+    expect(prisma.photo.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isHidden: false,
+          category: 'guest',
+          OR: [
+            { createdAt: { lt: last.createdAt } },
+            { createdAt: last.createdAt, id: { lt: last.id } },
+          ],
+        },
+      })
+    )
+    // The total is the whole gallery, not what is left after the cursor.
+    expect(prisma.photo.count).toHaveBeenCalledWith({ where: { isHidden: false, category: 'guest' } })
+  })
+
+  it('refuses a cursor it did not write', async () => {
+    const res = (await GET(makeGet('http://x/api/photos?deviceId=dev-1&cursor=page-2'))) as Page
+    expect(res.status).toBe(400)
+    expect(prisma.photo.findMany).not.toHaveBeenCalled()
+  })
+
+  it('the cursor survives a round trip through a URL', async () => {
+    const last = rows(1)[0]
+    const c = cursorFor(last)
+    expect(decodeURIComponent(encodeURIComponent(c))).toBe(c)
+    expect(c).toBe('2026-09-12T20:00:00.999Z_00000000-0000-4000-8000-000000000000')
   })
 })
 
