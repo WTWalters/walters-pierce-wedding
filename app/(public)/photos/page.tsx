@@ -29,6 +29,10 @@ export default function PhotosPage() {
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
   const [pendingComments, setPendingComments] = useState<Record<string, boolean>>({})
   const [pendingLikes, setPendingLikes] = useState<Record<string, boolean>>({})
+  const [likeError, setLikeError] = useState<Record<string, boolean>>({})
+  // The full-size viewer: an index into `photos`, so previous/next step through the
+  // same order as the grid. null when closed.
+  const [viewing, setViewing] = useState<number | null>(null)
   const [commentError, setCommentError] = useState<Record<string, boolean>>({})
   // Only one caption is edited at a time, so a single draft is enough — and it can't
   // leak between photos the way a per-id map could if a save were left half-finished.
@@ -39,6 +43,13 @@ export default function PhotosPage() {
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingFiles = useRef<File[] | null>(null)
   const pendingComment = useRef<{ photoId: string; text: string } | null>(null)
+  // Synchronous, unlike pendingLikes state: two taps that land before React
+  // re-renders (some Android browsers fire the handler twice) would both pass a
+  // state check, and the second request would undo the first.
+  const likesInFlight = useRef(new Set<string>())
+  // The thumbnail that opened the viewer, so closing it puts focus back there.
+  const viewerOpener = useRef<HTMLElement | null>(null)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -65,6 +76,73 @@ export default function PhotosPage() {
       .then((s) => setIsAdmin(s?.user?.role === 'admin'))
       .catch(() => setIsAdmin(false))
   }, [])
+
+  const viewer = viewing !== null && photos[viewing] ? { index: viewing, photo: photos[viewing] } : null
+  const viewerOpen = viewer !== null
+
+  const closeViewer = useCallback(() => {
+    setViewing(null)
+    viewerOpener.current?.focus()
+    viewerOpener.current = null
+  }, [])
+
+  const stepViewer = useCallback((delta: number) => {
+    setViewing((v) => {
+      if (v === null) return v
+      const next = v + delta
+      return next < 0 || next >= photos.length ? v : next
+    })
+  }, [photos.length])
+
+  useEffect(() => {
+    if (!viewerOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeViewer()
+      else if (e.key === 'ArrowRight') stepViewer(1)
+      else if (e.key === 'ArrowLeft') stepViewer(-1)
+    }
+    window.addEventListener('keydown', onKey)
+    // The gallery behind the viewer must not scroll under a swipe.
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [viewerOpen, closeViewer, stepViewer])
+
+  // If the gallery shrinks under an open viewer (a photo deleted, a rollback), stay
+  // on a photo that still exists rather than pointing past the end.
+  useEffect(() => {
+    if (viewing !== null && viewing >= photos.length) {
+      setViewing(photos.length ? photos.length - 1 : null)
+    }
+  }, [viewing, photos.length])
+
+  // Fetch the neighbours ahead of a swipe so the next photo is there when it arrives.
+  useEffect(() => {
+    if (viewing === null) return
+    for (const p of [photos[viewing - 1], photos[viewing + 1]]) {
+      if (p) new Image().src = p.fileUrl
+    }
+  }, [viewing, photos])
+
+  // One finger only: the second finger of a pinch-zoom arrives as its own touchstart
+  // and cancels the swipe, so zooming in on a photo never flips to the next one.
+  const onViewerTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches?.[0]
+    touchStart.current = t && e.touches.length === 1 ? { x: t.clientX, y: t.clientY ?? 0 } : null
+  }
+  const onViewerTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current
+    touchStart.current = null
+    const end = e.changedTouches?.[0]
+    if (!start || !end) return
+    const dx = end.clientX - start.x
+    const dy = (end.clientY ?? 0) - start.y
+    // Mostly sideways, and far enough to be meant: a scroll-ish drag does nothing.
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) stepViewer(dx < 0 ? 1 : -1)
+  }
 
   async function uploadFiles(files: File[], uploaderName: string) {
     const fail = (key: string, message?: string) =>
@@ -159,26 +237,34 @@ export default function PhotosPage() {
     }
   }
 
+  const flipLike = (ps: Photo[], id: string) => ps.map((p) => p.id === id
+    ? { ...p, likedByMe: !p.likedByMe, likeCount: p.likeCount + (p.likedByMe ? -1 : 1) }
+    : p)
+
   async function toggleLike(photo: Photo) {
-    if (pendingLikes[photo.id]) return
+    if (likesInFlight.current.has(photo.id)) return
+    likesInFlight.current.add(photo.id)
     setPendingLikes((p) => ({ ...p, [photo.id]: true }))
-    // optimistic
-    setPhotos((ps) => ps.map((p) => p.id === photo.id
-      ? { ...p, likedByMe: !p.likedByMe, likeCount: p.likeCount + (p.likedByMe ? -1 : 1) }
-      : p))
+    setLikeError((e) => ({ ...e, [photo.id]: false }))
+    setPhotos((ps) => flipLike(ps, photo.id)) // optimistic
     try {
       const res = await fetch(`/api/photos/${photo.id}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deviceId: getDeviceId() }),
       })
-      if (res.ok) {
-        const { liked, likeCount } = await res.json()
-        setPhotos((ps) => ps.map((p) => (p.id === photo.id ? { ...p, likedByMe: liked, likeCount } : p)))
-      } else {
-        await refresh() // roll back optimism on failure
-      }
+      if (!res.ok) throw new Error(`like failed: ${res.status}`)
+      const { liked, likeCount } = await res.json()
+      setPhotos((ps) => ps.map((p) => (p.id === photo.id ? { ...p, likedByMe: liked, likeCount } : p)))
+    } catch {
+      // Undo the one heart in place and say so. A silent rollback — or, for a request
+      // that never returned, a heart left lit that was never saved — both look like a
+      // tap that did nothing, which is what Nicolle saw on her Android. Not refresh():
+      // that would scroll a long gallery out from under whoever is browsing.
+      setPhotos((ps) => flipLike(ps, photo.id))
+      setLikeError((e) => ({ ...e, [photo.id]: true }))
     } finally {
+      likesInFlight.current.delete(photo.id)
       setPendingLikes((p) => ({ ...p, [photo.id]: false }))
     }
   }
@@ -328,19 +414,36 @@ export default function PhotosPage() {
           <p className="text-center text-gray-500">No photos yet — be the first to share one!</p>
         ) : (
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 [&>*]:mb-4">
-            {photos.map((photo) => (
+            {photos.map((photo, i) => (
               <div key={photo.id} className="break-inside-avoid bg-white rounded-lg shadow overflow-hidden">
-                {/* Cloudinary delivery URLs are dynamic; next/image needs remotePatterns config — plain img keeps it simple */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.thumbnailUrl ?? photo.fileUrl} alt={photo.caption ?? 'Wedding photo'} className="w-full" loading="lazy" />
+                <button
+                  type="button"
+                  onClick={(e) => { viewerOpener.current = e.currentTarget; setViewing(i) }}
+                  className="block w-full cursor-zoom-in touch-manipulation"
+                  aria-label={photo.caption ? `View full size: ${photo.caption}` : 'View full size'}
+                >
+                  {/* Cloudinary delivery URLs are dynamic; next/image needs remotePatterns config — plain img keeps it simple */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.thumbnailUrl ?? photo.fileUrl} alt={photo.caption ?? 'Wedding photo'} className="w-full" loading="lazy" />
+                </button>
                 <div className="p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">
                       {photo.uploadedByName ? `Shared by ${photo.uploadedByName}` : 'A wedding guest'}
                     </span>
                     <span className="flex items-center gap-3">
-                      <button onClick={() => toggleLike(photo)} className="text-sm" aria-label={photo.likedByMe ? 'Unlike photo' : 'Like photo'}>
-                        {photo.likedByMe ? '❤️' : '🤍'} {photo.likeCount > 0 ? photo.likeCount : ''}
+                      {/* Thumb-sized (44px) and touch-manipulation, so a tap on a phone lands
+                          and fires once. The old 16px emoji was easy to miss with a thumb. */}
+                      <button
+                        type="button"
+                        onClick={() => toggleLike(photo)}
+                        aria-pressed={photo.likedByMe}
+                        aria-busy={!!pendingLikes[photo.id]}
+                        aria-label={photo.likedByMe ? 'Unlike photo' : 'Like photo'}
+                        className="inline-flex items-center justify-center gap-1 min-w-[44px] min-h-[44px] -my-3 px-2 rounded-full text-sm touch-manipulation select-none active:bg-gray-100"
+                      >
+                        <HeartIcon filled={photo.likedByMe} />
+                        {photo.likeCount > 0 ? photo.likeCount : ''}
                       </button>
                       {(photo.mine || isAdmin) && (
                         <button
@@ -353,6 +456,11 @@ export default function PhotosPage() {
                       )}
                     </span>
                   </div>
+                  {likeError[photo.id] && (
+                    <p className="mt-1 text-xs text-red-600" role="alert">
+                      Couldn&apos;t save your like — tap the heart to try again.
+                    </p>
+                  )}
                   {/* The caption, and the way to write one. Editing is offered only
                       on your own photos (or to an admin), matching who may delete. */}
                   {editingCaption === photo.id ? (
@@ -443,6 +551,69 @@ export default function PhotosPage() {
         )}
       </main>
 
+      {viewer && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 text-white flex flex-col"
+          role="dialog" aria-modal="true" aria-label="Photo viewer"
+          onClick={(e) => { if (e.target === e.currentTarget) closeViewer() }}
+          onTouchStart={onViewerTouchStart}
+          onTouchEnd={onViewerTouchEnd}
+        >
+          <div className="flex items-center justify-between p-2">
+            <span className="text-sm px-2 text-white/80">{viewer.index + 1} / {photos.length}</span>
+            <button
+              type="button"
+              onClick={closeViewer}
+              autoFocus
+              aria-label="Close"
+              className="min-w-[44px] min-h-[44px] rounded-full text-3xl leading-none touch-manipulation hover:bg-white/10"
+            >
+              &times;
+            </button>
+          </div>
+          {/* Tapping the dark space around the photo closes; tapping the photo does not,
+              so a pinch-zoom or a mis-tap doesn't throw someone out. */}
+          <div
+            className="flex-1 min-h-0 flex items-center justify-center px-2"
+            onClick={(e) => { if (e.target === e.currentTarget) closeViewer() }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              key={viewer.photo.id}
+              src={viewer.photo.fileUrl}
+              alt={viewer.photo.caption ?? 'Wedding photo, full size'}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+          <div className="p-3 text-center text-sm">
+            {viewer.photo.caption && <p>{viewer.photo.caption}</p>}
+            <p className="text-white/70">
+              {viewer.photo.uploadedByName ? `Shared by ${viewer.photo.uploadedByName}` : 'A wedding guest'}
+            </p>
+          </div>
+          {viewer.index > 0 && (
+            <button
+              type="button"
+              onClick={() => stepViewer(-1)}
+              aria-label="Previous photo"
+              className="absolute left-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] rounded-full bg-black/40 text-3xl leading-none touch-manipulation"
+            >
+              &lsaquo;
+            </button>
+          )}
+          {viewer.index < photos.length - 1 && (
+            <button
+              type="button"
+              onClick={() => stepViewer(1)}
+              aria-label="Next photo"
+              className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] rounded-full bg-black/40 text-3xl leading-none touch-manipulation"
+            >
+              &rsaquo;
+            </button>
+          )}
+        </div>
+      )}
+
       {namePrompt && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
@@ -472,5 +643,25 @@ export default function PhotosPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// An SVG rather than the ❤️/🤍 pair: the white heart is a 2019 emoji that older
+// Android fonts draw as a box, and on phones that do have it the two can look alike
+// at 16px — so a like could succeed without ever looking like it did.
+function HeartIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill={filled ? '#dc2626' : 'none'}
+      stroke={filled ? '#dc2626' : '#374151'}
+      strokeWidth="2"
+      strokeLinejoin="round"
+    >
+      <path d="M12 21s-7-4.6-9.5-9.1C.8 8.6 2.4 4.9 6 4.2c2-.4 4 .5 6 2.7 2-2.2 4-3.1 6-2.7 3.6.7 5.2 4.4 3.5 7.7C19 16.4 12 21 12 21z" />
+    </svg>
   )
 }
