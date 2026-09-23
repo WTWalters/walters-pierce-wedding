@@ -208,3 +208,91 @@ describe('the default wording', () => {
     expect(screen.getByRole('button', { name: /review and send/i })).toBeEnabled()
   })
 })
+
+// Nicolle, 2026-09-22: the venue had no signal on the night, so her next send asks
+// everyone for their photos, and she wants "a button reminding everyone to upload".
+describe('the photos button', () => {
+  const buttonBox = () => screen.getByLabelText(/add a button to the photo gallery/i)
+
+  it('is off until she ticks it, and the preview follows', async () => {
+    const fetchMock = mockFetch()
+    render(<BulkAttendingEmail recipients={RECIPIENTS} onClose={() => {}} />)
+    await formReady()
+    expect(buttonBox()).not.toBeChecked()
+    await waitFor(() => expect(previews(fetchMock).at(-1).content.photosButton).toBe(false))
+
+    await userEvent.click(buttonBox())
+
+    await waitFor(() => {
+      const last = previews(fetchMock).at(-1).content
+      expect(last.photosButton).toBe(true)
+      expect(last.photosButtonLabel).toBe('Share your wedding photos')
+    })
+  })
+
+  it('lets her change the words on it', async () => {
+    const fetchMock = mockFetch()
+    render(<BulkAttendingEmail recipients={RECIPIENTS} onClose={() => {}} />)
+    await formReady()
+    // The text box appears only once there is a button to put text on.
+    expect(screen.queryByLabelText(/button text/i)).not.toBeInTheDocument()
+    await userEvent.click(buttonBox())
+
+    const label = await screen.findByLabelText(/button text/i)
+    await userEvent.clear(label)
+    await userEvent.type(label, 'Add your photos!')
+
+    await waitFor(() => expect(previews(fetchMock).at(-1).content.photosButtonLabel).toBe('Add your photos!'))
+  })
+
+  it('goes out with the send', async () => {
+    const fetchMock = mockFetch()
+    const onSent = jest.fn()
+    render(<BulkAttendingEmail recipients={RECIPIENTS} onClose={() => {}} onSent={onSent} />)
+    await formReady()
+    await userEvent.click(buttonBox())
+    await userEvent.click(screen.getByRole('button', { name: /review and send/i }))
+    await userEvent.click(screen.getByRole('button', { name: /yes, send 2/i }))
+    await waitFor(() => expect(onSent).toHaveBeenCalled())
+    expect(realSends(fetchMock)[0].content).toMatchObject({ photosButton: true })
+  })
+
+  it('is saved with the wording, so it is on next time too', async () => {
+    render(<BulkAttendingEmail recipients={RECIPIENTS} onClose={() => {}} />)
+    await formReady()
+    await userEvent.click(buttonBox())
+    await userEvent.click(screen.getByRole('button', { name: /save as the default wording/i }))
+    await waitFor(() => expect(screen.getByText(/Saved/)).toBeInTheDocument())
+    expect(savedWording).toMatchObject({ photosButton: true, photosButtonLabel: 'Share your wedding photos' })
+  })
+
+  it('opens on, with her words, when that is what was saved', async () => {
+    savedWording = {
+      subject: 'Send us your photos!', heading: 'Thank you', intro: 'Mine.', ask: 'Mine too.',
+      includeCount: false, photosButton: true, photosButtonLabel: 'Add your photos!',
+    }
+    render(<BulkAttendingEmail recipients={RECIPIENTS} onClose={() => {}} />)
+    await formReady()
+    expect(buttonBox()).toBeChecked()
+    expect(screen.getByDisplayValue('Add your photos!')).toBeInTheDocument()
+  })
+
+  // Wording saved before the button existed has no say about it: off, as it was.
+  it('opens off on wording saved before it existed', async () => {
+    savedWording = { subject: 'Five days to go!', heading: 'Nearly here', intro: 'Mine.', ask: 'Mine too.', includeCount: true }
+    render(<BulkAttendingEmail recipients={RECIPIENTS} onClose={() => {}} />)
+    await formReady()
+    expect(buttonBox()).not.toBeChecked()
+  })
+
+  it('reset turns it off, like the rest of the original wording', async () => {
+    savedWording = {
+      subject: 'Send us your photos!', heading: 'Thank you', intro: 'Mine.', ask: 'Mine too.',
+      includeCount: false, photosButton: true, photosButtonLabel: 'Add your photos!',
+    }
+    render(<BulkAttendingEmail recipients={RECIPIENTS} onClose={() => {}} />)
+    await formReady()
+    await userEvent.click(screen.getByRole('button', { name: /reset to the original wording/i }))
+    expect(buttonBox()).not.toBeChecked()
+  })
+})

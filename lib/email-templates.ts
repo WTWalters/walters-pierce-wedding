@@ -354,6 +354,7 @@ export const FINAL_HEADCOUNT_DEFAULTS = {
   ask:
     'If anything pops up and you can no longer attend, please update your RSVP on '
     + `our website by ${FINAL_HEADCOUNT_DEADLINE}.`,
+  photosButtonLabel: 'Share your wedding photos',
 } as const
 
 export interface FinalHeadcountContent {
@@ -362,6 +363,10 @@ export interface FinalHeadcountContent {
   intro?: string
   ask?: string
   includeCount?: boolean
+  // A gold button to the photo gallery, under the ask. Off unless she ticks it:
+  // this email was born as an RSVP check and carries no button by default.
+  photosButton?: boolean
+  photosButtonLabel?: string
 }
 
 // Her text arrives as plain prose typed into a textarea, so blank lines mean new
@@ -402,6 +407,11 @@ export function generateFinalHeadcountEmail(
   const intro = content.intro?.trim() || FINAL_HEADCOUNT_DEFAULTS.intro
   const ask = content.ask?.trim() || FINAL_HEADCOUNT_DEFAULTS.ask
   const includeCount = content.includeCount !== false
+  // Nicolle, 2026-09-22: the venue had no signal, so the gallery holds a fraction of
+  // the night, and this send asks everyone for their photos. A button is what gets
+  // tapped; a URL in prose is not. Her label is escaped like the rest of her text.
+  const photosLabel = content.photosButtonLabel?.trim() || FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel
+  const photosCta = content.photosButton ? ctaButton('/photos', escapeHtml(photosLabel), photosLabel) : null
 
   const name = escapeHtml(firstName || 'there')
   const count = includeCount && rsvpdCount != null && rsvpdCount > 0 ? rsvpdCount : null
@@ -411,10 +421,12 @@ export function generateFinalHeadcountEmail(
   const body = `
     ${prose(intro, `Hi ${name}!`)}
     ${count ? `<p>We have you down for <strong>${count}</strong> ${guestWord}.</p>` : ''}
-    ${prose(ask)}`
+    ${prose(ask)}
+    ${photosCta?.html ?? ''}`
   const text = `Hi ${firstName || 'there'}!\n\n${intro}\n\n`
     + (countSentence ? `${countSentence}\n\n` : '')
     + ask
+    + (photosCta?.text ?? '')
   return { subject, html: wrap(heading, body), text }
 }
 

@@ -40,6 +40,11 @@ export function BulkAttendingEmail({
   const [intro, setIntro] = useState<string>(FINAL_HEADCOUNT_DEFAULTS.intro)
   const [ask, setAsk] = useState<string>(FINAL_HEADCOUNT_DEFAULTS.ask)
   const [includeCount, setIncludeCount] = useState(true)
+  // Nicolle, 2026-09-22: the venue had no signal, so her next send asks everyone
+  // for their photos — "a button reminding everyone to upload". Off by default;
+  // the email was born as an RSVP check.
+  const [photosButton, setPhotosButton] = useState(false)
+  const [photosButtonLabel, setPhotosButtonLabel] = useState<string>(FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel)
 
   // The boxes are a draft. They open on whatever was saved last time, and "Save as
   // the default wording" makes the current draft what they open on next time — so a
@@ -66,8 +71,8 @@ export function BulkAttendingEmail({
   const sampleGuest = sendable[previewIndex] ?? sendable[0]
 
   const content = useMemo(
-    () => ({ subject, heading, intro, ask, includeCount }),
-    [subject, heading, intro, ask, includeCount]
+    () => ({ subject, heading, intro, ask, includeCount, photosButton, photosButtonLabel }),
+    [subject, heading, intro, ask, includeCount, photosButton, photosButtonLabel]
   )
 
   // Load once, on open. Deliberately before the form is editable: seeding the boxes
@@ -86,6 +91,8 @@ export function BulkAttendingEmail({
         setIntro(data.wording.intro)
         setAsk(data.wording.ask)
         setIncludeCount(data.wording.includeCount !== false)
+        setPhotosButton(Boolean(data.wording.photosButton))
+        setPhotosButtonLabel(data.wording.photosButtonLabel || FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel)
         setSavedWording(Boolean(data.saved))
       } catch {
         // Fall back to the suggestion already in state — she can still send.
@@ -106,7 +113,7 @@ export function BulkAttendingEmail({
       const res = await fetch('/api/admin/email-wording', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, heading, intro, ask, includeCount }),
+        body: JSON.stringify({ subject, heading, intro, ask, includeCount, photosButton, photosButtonLabel }),
       })
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.error || 'Not saved')
@@ -299,6 +306,31 @@ export function BulkAttendingEmail({
                   </span>
                 </span>
               </label>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={photosButton}
+                  onChange={(e) => setPhotosButton(e.target.checked)}
+                  className="mt-1"
+                />
+                <span className="text-sm text-gray-700">
+                  Add a button to the photo gallery
+                  <span className="block text-xs text-gray-500">
+                    A gold button under the ask, linking to walters-pierce-wedding.com/photos.
+                  </span>
+                </span>
+              </label>
+              {photosButton && (
+                <label className="block pl-6">
+                  <span className="text-sm font-medium text-gray-700">Button text</span>
+                  <input
+                    value={photosButtonLabel}
+                    onChange={(e) => setPhotosButtonLabel(e.target.value)}
+                    maxLength={80}
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-sm"
+                  />
+                </label>
+              )}
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 {/* Makes the current draft what the form opens on next time. Separate
                     from sending on purpose: saving the wording sends nothing, and
@@ -320,6 +352,8 @@ export function BulkAttendingEmail({
                     setIntro(FINAL_HEADCOUNT_DEFAULTS.intro)
                     setAsk(FINAL_HEADCOUNT_DEFAULTS.ask)
                     setIncludeCount(true)
+                    setPhotosButton(false)
+                    setPhotosButtonLabel(FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel)
                     setWordingMsg('')
                   }}
                   disabled={sending}

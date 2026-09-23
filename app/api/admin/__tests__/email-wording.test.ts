@@ -24,6 +24,9 @@ const WORDING = {
   ask: 'Let Nicolle know if anything changes.',
   includeCount: true,
 }
+// What WORDING becomes once read or saved: the photos button fields it does not
+// mention are filled in as off, so wording from before the button keeps working.
+const STORED = { ...WORDING, photosButton: false, photosButtonLabel: FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel }
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -55,11 +58,23 @@ describe('reading the wording', () => {
     })
   })
 
+  // The wording she saved before the button existed has neither key. It must keep
+  // loading as hers — falling back to the suggestion would put "Almost two weeks
+  // to go!" back in front of her.
+  it('still loads wording saved before the photos button existed', async () => {
+    ;(prisma.setting.findUnique as jest.Mock).mockResolvedValue({ value: JSON.stringify(WORDING) })
+    const body = res(await GET()).body as unknown as { saved: boolean; wording: Record<string, unknown> }
+    expect(body.saved).toBe(true)
+    expect(body.wording.subject).toBe('Five days to go!')
+    expect(body.wording.photosButton).toBe(false)
+    expect(body.wording.photosButtonLabel).toBe(FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel)
+  })
+
   it('returns the saved wording once there is some', async () => {
     ;(prisma.setting.findUnique as jest.Mock).mockResolvedValue({ value: JSON.stringify(WORDING) })
     const body = res(await GET()).body
     expect(body.saved).toBe(true)
-    expect(body.wording).toEqual(WORDING)
+    expect(body.wording).toEqual(STORED)
   })
 
   // A half-written or hand-edited row must not put empty boxes in front of her, or
@@ -89,8 +104,22 @@ describe('saving the wording', () => {
     expect(res(await PUT(req(WORDING))).status).toBe(200)
     const call = (prisma.setting.upsert as jest.Mock).mock.calls[0][0]
     expect(call.where).toEqual({ key: 'final_headcount_email' })
-    expect(JSON.parse(call.update.value)).toEqual(WORDING)
-    expect(JSON.parse(call.create.value)).toEqual(WORDING)
+    expect(JSON.parse(call.update.value)).toEqual(STORED)
+    expect(JSON.parse(call.create.value)).toEqual(STORED)
+  })
+
+  it('keeps the photos button, and its label, with the wording', async () => {
+    await PUT(req({ ...WORDING, photosButton: true, photosButtonLabel: 'Add your photos!' }))
+    const call = (prisma.setting.upsert as jest.Mock).mock.calls[0][0]
+    const stored = JSON.parse(call.update.value)
+    expect(stored.photosButton).toBe(true)
+    expect(stored.photosButtonLabel).toBe('Add your photos!')
+  })
+
+  it('refuses a button label too long for a button', async () => {
+    const r = res(await PUT(req({ ...WORDING, photosButton: true, photosButtonLabel: 'x'.repeat(81) })))
+    expect(r.status).toBe(400)
+    expect(prisma.setting.upsert).not.toHaveBeenCalled()
   })
 
   it('keeps the checkbox with the words — it is part of the wording', async () => {
