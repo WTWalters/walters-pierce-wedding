@@ -117,3 +117,55 @@ describe('her edits', () => {
     expect(t.html).toContain('&lt;script&gt;')
   })
 })
+
+// Nicolle, 2026-09-22: the venue had no signal, so only a few people could post on
+// the night. Her next send asks everyone for their photos, and she wants a button.
+describe('the photos button', () => {
+  const url = 'https://walters-pierce-wedding.com/photos'
+
+  // The email was born as an RSVP check; a button appears only when she ticks it.
+  it('is not there unless she asks for it', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2)
+    expect(t.html).not.toContain('/photos')
+    expect(t.text).not.toContain('/photos')
+  })
+
+  it('links to the gallery, in the gold-on-green style the other buttons use', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { photosButton: true })
+    expect(t.html).toContain(`href="${url}"`)
+    expect(t.html).toContain('>Share your wedding photos</a>')
+    expect(t.html).toContain('background:#00330a; color:#D4AF37')
+    // The plain-text part gets the same link, since it has no button to tap.
+    expect(t.text).toContain(`Share your wedding photos: ${url}`)
+  })
+
+  it('says what she typed on it', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { photosButton: true, photosButtonLabel: 'Add your photos!' })
+    expect(t.html).toContain('>Add your photos!</a>')
+    expect(t.text).toContain(`Add your photos!: ${url}`)
+  })
+
+  it('falls back to the suggested label when hers is blank', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { photosButton: true, photosButtonLabel: '   ' })
+    expect(t.html).toContain('>Share your wedding photos</a>')
+  })
+
+  it('comes after the ask, as the thing to do about it', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { ask: 'Please send us your pictures.', photosButton: true })
+    expect(t.html.indexOf('Please send us your pictures.')).toBeLessThan(t.html.indexOf(`href="${url}"`))
+    expect(t.text.indexOf('Please send us your pictures.')).toBeLessThan(t.text.indexOf(url))
+  })
+
+  // Her label is template text bound for every inbox, escaped like the rest.
+  it('escapes markup in the label rather than rendering it', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { photosButton: true, photosButtonLabel: 'Photos <b>now</b> & more' })
+    expect(t.html).toContain('Photos &lt;b&gt;now&lt;/b&gt; &amp; more')
+    expect(t.html).not.toContain('<b>now</b>')
+  })
+
+  // Still Whitney's rule from 2026-09-13: a gallery button is not an RSVP button.
+  it('adds no RSVP link alongside it', () => {
+    const t = generateFinalHeadcountEmail('Jean', 2, { photosButton: true })
+    expect(t.html).not.toContain('/rsvp')
+  })
+})

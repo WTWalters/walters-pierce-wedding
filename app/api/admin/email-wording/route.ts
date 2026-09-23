@@ -25,6 +25,10 @@ const wordingSchema = z.object({
   intro: z.string().trim().min(1).max(4000),
   ask: z.string().trim().min(1).max(4000),
   includeCount: z.boolean(),
+  // Defaulted, not required: the wording she saved before the button existed has
+  // neither key, and it must keep loading rather than fall back to the suggestion.
+  photosButton: z.boolean().default(false),
+  photosButtonLabel: z.string().trim().max(80).default(FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel),
 })
 
 type Wording = z.infer<typeof wordingSchema>
@@ -35,6 +39,8 @@ const SUGGESTED: Wording = {
   intro: FINAL_HEADCOUNT_DEFAULTS.intro,
   ask: FINAL_HEADCOUNT_DEFAULTS.ask,
   includeCount: true,
+  photosButton: false,
+  photosButtonLabel: FINAL_HEADCOUNT_DEFAULTS.photosButtonLabel,
 }
 
 export async function GET() {

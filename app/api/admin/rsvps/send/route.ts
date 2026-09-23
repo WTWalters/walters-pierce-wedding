@@ -47,6 +47,8 @@ const sendSchema = z.object({
       intro: z.string().trim().max(4000).optional(),
       ask: z.string().trim().max(4000).optional(),
       includeCount: z.boolean().optional(),
+      photosButton: z.boolean().optional(),
+      photosButtonLabel: z.string().trim().max(80).optional(),
     })
     .optional(),
 })
