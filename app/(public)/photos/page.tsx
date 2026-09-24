@@ -8,7 +8,7 @@ import { getStoredName, setStoredName, getDeviceId } from '@/components/photos/i
 type Comment = { id: string; authorName: string; comment: string; createdAt: string }
 type Photo = {
   id: string; uploadedByName: string | null; caption: string | null
-  fileUrl: string; thumbnailUrl: string | null; createdAt: string
+  fileUrl: string; thumbnailUrl: string | null; downloadUrl?: string; createdAt: string
   likeCount: number; likedByMe: boolean; mine: boolean; comments: Comment[]
 }
 type UploadItem = { key: string; fileName: string; status: 'uploading' | 'done' | 'error'; message?: string }
@@ -37,6 +37,14 @@ export default function PhotosPage() {
   const [pendingComments, setPendingComments] = useState<Record<string, boolean>>({})
   const [pendingLikes, setPendingLikes] = useState<Record<string, boolean>>({})
   const [likeError, setLikeError] = useState<Record<string, boolean>>({})
+  // Picking photos to download. While `selecting`, a tap on a thumbnail toggles it
+  // in `selected` instead of opening the viewer.
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [downloading, setDownloading] = useState<'zip' | 'share' | null>(null)
+  const [downloadMsg, setDownloadMsg] = useState('')
+  // Phones can hand photos to the share sheet ("Save Image"); desktops mostly can't.
+  const [canShareFiles, setCanShareFiles] = useState(false)
   // The full-size viewer: an index into `photos`, so previous/next step through the
   // same order as the grid. null when closed.
   const [viewing, setViewing] = useState<number | null>(null)
@@ -59,6 +67,9 @@ export default function PhotosPage() {
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const loadingMoreRef = useRef(false)
   const sentinel = useRef<HTMLDivElement>(null)
+  // Photos already fetched for the share sheet, by id, so a second tap can hand
+  // them over at once if the first tap's permission expired while they downloaded.
+  const shareCache = useRef(new Map<string, File>())
 
   const refresh = useCallback(async () => {
     try {
@@ -143,6 +154,7 @@ export default function PhotosPage() {
 
   const closeViewer = useCallback(() => {
     setViewing(null)
+    setDownloadMsg('')
     viewerOpener.current?.focus()
     viewerOpener.current = null
   }, [])
@@ -212,6 +224,120 @@ export default function PhotosPage() {
     const dy = (end.clientY ?? 0) - start.y
     // Mostly sideways, and far enough to be meant: a scroll-ish drag does nothing.
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) stepViewer(dx < 0 ? 1 : -1)
+  }
+
+  useEffect(() => {
+    try {
+      const probe = new File([new Uint8Array(1)], 'probe.jpg', { type: 'image/jpeg' })
+      setCanShareFiles(
+        typeof navigator !== 'undefined'
+          && typeof navigator.share === 'function'
+          && typeof navigator.canShare === 'function'
+          && navigator.canShare({ files: [probe] })
+      )
+    } catch {
+      setCanShareFiles(false)
+    }
+  }, [])
+
+  const selectedPhotos = photos.filter((p) => selected.has(p.id))
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const stopSelecting = () => {
+    setSelecting(false)
+    setSelected(new Set())
+    setDownloadMsg('')
+  }
+
+  // A plain navigation to a Cloudinary `fl_attachment` URL, or to the zip Cloudinary
+  // built: the response says "save me", so every browser downloads it in place.
+  const saveFromUrl = (url: string) => {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = ''
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
+  async function downloadSelected() {
+    if (selectedPhotos.length === 0 || downloading) return
+    setDownloadMsg('')
+    // One photo is its own attachment link; several are a zip the server signs.
+    if (selectedPhotos.length === 1) {
+      saveFromUrl(selectedPhotos[0].downloadUrl ?? selectedPhotos[0].fileUrl)
+      return
+    }
+    setDownloading('zip')
+    try {
+      const res = await fetch('/api/photos/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedPhotos.map((p) => p.id) }),
+      })
+      if (!res.ok) throw new Error(`download failed: ${res.status}`)
+      const { url } = await res.json()
+      saveFromUrl(url)
+    } catch {
+      setDownloadMsg('Couldn’t prepare the download — please try again.')
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  // Hands the photos to the phone's share sheet, where "Save Image" puts them in the
+  // camera roll — the thing a phone user means by "download". The sheet may only be
+  // opened from a tap; if fetching the photos outlasts that tap's permission, they
+  // are kept and the next tap opens it at once.
+  const SHARE_LIMIT = 30
+  async function shareSelected(list: Photo[]) {
+    if (list.length === 0 || downloading) return
+    if (list.length > SHARE_LIMIT) {
+      setDownloadMsg(`Save up to ${SHARE_LIMIT} at a time to your phone — or use Download for a zip.`)
+      return
+    }
+    setDownloadMsg('')
+    const missing = list.filter((p) => !shareCache.current.has(p.id))
+    if (missing.length > 0) {
+      setDownloading('share')
+      try {
+        await Promise.all(missing.map(async (p) => {
+          const r = await fetch(p.downloadUrl ?? p.fileUrl)
+          if (!r.ok) throw new Error('fetch failed')
+          const blob = await r.blob()
+          const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/heic' ? 'heic' : 'jpg'
+          shareCache.current.set(
+            p.id,
+            new File([blob], `emme-connor-${p.id.slice(0, 8)}.${ext}`, { type: blob.type || 'image/jpeg' })
+          )
+        }))
+      } catch {
+        setDownloadMsg('Couldn’t fetch the photos — check your connection and try again.')
+        return
+      } finally {
+        setDownloading(null)
+      }
+    }
+    const files = list.map((p) => shareCache.current.get(p.id)).filter((f): f is File => !!f)
+    try {
+      await navigator.share({ files, title: 'Emme & Connor’s wedding photos' })
+    } catch (err) {
+      const name = (err as { name?: string })?.name
+      if (name === 'AbortError') return // they closed the sheet
+      if (name === 'NotAllowedError') {
+        setDownloadMsg('Ready — tap “Save to phone” once more.')
+        return
+      }
+      setDownloadMsg('Couldn’t open the share sheet — use Download instead.')
+    }
   }
 
   async function uploadFiles(files: File[], uploaderName: string) {
@@ -467,7 +593,7 @@ export default function PhotosPage() {
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto px-4 py-10">
+      <main className={`max-w-6xl mx-auto px-4 py-10 ${selecting ? 'pb-32' : ''}`}>
         {loading ? (
           <p className="text-center text-gray-500">Loading photos…</p>
         ) : loadError ? (
@@ -484,6 +610,26 @@ export default function PhotosPage() {
           <p className="text-center text-gray-500">No photos yet — be the first to share one!</p>
         ) : (
           <>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <p className="text-sm text-gray-600">
+                {selecting
+                  ? `Tap photos to pick them${selected.size ? ` — ${selected.size} selected` : ''}`
+                  : 'Tap a photo to see it full size.'}
+              </p>
+              {selecting ? (
+                <button type="button" onClick={stopSelecting} className="text-sm text-[#00330a] underline">
+                  Done
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSelecting(true)}
+                  className="text-sm bg-white border border-[#00330a] text-[#00330a] px-4 py-1.5 rounded-full whitespace-nowrap"
+                >
+                  Select photos
+                </button>
+              )}
+            </div>
             {/* Columns are dealt here rather than by CSS `columns`, which balances
                 heights by moving items between columns — every "load more" would
                 reshuffle the photos someone is looking at. */}
@@ -494,13 +640,35 @@ export default function PhotosPage() {
                     <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
                     <button
                       type="button"
-                      onClick={(e) => { viewerOpener.current = e.currentTarget; setViewing(i) }}
-                      className="block w-full cursor-zoom-in touch-manipulation"
-                      aria-label={photo.caption ? `View full size: ${photo.caption}` : 'View full size'}
+                      onClick={(e) => {
+                        if (selecting) { toggleSelected(photo.id); return }
+                        viewerOpener.current = e.currentTarget
+                        setViewing(i)
+                      }}
+                      className={`relative block w-full touch-manipulation ${selecting ? 'cursor-pointer' : 'cursor-zoom-in'}`}
+                      aria-pressed={selecting ? selected.has(photo.id) : undefined}
+                      aria-label={selecting
+                        ? `Select photo${photo.caption ? `: ${photo.caption}` : ''}`
+                        : (photo.caption ? `View full size: ${photo.caption}` : 'View full size')}
                     >
                       {/* Cloudinary delivery URLs are dynamic; next/image needs remotePatterns config — plain img keeps it simple */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photo.thumbnailUrl ?? photo.fileUrl} alt={photo.caption ?? 'Wedding photo'} className="w-full" loading="lazy" />
+                      {selecting && (
+                        <>
+                          {selected.has(photo.id) && (
+                            <span aria-hidden="true" className="absolute inset-0 ring-4 ring-inset ring-[#D4AF37]" />
+                          )}
+                          <span
+                            aria-hidden="true"
+                            className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm font-bold ${
+                              selected.has(photo.id) ? 'bg-[#00330a] border-[#D4AF37] text-[#D4AF37]' : 'bg-white/80 border-white'
+                            }`}
+                          >
+                            {selected.has(photo.id) ? '✓' : ''}
+                          </span>
+                        </>
+                      )}
                     </button>
                     <div className="p-3">
                       <div className="flex items-center justify-between">
@@ -647,6 +815,50 @@ export default function PhotosPage() {
         )}
       </main>
 
+      {selecting && (
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t shadow-lg px-4 py-3">
+          <div className="max-w-6xl mx-auto flex flex-wrap items-center gap-2">
+            <span className="text-sm text-gray-700 mr-auto">{selected.size} selected</span>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set(photos.map((p) => p.id)))}
+              className="text-sm text-[#00330a] underline"
+            >
+              Select all {photos.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              disabled={selected.size === 0}
+              className="text-sm text-[#00330a] underline disabled:opacity-40"
+            >
+              Clear
+            </button>
+            {canShareFiles && (
+              <button
+                type="button"
+                onClick={() => shareSelected(selectedPhotos)}
+                disabled={selected.size === 0 || !!downloading}
+                className="text-sm border border-[#00330a] text-[#00330a] px-4 py-2 rounded-full disabled:opacity-40"
+              >
+                {downloading === 'share' ? 'Fetching…' : 'Save to phone'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={downloadSelected}
+              disabled={selected.size === 0 || !!downloading}
+              className="text-sm bg-[#00330a] text-white px-4 py-2 rounded-full disabled:opacity-40"
+            >
+              {downloading === 'zip' ? 'Preparing…' : selected.size > 1 ? `Download ${selected.size} as zip` : 'Download'}
+            </button>
+          </div>
+          {downloadMsg && (
+            <p role="status" className="max-w-6xl mx-auto mt-2 text-xs text-gray-700">{downloadMsg}</p>
+          )}
+        </div>
+      )}
+
       {viewer && (
         <div
           className="fixed inset-0 z-50 bg-black/95 text-white flex flex-col"
@@ -657,16 +869,38 @@ export default function PhotosPage() {
         >
           <div className="flex items-center justify-between p-2">
             <span className="text-sm px-2 text-white/80">{viewer.index + 1} / {total ?? photos.length}</span>
-            <button
-              type="button"
-              onClick={closeViewer}
-              autoFocus
-              aria-label="Close"
-              className="min-w-[44px] min-h-[44px] rounded-full text-3xl leading-none touch-manipulation hover:bg-white/10"
-            >
-              &times;
-            </button>
+            <span className="flex items-center gap-1">
+              <a
+                href={viewer.photo.downloadUrl ?? viewer.photo.fileUrl}
+                download
+                className="min-h-[44px] inline-flex items-center px-3 rounded-full text-sm hover:bg-white/10 touch-manipulation"
+              >
+                Download
+              </a>
+              {canShareFiles && (
+                <button
+                  type="button"
+                  onClick={() => shareSelected([viewer.photo])}
+                  disabled={!!downloading}
+                  className="min-h-[44px] px-3 rounded-full text-sm hover:bg-white/10 touch-manipulation disabled:opacity-40"
+                >
+                  {downloading === 'share' ? 'Fetching…' : 'Save to phone'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={closeViewer}
+                autoFocus
+                aria-label="Close"
+                className="min-w-[44px] min-h-[44px] rounded-full text-3xl leading-none touch-manipulation hover:bg-white/10"
+              >
+                &times;
+              </button>
+            </span>
           </div>
+          {downloadMsg && (
+            <p role="status" className="px-4 pb-1 text-center text-xs text-white/80">{downloadMsg}</p>
+          )}
           {/* Tapping the dark space around the photo closes; tapping the photo does not,
               so a pinch-zoom or a mis-tap doesn't throw someone out. */}
           <div
@@ -687,12 +921,15 @@ export default function PhotosPage() {
               {viewer.photo.uploadedByName ? `Shared by ${viewer.photo.uploadedByName}` : 'A wedding guest'}
             </p>
           </div>
+          {/* Centred with a margin, not a transform: app/globals.css lifts every button
+              1px on hover via `transform`, which would replace a translate here and
+              drop the caret ~22px every time the mouse crossed it. */}
           {viewer.index > 0 && (
             <button
               type="button"
               onClick={() => stepViewer(-1)}
               aria-label="Previous photo"
-              className="absolute left-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] rounded-full bg-black/40 text-3xl leading-none touch-manipulation"
+              className="absolute left-1 top-1/2 -mt-[22px] min-w-[44px] min-h-[44px] rounded-full bg-black/40 text-3xl leading-none touch-manipulation"
             >
               &lsaquo;
             </button>
@@ -702,7 +939,7 @@ export default function PhotosPage() {
               type="button"
               onClick={() => stepViewer(1)}
               aria-label="Next photo"
-              className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] rounded-full bg-black/40 text-3xl leading-none touch-manipulation"
+              className="absolute right-1 top-1/2 -mt-[22px] min-w-[44px] min-h-[44px] rounded-full bg-black/40 text-3xl leading-none touch-manipulation"
             >
               &rsaquo;
             </button>
