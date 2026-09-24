@@ -60,6 +60,9 @@ export async function GET(request: NextRequest) {
         caption: p.caption,
         fileUrl: p.fileUrl,
         thumbnailUrl: p.thumbnailUrl,
+        // The original as an attachment, for "Download". Older rows without a
+        // public id fall back to the delivery URL.
+        downloadUrl: p.cloudinaryPublicId ? photoUrls(p.cloudinaryPublicId).downloadUrl : p.fileUrl,
         createdAt: p.createdAt,
         likeCount: p.likes.length,
         likedByMe: deviceId !== '' && p.likes.some((l) => l.deviceId === deviceId),

@@ -64,5 +64,26 @@ export function photoUrls(publicId: string) {
   return {
     fileUrl: `${base}/f_auto,q_auto/${publicId}`,
     thumbnailUrl: `${base}/w_600,f_auto,q_auto/${publicId}`,
+    // The original bytes, with Content-Disposition: attachment — so a plain link
+    // saves the photo in every browser instead of opening it. No `download`
+    // attribute needed, which browsers ignore across origins anyway.
+    downloadUrl: `${base}/fl_attachment/${publicId}`,
   }
+}
+
+// How many photos one zip may hold. Every photo in it is delivered at full size,
+// so this is also the most one tap can cost in Cloudinary bandwidth.
+export const ZIP_LIMIT = 100
+
+// Cloudinary builds the zip itself and serves it from this signed URL, so nothing
+// streams through the site. Good for an hour; the browser follows it at once.
+export function zipDownloadUrl(publicIds: string[]): string {
+  if (!apiSecret) throw new Error('Cloudinary not configured')
+  return cloudinary.utils.download_zip_url({
+    public_ids: publicIds,
+    resource_type: 'image',
+    flatten_folders: true,
+    target_public_id: 'emme-and-connor-wedding-photos',
+    expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
+  })
 }

@@ -29,13 +29,13 @@ jest.mock('@/lib/prisma', () => ({
 jest.mock('@/lib/cloudinary', () => ({
   isCloudinaryConfigured: jest.fn().mockReturnValue(true),
   verifyGuestPhoto: jest.fn(),
-  photoUrls: jest.fn().mockReturnValue({ fileUrl: 'F', thumbnailUrl: 'T' }),
+  photoUrls: jest.fn().mockReturnValue({ fileUrl: 'F', thumbnailUrl: 'T', downloadUrl: 'D' }),
 }))
 
 import { GET, POST } from '../route'
 import { PAGE_SIZE, cursorFor } from '@/lib/photo-paging'
 import { prisma } from '@/lib/prisma'
-import { verifyGuestPhoto } from '@/lib/cloudinary'
+import { verifyGuestPhoto, photoUrls } from '@/lib/cloudinary'
 
 const dbPhoto = {
   id: 'p1', uploadedByName: 'Ann', caption: null, fileUrl: 'F', thumbnailUrl: 'T', deviceId: 'dev-1',
@@ -49,7 +49,7 @@ const makePost = (json: unknown) => ({ json: async () => json }) as never
 
 beforeEach(() => {
   jest.clearAllMocks()
-  ;(require('@/lib/cloudinary').photoUrls as jest.Mock).mockReturnValue({ fileUrl: 'F', thumbnailUrl: 'T' })
+  ;(require('@/lib/cloudinary').photoUrls as jest.Mock).mockReturnValue({ fileUrl: 'F', thumbnailUrl: 'T', downloadUrl: 'D' })
   ;(prisma.photo.count as jest.Mock).mockResolvedValue(1)
 })
 
@@ -71,6 +71,21 @@ describe('GET', () => {
       body: { photos: Array<Record<string, unknown>> }
     }
     expect(res.body.photos[0]).toMatchObject({ likeCount: 1, likedByMe: false, mine: false })
+  })
+
+  // "Download" saves the original, told to save rather than open. A row from before
+  // public ids were kept can only offer what it has.
+  it('offers each photo as a download', async () => {
+    ;(prisma.photo.findMany as jest.Mock).mockResolvedValue([
+      { ...dbPhoto, id: 'p1', cloudinaryPublicId: 'guest-photos/abc' },
+      { ...dbPhoto, id: 'p2', cloudinaryPublicId: null },
+    ])
+    const res = (await GET(makeGet('http://x/api/photos?deviceId=dev-1'))) as {
+      body: { photos: Array<Record<string, unknown>> }
+    }
+    expect(res.body.photos[0].downloadUrl).toBe('D')
+    expect(photoUrls).toHaveBeenCalledWith('guest-photos/abc')
+    expect(res.body.photos[1].downloadUrl).toBe('F')
   })
 
   it('never leaks the raw deviceId to the client', async () => {
